@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KRYPTAPAY — Pagamentos Sem Limites & Gateway de Elite</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#8B5CF6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KryptaPay">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icons/logo.png">
+  <link rel="apple-touch-icon" href="/icons/logo.png">
+
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/components.css">
+
+  <style>
+    /* Estilos Cinematográficos Específicos da Landing Page */
+    .landing-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(8, 6, 14, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 1rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .landing-nav {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .landing-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .landing-nav a:hover {
+      color: #fff;
+    }
+
+    /* Cenário de Profundidade 3D / Scroll Depth */
+    .perspective-scene {
+      perspective: 1200px;
+      perspective-origin: center center;
+      overflow: hidden;
+    }
+
+    .hero-section {
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 1.5rem 1rem;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 1.3rem;
+      border-radius: var(--radius-full);
+      background: rgba(139, 92, 246, 0.14);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: var(--purple-400);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);
+    }
+
+    .hero-title {
+      font-size: clamp(2.6rem, 6.5vw, 5rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -2px;
+      max-width: 1050px;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(180deg, #ffffff 40%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 720px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    /* Container do Globo 3D Girando */
+    .globe-hero-container {
+      width: 100%;
+      max-width: 900px;
+      height: 480px;
+      margin: 1rem auto 3rem;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-style: preserve-3d;
+      transition: transform 0.6s ease;
+    }
+
+    .globe-canvas-wrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    /* Seção de Entrada no Computador */
+    .portal-section {
+      padding: 5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    /* Placas e Premiações Showcase */
+    .rewards-showcase {
+      padding: 4rem 2rem 6rem;
+      background: linear-gradient(180deg, transparent 0%, rgba(20, 16, 36, 0.7) 50%, transparent 100%);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Banner Final Épico com a Frase Oficial */
+    .epic-banner {
+      max-width: 1100px;
+      margin: 4rem auto 2rem;
+      padding: 3rem 2rem;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(28, 16, 48, 0.95), rgba(10, 8, 20, 0.98));
+      border: 2px solid rgba(168, 85, 247, 0.6);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(139, 92, 246, 0.4);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .epic-quote {
+      font-size: clamp(1.4rem, 3.5vw, 2.4rem);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.3;
+      background: linear-gradient(135deg, #ffffff 20%, #e9d5ff 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+
+    .epic-sub {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--purple-400);
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-ambient"></div>
+
+  <!-- Header Superior -->
+  <header class="landing-header">
+    <a href="/index.html" class="brand-logo">
+      <img src="/icons/logo.png" class="brand-icon-img" alt="KryptaPay">
+      <span style="font-size:1.25rem; font-weight:900; color:#fff; letter-spacing:-0.5px;">KRYPTAPAY</span>
+    </a>
+
+    <ul class="landing-nav" style="margin: 0; padding: 0;">
+      <li><a href="#globo">Mapa em Tempo Real</a></li>
+      <li><a href="#premiacoes">Premiações 3D</a></li>
+      <li><a href="#vantagens">Vantagens</a></li>
+      <li><a href="#pwa">App Mobile</a></li>
+    </ul>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <button id="themeToggleBtn" class="btn-icon" title="Alternar Tema Claro/Escuro">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+      <a href="/app.html" class="btn-secondary">Entrar</a>
+      <a href="/app.html" class="btn-primary">Criar Conta</a>
+    </div>
+  </header>
+
+  <!-- Cena de Profundidade 3D -->
+  <div class="perspective-scene">
+    <!-- Hero Principal -->
+    <section class="hero-section">
+      <div class="hero-badge">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 10px #10b981;"></span>
+        PAGAMENTOS SEM LIMITES • ALTA ESCALA
+      </div>
+
+      <h1 class="hero-title">O Gateway dos Grandes Operadores Digitais.</h1>
+      <p class="hero-subtitle">
+        Inteligência de roteamento multi-adquirente, aprovação máxima de Pix e cartão, estabilidade para operações de alto volume e a experiência visual mais imersiva do mercado.
+      </p>
+
+      <div style="display:flex; gap:1.25rem; flex-wrap:wrap; justify-content:center; margin-bottom:2rem;">
+        <a href="/app.html" class="btn-primary" style="padding: 0.95rem 2.4rem; font-size: 1.05rem;">
+          Acessar Plataforma KryptaPay
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+        <button onclick="document.getElementById('pwaModal').classList.add('active')" class="btn-secondary" style="padding: 0.95rem 1.8rem; font-size: 1.05rem;">
+          📱 Adicionar ao Celular (PWA)
+        </button>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- GLOBO 3D ROXO INTERATIVO GIRANDO EM TEMPO REAL -->
+      <!-- ======================================================== -->
+      <div id="globo" class="globe-hero-container">
+        <div class="globe-canvas-wrapper">
+          <canvas id="landingGlobeCanvas" style="width:100%; height:100%; cursor:grab;"></canvas>
+        </div>
+      </div>
+      <div style="font-size:0.85rem; color:var(--purple-400); font-weight:600; margin-top:-1rem; margin-bottom:3rem;">
+        🌐 Globo 3D KryptaPay: Arraste para girar em qualquer ângulo e visualize as vendas pelo mundo
+      </div>
+    </section>
+
+    <!-- O que a Plataforma Oferece para Quem Quer Rodar na KryptaPay -->
+    <section id="vantagens" class="portal-section">
+      <h2 style="font-size:clamp(2rem, 4vw, 3rem); font-weight:800; color:#fff; margin-bottom:1rem;">
+        Feita para Quem Precisa de Máxima Aprovação
+      </h2>
+      <p style="color:var(--text-muted); font-size:1.1rem; max-width:800px; margin:0 auto 3rem; line-height:1.6;">
+        Chega de gateways lentas que bloqueiam seu fluxo, recusam suas vendas legítimas ou caem no pico de tráfego. Na KryptaPay você roda com folga.
+      </p>
+
+      <div class="features-grid" style="padding:0; margin-bottom:4rem;">
+        <div class="glass-card feature-card" style="text-align:left;">
+          <div class="feature-icon-box">⚡</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.75rem;">AI Smart Routing Inteligente</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            Se um adquirente oscilar, o pagamento é roteado automaticamente para o próximo provedor em milissegundos sem cobrar seu cliente duas vezes.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card" style="text-align:left;">
+          <div class="feature-icon-box">💸</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.75rem;">Saques Pix Imediatos</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            Solicite saques direto para a sua chave Pix cadastrada (CPF, CNPJ, E-mail ou Telefone) com liquidação rápida e extrato transparente.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card" style="text-align:left;">
+          <div class="feature-icon-box">🔔</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.75rem;">Notificações com Logomarca Oficial</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            Notificações push personalizadas com a foto da KryptaPay no celular, som de caixa registradora e simulador com volume de 1 a 100 notificações.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- PREMIAÇÕES 3D (PLACAS, PULSEIRAS E IPHONE PRO MAX BORDÔ) -->
+    <!-- ======================================================== -->
+    <section id="premiacoes" class="rewards-showcase">
+      <div style="max-width:1200px; margin:0 auto; text-align:center;">
+        <span class="badge-status badge-approved" style="margin-bottom:0.75rem; font-size:0.85rem;">
+          🏆 Reconhecimento aos Maiores Produtores
+        </span>
+        <h2 style="font-size:clamp(2rem, 4.5vw, 3.2rem); font-weight:800; color:#fff; margin-bottom:1rem;">
+          Premiações de Elite & Placas 3D
+        </h2>
+        <p style="color:var(--text-muted); font-size:1.05rem; max-width:750px; margin:0 auto 3rem;">
+          Aqui cada marco de escala é celebrado. Conquiste as placas 3D exclusivas, pulseiras de reconhecimento e a cobiçada premiação especial.
+        </p>
+
+        <!-- Grade de Placas 3D -->
+        <div class="trophy-grid">
+          <div class="trophy-card">
+            <div class="trophy-inner">
+              <div class="trophy-plate">
+                <img src="/icons/logo.png" style="width:40px; height:40px; border-radius:8px; margin-bottom:4px;" alt="Logo">
+                <div style="font-weight:800; font-size:0.8rem; color:#fff;">KRYPTAPAY</div>
+                <div style="font-size:0.75rem; color:var(--purple-400); font-weight:800;">10K</div>
+              </div>
+              <h4 style="font-size:1.2rem; font-weight:700; color:#fff;">Placa 10K</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">R$ 10.000,00 faturados</p>
+              <div style="margin-top:0.75rem; font-size:0.75rem; color:var(--purple-400); font-weight:600;">+ Pulseira Branca Oficial</div>
+            </div>
+          </div>
+
+          <div class="trophy-card">
+            <div class="trophy-inner">
+              <div class="trophy-plate">
+                <img src="/icons/logo.png" style="width:40px; height:40px; border-radius:8px; margin-bottom:4px;" alt="Logo">
+                <div style="font-weight:800; font-size:0.8rem; color:#fff;">KRYPTAPAY</div>
+                <div style="font-size:0.75rem; color:var(--purple-400); font-weight:800;">50K</div>
+              </div>
+              <h4 style="font-size:1.2rem; font-weight:700; color:#fff;">Placa 50K</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">R$ 50.000,00 faturados</p>
+              <div style="margin-top:0.75rem; font-size:0.75rem; color:var(--purple-400); font-weight:600;">+ Pulseira Roxa e Preta</div>
+            </div>
+          </div>
+
+          <div class="trophy-card">
+            <div class="trophy-inner">
+              <div class="trophy-plate">
+                <img src="/icons/logo.png" style="width:40px; height:40px; border-radius:8px; margin-bottom:4px;" alt="Logo">
+                <div style="font-weight:800; font-size:0.8rem; color:#fff;">KRYPTAPAY</div>
+                <div style="font-size:0.75rem; color:var(--purple-400); font-weight:800;">100K BLACK</div>
+              </div>
+              <h4 style="font-size:1.2rem; font-weight:700; color:#fff;">Placa 100K Black</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">R$ 100.000,00 faturados</p>
+              <div style="margin-top:0.75rem; font-size:0.75rem; color:var(--purple-400); font-weight:600;">+ Pulseira Preta Neon</div>
+            </div>
+          </div>
+
+          <div class="trophy-card">
+            <div class="trophy-inner">
+              <div class="trophy-plate">
+                <img src="/icons/logo.png" style="width:40px; height:40px; border-radius:8px; margin-bottom:4px;" alt="Logo">
+                <div style="font-weight:800; font-size:0.8rem; color:#fff;">KRYPTAPAY</div>
+                <div style="font-size:0.75rem; color:var(--purple-400); font-weight:800;">1 MILHÃO</div>
+              </div>
+              <h4 style="font-size:1.2rem; font-weight:700; color:#fff;">Placa 1 Milhão</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">R$ 1.000.000,00 faturados</p>
+              <div style="margin-top:0.75rem; font-size:0.75rem; color:#10b981; font-weight:700;">Troféu Black Voice VIP</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prêmio Especial iPhone Pro Max Bordô -->
+        <div class="glass-card" style="margin-top:3rem; padding:2rem; border:2px solid rgba(190, 18, 60, 0.6); background:linear-gradient(135deg, rgba(35, 12, 25, 0.95), rgba(12, 8, 16, 0.98));">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem; text-align:left;">
+            <div>
+              <span class="badge-status" style="background:rgba(190,18,60,0.25); color:#fb7185; border:1px solid #fb7185;">
+                📱 META ESPECIAL DE 200K
+              </span>
+              <h3 style="font-size:1.6rem; font-weight:900; color:#fff; margin-top:0.5rem;">iPhone Pro Max Bordô Exclusivo</h3>
+              <p style="color:var(--text-muted); font-size:0.95rem; max-width:600px;">
+                Bata a meta de R$ 200.000,00 de faturamento elegível e desbloqueie a entrega do novo iPhone Pro Max Bordô diretamente na sua casa.
+              </p>
+            </div>
+            <a href="/app.html" class="btn-primary" style="padding:0.9rem 2rem; background:linear-gradient(135deg, #be123c, #fb7185); border:none;">
+              Começar a Rodar Agora
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- FRASE ÉPICA FINAL DA KRYPTAPAY -->
+    <!-- ======================================================== -->
+    <section class="portal-section" style="padding-bottom: 2rem;">
+      <div class="epic-banner">
+        <div class="epic-quote">
+          “2027 é nosso. Vamos para cima. Quem não roda black não vive da white.”
+        </div>
+        <div class="epic-sub">
+          KRYPTAPAY — PAGAMENTOS SEM LIMITES
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal PWA (Safari iOS & Android) -->
+  <div id="pwaModal" class="modal-overlay">
+    <div class="modal-window">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <img src="/icons/logo.png" style="width:36px; height:36px; border-radius:8px;" alt="Logo">
+          <h3 style="font-size: 1.3rem; font-weight: 800; color: #fff;">Instalar KryptaPay no Celular</h3>
+        </div>
+        <button onclick="document.getElementById('pwaModal').classList.remove('active')" class="btn-icon" style="border:none; background:transparent;">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="glass-card" style="padding: 1.25rem;">
+          <h4 style="color: var(--purple-400); font-weight: 700; margin-bottom: 0.5rem;">
+            🍏 No iPhone ou iPad (Navegador Safari):
+          </h4>
+          <ol style="margin-left: 1.25rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+            <li>Abra este site no <strong>Safari</strong>;</li>
+            <li>Toque no botão de <strong>Compartilhar</strong> (quadradinho com seta apontando para cima na barra inferior);</li>
+            <li>Role a lista para baixo e toque em <strong>"Adicionar à Tela de Início"</strong>;</li>
+            <li>Confirme o nome <strong>KryptaPay</strong> e toque em <strong>Adicionar</strong>.</li>
+            <li>O aplicativo abrirá em tela cheia como um app da App Store!</li>
+          </ol>
+        </div>
+
+        <div class="glass-card" style="padding: 1.25rem;">
+          <h4 style="color: var(--status-success); font-weight: 700; margin-bottom: 0.5rem;">
+            🤖 No celular Android (Navegador Google Chrome):
+          </h4>
+          <ol style="margin-left: 1.25rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+            <li>Abra este site no <strong>Google Chrome</strong>;</li>
+            <li>Toque nos <strong>três pontinhos</strong> no canto superior direito;</li>
+            <li>Toque em <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>;</li>
+            <li>Toque em <strong>Instalar</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.75rem;">
+        <button onclick="document.getElementById('pwaModal').classList.remove('active')" class="btn-primary" style="width: 100%; justify-content: center;">
+          Entendido, fechar guia
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="footer-content">
+      <div style="display: flex; align-items: center; gap: 0.85rem;">
+        <img src="/icons/logo.png" style="width:34px; height:34px; border-radius:8px;" alt="Logo">
+        <span style="font-weight: 900; font-size: 1.15rem; color: #fff; letter-spacing: -0.5px;">KRYPTAPAY</span>
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">
+        © 2026-2027 KryptaPay Gateway de Pagamentos Ltda. Todos os direitos reservados. Sem marcas d'água.
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/globe3d.js"></script>
+  <script>
+    // Inicializar o Globo 3D da Landing Page
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.KryptaGlobe3D && document.getElementById('landingGlobeCanvas')) {
+        new KryptaGlobe3D('landingGlobeCanvas', {
+          radius: 185,
+          dotCount: 450,
+          activeBuyers: 55,
+          autoRotateSpeed: 0.007
+        });
+      }
+    });
+
+    // Alternância de Tema Claro e Escuro
+    const themeBtn = document.getElementById('themeToggleBtn');
+    let currentTheme = localStorage.getItem('kryptapay_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    themeBtn.addEventListener('click', () => {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('kryptapay_theme', currentTheme);
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
+    }
+  </script>
+</body>
+</html>

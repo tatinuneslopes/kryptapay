@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a0f"/>
+      <stop offset="50%" stop-color="#141124"/>
+      <stop offset="100%" stop-color="#060609"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <!-- Fundo com cantos arredondados -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="url(#purpleGrad)" stroke-width="6" stroke-opacity="0.5"/>
+  
+  <!-- Círculo de Brilho Central -->
+  <circle cx="256" cy="256" r="140" fill="#8b5cf6" opacity="0.15" filter="url(#glow)"/>
+  
+  <!-- Logo Estilizado 'C' & Raio Tecnológico CryptaPay -->
+  <path d="M 320 160 C 270 120 200 125 160 170 C 115 220 115 292 160 342 C 200 387 270 392 320 352" 
+        fill="none" stroke="url(#purpleGrad)" stroke-width="44" stroke-linecap="round" filter="url(#glow)"/>
+  
+  <!-- Raio / Prisma Neon Central -->
+  <polygon points="265,190 220,270 260,270 245,335 295,250 255,250" fill="#38bdf8" filter="url(#glow)"/>
+  <polygon points="265,190 220,270 260,270 245,335 295,250 255,250" fill="#ffffff" opacity="0.9"/>
+</svg>

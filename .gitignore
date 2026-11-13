@@ -1,0 +1,6 @@
+# Ignorar arquivos temporários e bancos locais em produção
+backend/*.sqlite*
+node_modules/
+.env
+.DS_Store
+Thumbs.db

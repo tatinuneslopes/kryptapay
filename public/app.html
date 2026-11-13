@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KryptaPay — Pagamentos Sem Limites & Dashboard</title>
+
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#8B5CF6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KryptaPay">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icons/logo.png">
+  <link rel="apple-touch-icon" href="/icons/logo.png">
+
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+  <div class="bg-ambient"></div>
+
+  <!-- Container de Toasts / Notificações Flutuantes com Foto da Logomarca -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="app-container">
+    <!-- SIDEBAR COMPLETA COM A LOGOMARCA OFICIAL -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/app.html" class="brand-logo">
+          <img src="/icons/logo.png" class="brand-icon-img" alt="KryptaPay Logo">
+          <span class="nav-label" style="font-size: 1.15rem; font-weight:800; letter-spacing: -0.5px;">KRYPTAPAY</span>
+        </a>
+        <button id="sidebarCollapseBtn" class="btn-icon" style="width:32px; height:32px; border:none; background:transparent;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Principal</div>
+        <a class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">1. Dashboard</span>
+        </a>
+        <a class="nav-item" data-tab="quick-pay">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">2. Pagamento Rápido</span>
+          <span class="nav-badge">Pix</span>
+        </a>
+
+        <div class="nav-section-title">Operações & Vendas</div>
+        <a class="nav-item" data-tab="sales">
+          <span class="nav-icon">🛒</span>
+          <span class="nav-label">3. Vendas</span>
+        </a>
+        <a class="nav-item" data-tab="transactions">
+          <span class="nav-icon">📑</span>
+          <span class="nav-label">4. Transações</span>
+        </a>
+        <a class="nav-item" data-tab="acquirers">
+          <span class="nav-icon">🔀</span>
+          <span class="nav-label">5. Adquirentes</span>
+          <span class="nav-badge">AI</span>
+        </a>
+        <a class="nav-item" data-tab="financial">
+          <span class="nav-icon">💰</span>
+          <span class="nav-label">6. Financeiro</span>
+        </a>
+        <a class="nav-item" data-tab="financial">
+          <span class="nav-icon">🏦</span>
+          <span class="nav-label">7. Saques Pix</span>
+        </a>
+
+        <div class="nav-section-title">Catálogo & Checkout</div>
+        <a class="nav-item" data-tab="products">
+          <span class="nav-icon">📦</span>
+          <span class="nav-label">8. Produtos</span>
+        </a>
+        <a class="nav-item" data-tab="checkout">
+          <span class="nav-icon">🎨</span>
+          <span class="nav-label">9. Checkout</span>
+        </a>
+        <a class="nav-item" data-tab="links">
+          <span class="nav-icon">🔗</span>
+          <span class="nav-label">10. Meus Links</span>
+        </a>
+        <a class="nav-item" data-tab="customers">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">11. Clientes</span>
+        </a>
+        <a class="nav-item" data-tab="subscriptions">
+          <span class="nav-icon">🔄</span>
+          <span class="nav-label">12. Assinaturas</span>
+        </a>
+
+        <div class="nav-section-title">Metas & Conteúdo</div>
+        <a class="nav-item" data-tab="cofrinho">
+          <span class="nav-icon">🐷</span>
+          <span class="nav-label">13. Cofrinho</span>
+        </a>
+        <a class="nav-item" data-tab="courses">
+          <span class="nav-icon">🎓</span>
+          <span class="nav-label">14. Cursos</span>
+        </a>
+
+        <div class="nav-section-title">Desenvolvedor & Dados</div>
+        <a class="nav-item" data-tab="integrations">
+          <span class="nav-icon">🔌</span>
+          <span class="nav-label">15. Integrações</span>
+        </a>
+        <a class="nav-item" data-tab="integrations">
+          <span class="nav-icon">🔑</span>
+          <span class="nav-label">16. API</span>
+        </a>
+        <a class="nav-item" data-tab="webhooks">
+          <span class="nav-icon">📡</span>
+          <span class="nav-label">17. Webhooks</span>
+        </a>
+        <a class="nav-item" data-tab="analytics">
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">18. Análises</span>
+        </a>
+        <a class="nav-item" data-tab="analytics">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">19. Rastreamento</span>
+        </a>
+
+        <div class="nav-section-title">Central de Notificações</div>
+        <a class="nav-item" data-tab="notifications">
+          <span class="nav-icon">🔔</span>
+          <span class="nav-label">20. Notificações</span>
+        </a>
+        <a class="nav-item" data-tab="simulation" style="border-left: 3px solid var(--purple-500);">
+          <span class="nav-icon">🚀</span>
+          <span class="nav-label">Simulador (1 a 100)</span>
+          <span class="nav-badge" style="background:#7c3aed; color:#fff;">TESTE</span>
+        </a>
+        <a class="nav-item" data-tab="test-dashboard">
+          <span class="nav-icon">🧪</span>
+          <span class="nav-label">Dashboard de Testes</span>
+        </a>
+
+        <div class="nav-section-title">Gamificação & Elite</div>
+        <a class="nav-item" data-tab="rewards">
+          <span class="nav-icon">🏆</span>
+          <span class="nav-label">21. Premiações</span>
+        </a>
+        <a class="nav-item" data-tab="leaderboard">
+          <span class="nav-icon">🏁</span>
+          <span class="nav-label">22. Corrida de Faturamento</span>
+        </a>
+        <a class="nav-item" data-tab="black-voice">
+          <span class="nav-icon">🎙️</span>
+          <span class="nav-label">23. Black Voice</span>
+        </a>
+
+        <div class="nav-section-title">Atendimento & Gestão</div>
+        <a class="nav-item" data-tab="telegram">
+          <span class="nav-icon">✈️</span>
+          <span class="nav-label">24. Central Telegram</span>
+        </a>
+        <a class="nav-item" data-tab="support">
+          <span class="nav-icon">🎧</span>
+          <span class="nav-label">25. Black Suporte</span>
+        </a>
+        <a class="nav-item" data-tab="privacy">
+          <span class="nav-icon">🛡️</span>
+          <span class="nav-label">26. Privacidade & LGPD</span>
+        </a>
+        <a class="nav-item" data-tab="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">27. Configurações</span>
+        </a>
+        <a class="nav-item" data-tab="admin" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <span class="nav-icon">👑</span>
+          <span class="nav-label">Painel Master Admin</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <main class="main-wrapper">
+      <header class="app-header">
+        <div class="header-left">
+          <button id="mobileMenuBtn" class="btn-icon" style="display:none;" title="Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <h2 id="headerPageTitle" style="font-size:1.3rem; font-weight:700; color:#fff;">Dashboard Principal</h2>
+        </div>
+
+        <div class="header-right">
+          <button onclick="switchTab('quick-pay')" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+            <span>⚡ Cobrança Pix</span>
+          </button>
+
+          <button onclick="triggerPWAInstall()" class="btn-secondary" style="padding: 0.5rem 0.9rem; font-size: 0.85rem;" title="Instalar no Celular">
+            📱 App Mobile
+          </button>
+
+          <button id="themeToggleBtn" class="btn-icon" title="Alternar Tema">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+
+          <div class="btn-icon" onclick="switchTab('notifications')" title="Notificações">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <div id="notifBellBadge" class="notif-badge-dot" style="display:none;"></div>
+          </div>
+
+          <div class="user-profile" onclick="switchTab('settings')">
+            <div class="avatar-circle">KP</div>
+            <div style="font-size: 0.85rem; font-weight: 600;" class="nav-label">Operador Digital</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CORPO DAS TELAS -->
+      <div class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- MÓDULO 1: DASHBOARD PRINCIPAL + MAPA MUNDI 3D -->
+        <!-- ========================================== -->
+        <div id="pane-dashboard" class="view-pane">
+          <!-- Filtros de Período -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <h3 style="font-size: 1.5rem; font-weight: 800; color: #fff;">Visão Geral da Operação</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">Métricas calculadas exclusivamente a partir de transações reais confirmadas.</p>
+            </div>
+            <div class="filter-pills">
+              <button class="pill-btn active">Hoje</button>
+              <button class="pill-btn">Ontem</button>
+              <button class="pill-btn">7 Dias</button>
+              <button class="pill-btn">30 Dias</button>
+              <button class="pill-btn">Este Mês</button>
+              <button class="pill-btn">Personalizado</button>
+            </div>
+          </div>
+
+          <!-- 10 CARDS DE INDICADORES FINANCEIROS REAIS -->
+          <div class="kpi-grid">
+            <div class="glass-card kpi-card" style="--card-accent: #8b5cf6;">
+              <div class="kpi-header">
+                <span class="kpi-title">1. Faturamento Total</span>
+                <span class="kpi-icon">💰</span>
+              </div>
+              <div id="metric-faturamento" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer"><span class="kpi-trend-up">▲ 24.8%</span> vs período anterior</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #10b981;">
+              <div class="kpi-header">
+                <span class="kpi-title">2. Saldo Disponível</span>
+                <span class="kpi-icon">⚡</span>
+              </div>
+              <div id="metric-disponivel" class="kpi-value" style="color:var(--status-success);">R$ 0,00</div>
+              <div class="kpi-footer">Pronto para saque Pix</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #f59e0b;">
+              <div class="kpi-header">
+                <span class="kpi-title">3. Saldo Pendente</span>
+                <span class="kpi-icon">⏳</span>
+              </div>
+              <div id="metric-pendente" class="kpi-value" style="color:var(--status-warning);">R$ 0,00</div>
+              <div class="kpi-footer">Aguardando liquidação</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #64748b;">
+              <div class="kpi-header">
+                <span class="kpi-title">4. Saldo em Retenção</span>
+                <span class="kpi-icon">🔒</span>
+              </div>
+              <div id="metric-retencao" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer">Reserva de segurança</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #10b981;">
+              <div class="kpi-header">
+                <span class="kpi-title">5. Vendas Aprovadas</span>
+                <span class="kpi-icon">✅</span>
+              </div>
+              <div id="metric-aprovadas" class="kpi-value">0</div>
+              <div class="kpi-footer">Pedidos confirmados</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #f59e0b;">
+              <div class="kpi-header">
+                <span class="kpi-title">6. Vendas Pendentes</span>
+                <span class="kpi-icon">🔄</span>
+              </div>
+              <div id="metric-vendas-pendentes" class="kpi-value">0</div>
+              <div class="kpi-footer">Aguardando pagamento</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #ef4444;">
+              <div class="kpi-header">
+                <span class="kpi-title">7. Vendas Recusadas</span>
+                <span class="kpi-icon">❌</span>
+              </div>
+              <div id="metric-recusadas" class="kpi-value">0</div>
+              <div class="kpi-footer">Falha de limite/cartão</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #a855f7;">
+              <div class="kpi-header">
+                <span class="kpi-title">8. Taxa de Aprovação</span>
+                <span class="kpi-icon">📈</span>
+              </div>
+              <div id="metric-taxa" class="kpi-value" style="color:var(--purple-400);">98.5%</div>
+              <div class="kpi-footer">AI Smart Routing ativo</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #06b6d4;">
+              <div class="kpi-header">
+                <span class="kpi-title">9. Ticket Médio</span>
+                <span class="kpi-icon">🏷️</span>
+              </div>
+              <div id="metric-ticket" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer">Média por pedido</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent: #ec4899;">
+              <div class="kpi-header">
+                <span class="kpi-title">10. Total Reembolsos</span>
+                <span class="kpi-icon">↩️</span>
+              </div>
+              <div id="metric-reembolsos" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer">0.1% do faturamento</div>
+            </div>
+          </div>
+
+          <!-- GRÁFICO DINÂMICO DE FATURAMENTO -->
+          <div class="glass-card chart-card">
+            <div class="chart-header">
+              <div>
+                <h4 style="font-size:1.15rem; font-weight:700; color:#fff;">Curva de Crescimento Financeiro</h4>
+                <div style="font-size:0.8rem; color:var(--text-dim);">Evolução diária em R$</div>
+              </div>
+              <span class="badge-status badge-approved">⚡ Atualização em Tempo Real</span>
+            </div>
+            <canvas id="revenueChartCanvas" style="width:100%; height:240px;"></canvas>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- NOVO: MAPA MUNDI 3D EM TEMPO REAL COM CLIENTES & COMPRAS -->
+          <!-- ======================================================== -->
+          <div class="glass-card live-map-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="width:10px; height:10px; border-radius:50%; background:#10b981; box-shadow:0 0 10px #10b981;"></span>
+                  <h4 style="font-size:1.25rem; font-weight:800; color:#fff;">Mapa Operacional de Clientes & Vendas em Tempo Real</h4>
+                </div>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                  Visualização tridimensional das pessoas comprando em sua loja ou site agora. Arraste para girar a esfera em qualquer direção.
+                </p>
+              </div>
+              <div style="display:flex; gap:1.5rem; align-items:center;">
+                <div>
+                  <div style="font-size:0.75rem; color:var(--text-dim);">Visitantes Ativos:</div>
+                  <div style="font-size:1.2rem; font-weight:800; color:var(--purple-400);">1.482 online</div>
+                </div>
+                <div>
+                  <div style="font-size:0.75rem; color:var(--text-dim);">Compras nos últimos 15 min:</div>
+                  <div style="font-size:1.2rem; font-weight:800; color:var(--status-success);">38 pedidos</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Wrapper do Globo e Cards Flutuantes Orbitando -->
+            <div class="live-map-wrapper">
+              <!-- Cards de Compras Orbitando em Volta do Mapa -->
+              <div class="orbit-card orbit-pos-top-left">
+                <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                <div>
+                  <div style="font-weight:700; color:#fff;">Lucas S. (São Paulo)</div>
+                  <div style="color:var(--status-success); font-weight:800;">R$ 197,00 • Pix Aprovado</div>
+                </div>
+              </div>
+
+              <div class="orbit-card orbit-pos-top-right">
+                <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                <div>
+                  <div style="font-weight:700; color:#fff;">Renata A. (Rio de Janeiro)</div>
+                  <div style="color:var(--status-success); font-weight:800;">R$ 49,90 • Pix Aprovado</div>
+                </div>
+              </div>
+
+              <div class="orbit-card orbit-pos-bottom-left">
+                <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                <div>
+                  <div style="font-weight:700; color:#fff;">Carlos E. (Belo Horizonte)</div>
+                  <div style="color:var(--status-success); font-weight:800;">R$ 497,00 • Cartão Aprovado</div>
+                </div>
+              </div>
+
+              <div class="orbit-card orbit-pos-bottom-right">
+                <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                <div>
+                  <div style="font-weight:700; color:#fff;">Vanessa P. (Curitiba)</div>
+                  <div style="color:var(--status-success); font-weight:800;">R$ 97,00 • Pix Aprovado</div>
+                </div>
+              </div>
+
+              <!-- Canvas do Globo 3D -->
+              <div class="globe-canvas-box">
+                <canvas id="dashboardGlobeCanvas" style="width:100%; height:100%; cursor:grab;"></canvas>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:center; gap:2rem; margin-top:1rem; font-size:0.8rem; color:var(--text-dim);">
+              <span style="display:flex; align-items:center; gap:6px;">
+                <span style="width:8px; height:8px; border-radius:50%; background:#c084fc; box-shadow:0 0 8px #c084fc;"></span>
+                Bolinhas Roxas: Clientes ativos navegando e comprando na sua loja
+              </span>
+              <span style="display:flex; align-items:center; gap:6px;">
+                <span style="width:8px; height:8px; border-radius:50%; background:#ffffff; box-shadow:0 0 8px #ffffff;"></span>
+                Anel Orbital: Roteamento AI Smart Routing
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 2: PAGAMENTO RÁPIDO (PIX DINÂMICO) -->
+        <!-- ========================================== -->
+        <div id="pane-quick-pay" class="view-pane" style="display:none;">
+          <div style="max-width: 650px; margin: 0 auto;">
+            <div class="glass-card" style="padding: 2rem;">
+              <div style="text-align:center; margin-bottom: 2rem;">
+                <img src="/icons/logo.png" style="width:64px; height:64px; border-radius:14px; margin:0 auto 1rem; border:2px solid var(--border-card); box-shadow:0 0 20px var(--purple-glow);" alt="Logo">
+                <h3 style="font-size: 1.4rem; font-weight: 800; color: #fff;">Gerador de Cobrança Pix Imediato</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Gere uma cobrança com QR Code dinâmico e código Copia e Cola.</p>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div>
+                  <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Valor da Cobrança (R$)</label>
+                  <input id="quickPixAmount" type="number" step="0.01" placeholder="Ex: 97.00" class="glass-card" 
+                         style="width: 100%; padding: 0.85rem 1rem; font-size: 1.1rem; color: #fff; margin-top: 0.4rem; background: var(--bg-surface); outline: none;">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                  <button onclick="document.getElementById('quickPixAmount').value = '24.90'" class="btn-secondary" style="flex:1; padding:0.4rem;">R$ 24,90</button>
+                  <button onclick="document.getElementById('quickPixAmount').value = '49.90'" class="btn-secondary" style="flex:1; padding:0.4rem;">R$ 49,90</button>
+                  <button onclick="document.getElementById('quickPixAmount').value = '97.00'" class="btn-secondary" style="flex:1; padding:0.4rem;">R$ 97,00</button>
+                  <button onclick="document.getElementById('quickPixAmount').value = '197.00'" class="btn-secondary" style="flex:1; padding:0.4rem;">R$ 197,00</button>
+                </div>
+
+                <div>
+                  <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Nome do Pagador (Opcional)</label>
+                  <input id="quickPixName" type="text" placeholder="Nome completo do cliente" class="glass-card" 
+                         style="width: 100%; padding: 0.85rem 1rem; color: #fff; margin-top: 0.4rem; background: var(--bg-surface); outline: none;">
+                </div>
+
+                <div>
+                  <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Telefone / WhatsApp (Opcional)</label>
+                  <input id="quickPixPhone" type="text" placeholder="(11) 99999-9999" class="glass-card" 
+                         style="width: 100%; padding: 0.85rem 1rem; color: #fff; margin-top: 0.4rem; background: var(--bg-surface); outline: none;">
+                </div>
+
+                <button onclick="generateQuickPix()" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.9rem; font-size: 1rem; margin-top: 0.5rem;">
+                  Gerar QR Code Pix Dinâmico
+                </button>
+              </div>
+
+              <!-- Área de Resultado do Pix Gerado -->
+              <div id="pixResultArea" style="display:none; margin-top: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem; text-align: center;">
+                <span class="badge-status badge-pending" style="margin-bottom: 1rem;">Aguardando Pagamento</span>
+                <div id="pixAmountLabel" style="font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 1rem;">R$ 0,00</div>
+                
+                <div id="pixQrContainer" style="width: 200px; height: 200px; margin: 0 auto 1.5rem; border-radius: 12px; overflow: hidden; border: 2px solid var(--border-card);"></div>
+
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Código Pix Copia e Cola:</label>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                  <input id="pixCopyCode" type="text" readonly class="glass-card" style="flex:1; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: var(--purple-400); background: var(--bg-surface);">
+                  <button onclick="copyPixCode()" class="btn-primary" style="padding: 0.6rem 1rem;">Copiar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 3 & 4: VENDAS & TRANSAÇÕES -->
+        <!-- ========================================== -->
+        <div id="pane-sales" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 1.75rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <h3 style="font-size: 1.3rem; font-weight:700; color:#fff;">Extrato de Vendas Reais</h3>
+              <div style="display:flex; gap:0.5rem;">
+                <input type="text" placeholder="Buscar por pedido ou cliente..." class="glass-card" style="padding:0.4rem 0.8rem; color:#fff; background:var(--bg-surface); font-size:0.85rem;">
+                <button class="btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">Exportar CSV</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Valor Bruto</th>
+                    <th>Valor Líquido</th>
+                    <th>Status</th>
+                    <th>Método</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody id="salesTableBody">
+                  <!-- Carregado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 5: ADQUIRENTES & AI SMART ROUTING -->
+        <!-- ========================================== -->
+        <div id="pane-acquirers" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 1.75rem; margin-bottom: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h3 style="font-size: 1.3rem; font-weight:700; color:#fff;">AI Smart Routing — Roteamento Inteligente</h3>
+                <p style="font-size: 0.85rem; color:var(--text-muted);">
+                  Distribui o fluxo de pagamentos de acordo com disponibilidade técnica, menor taxa e menor histórico de recusa.
+                </p>
+              </div>
+              <span class="badge-status badge-approved">⚡ Ativo & Otimizado</span>
+            </div>
+          </div>
+
+          <h4 style="font-size:1.1rem; font-weight:700; color:#fff; margin-bottom:1rem;">Provedores Conectados</h4>
+          <div id="acquirersList">
+            <!-- Carregado via JS -->
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 6 & 7: FINANCEIRO & SAQUES PIX -->
+        <!-- ========================================== -->
+        <div id="pane-financial" class="view-pane" style="display:none;">
+          <div class="kpi-grid" style="margin-bottom: 2rem;">
+            <div class="glass-card kpi-card">
+              <div class="kpi-title">Saldo Disponível para Saque</div>
+              <div id="finAvailable" class="kpi-value" style="color:var(--status-success);">R$ 0,00</div>
+              <div class="kpi-footer">Liberado para transferência Pix imediata</div>
+            </div>
+            <div class="glass-card kpi-card">
+              <div class="kpi-title">Saldo Pendente (D+1 / D+2)</div>
+              <div id="finPending" class="kpi-value" style="color:var(--status-warning);">R$ 0,00</div>
+              <div class="kpi-footer">Em processo de liquidação bancária</div>
+            </div>
+            <div class="glass-card kpi-card">
+              <div class="kpi-title">Reserva de Segurança (Retenção)</div>
+              <div id="finRetained" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer">Proteção contra chargebacks</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+            <!-- Formulário de Saque Pix -->
+            <div class="glass-card" style="padding: 1.75rem;">
+              <h4 style="font-size: 1.2rem; font-weight: 700; color:#fff; margin-bottom: 1rem;">Solicitar Saque via Pix</h4>
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div>
+                  <label style="font-size: 0.85rem; color: var(--text-muted);">Valor do Saque (R$)</label>
+                  <input id="withdrawAmount" type="number" placeholder="Ex: 5000.00" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+                </div>
+                <div>
+                  <label style="font-size: 0.85rem; color: var(--text-muted);">Tipo de Chave Pix</label>
+                  <select id="withdrawPixType" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="email">E-mail</option>
+                    <option value="phone">Telefone</option>
+                    <option value="aleatoria">Chave Aleatória</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size: 0.85rem; color: var(--text-muted);">Chave Pix</label>
+                  <input id="withdrawPixKey" type="text" placeholder="Digite sua chave Pix cadastrada" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">
+                  Taxa de transferência Pix bancária: <strong>R$ 3,50</strong> (descontada do saldo disponível).
+                </div>
+                <button onclick="requestWithdrawal()" class="btn-primary" style="justify-content:center; padding:0.85rem;">
+                  Confirmar e Transferir Agora
+                </button>
+              </div>
+            </div>
+
+            <!-- Histórico de Saques -->
+            <div class="glass-card" style="padding: 1.75rem;">
+              <h4 style="font-size: 1.2rem; font-weight: 700; color:#fff; margin-bottom: 1rem;">Histórico de Saques</h4>
+              <div class="table-responsive">
+                <table class="crypta-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Valor</th>
+                      <th>Taxa</th>
+                      <th>Líquido</th>
+                      <th>Chave</th>
+                      <th>Status</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody id="withdrawalsTableBody">
+                    <!-- Carregado via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 8: PRODUTOS -->
+        <!-- ========================================== -->
+        <div id="pane-products" class="view-pane" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-size: 1.3rem; font-weight:700; color:#fff;">Catálogo de Produtos</h3>
+            <button class="btn-primary">+ Novo Produto</button>
+          </div>
+          <div id="productsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
+            <!-- Carregado via JS -->
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 9: CHECKOUT PERSONALIZÁVEL -->
+        <!-- ========================================== -->
+        <div id="pane-checkout" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <h3 style="font-size: 1.3rem; font-weight:700; color:#fff; margin-bottom: 1rem;">Personalizador de Checkout</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
+              Configure a aparência do checkout da KryptaPay com sua identidade de marca, cores, logotipo e ofertas de upsell em 1 clique.
+            </p>
+            <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+              <div style="flex:1; min-width:280px;">
+                <label style="font-size:0.85rem; color:var(--text-muted);">Cor de Destaque do Checkout</label>
+                <input type="color" value="#8b5cf6" style="width:100%; height:45px; border-radius:8px; border:none; margin-top:0.4rem; cursor:pointer;">
+              </div>
+              <div style="flex:1; min-width:280px;">
+                <label style="font-size:0.85rem; color:var(--text-muted);">Texto do Botão de Compra</label>
+                <input type="text" value="FINALIZAR PAGAMENTO AGORA" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface);">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- MÓDULO 20: CENTRAL DE NOTIFICAÇÕES & SIMULADOR (PRIORITÁRIO) -->
+        <!-- ========================================================= -->
+        <div id="pane-simulation" class="view-pane" style="display:none;">
+          <div class="glass-card glow-border" style="padding: 2.25rem; margin-bottom: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom: 1.5rem;">
+              <div style="display:flex; align-items:center; gap:1.25rem;">
+                <img src="/icons/logo.png" style="width:58px; height:58px; border-radius:14px; border:2px solid var(--border-card); box-shadow:0 0 20px var(--purple-glow);" alt="Logo">
+                <div>
+                  <span class="badge-status badge-approved" style="margin-bottom:0.4rem;">🚀 Motor de Alta Fidelidade</span>
+                  <h3 style="font-size: 1.5rem; font-weight:800; color:#fff;">Simulador de Notificações KryptaPay</h3>
+                  <p style="font-size: 0.88rem; color:var(--text-muted);">
+                    Dispare simulações para testar notificações com foto da marca no celular ou computador, com alternância rigorosa de status e valores realistas.
+                  </p>
+                </div>
+              </div>
+              <button onclick="switchTab('test-dashboard')" class="btn-secondary">
+                🧪 Abrir Dashboard de Testes Exclusiva
+              </button>
+            </div>
+
+            <!-- Configurações da Rodada de Simulação -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+              <div>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Quantidade de Notificações (1 a 100)</label>
+                <select id="simCountSelect" class="glass-card" style="width:100%; padding:0.8rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface);">
+                  <option value="10">10 Notificações (5 Pendentes / 5 Aprovadas)</option>
+                  <option value="20">20 Notificações (10 Pendentes / 10 Aprovadas)</option>
+                  <option value="30">30 Notificações (15 Pendentes / 15 Aprovadas)</option>
+                  <option value="50">50 Notificações (25 Pendentes / 25 Aprovadas)</option>
+                  <option value="100" selected>100 Notificações (50 Pendentes / 50 Aprovadas - Limite)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Velocidade de Disparo</label>
+                <select id="simSpeedSelect" class="glass-card" style="width:100%; padding:0.8rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface);">
+                  <option value="muito_rapida">Muito Rápida (a cada 2 segundos)</option>
+                  <option value="rapida" selected>Rápida (a cada 4 segundos)</option>
+                  <option value="normal">Normal (a cada 8 segundos)</option>
+                  <option value="lenta">Lenta (a cada 15 segundos)</option>
+                  <option value="custom">Personalizada</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Intervalo Personalizado (segundos)</label>
+                <input id="simCustomInterval" type="number" value="5" min="1" max="120" class="glass-card" style="width:100%; padding:0.8rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Investimento em Anúncios (ROI Simulado)</label>
+                <input id="simAdSpend" type="number" placeholder="Ex: 500.00" class="glass-card" style="width:100%; padding:0.8rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface);">
+              </div>
+            </div>
+
+            <!-- Barra de Progresso ao Vivo -->
+            <div style="margin-bottom: 1.5rem;">
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-dim); margin-bottom:0.4rem;">
+                <span id="simProgressLabel">Aguardando início</span>
+                <span>Limite: 100 por rodada</span>
+              </div>
+              <div style="width:100%; height:10px; background:var(--bg-surface); border-radius:var(--radius-full); overflow:hidden;">
+                <div id="simProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, var(--purple-600), var(--purple-400)); transition:width 0.3s ease;"></div>
+              </div>
+            </div>
+
+            <!-- Botões de Controle -->
+            <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+              <button onclick="startSimulationRun()" class="btn-primary" style="padding:0.85rem 1.75rem;">
+                ▶ Iniciar Simulação Agora
+              </button>
+              <button onclick="pauseSimulationRun()" class="btn-secondary" style="padding:0.85rem 1.5rem;">
+                ⏸ Pausar
+              </button>
+              <button onclick="cancelSimulationRun()" class="btn-secondary" style="padding:0.85rem 1.5rem; color:var(--status-danger);">
+                ⏹ Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- DASHBOARD EXCLUSIVA DE TESTES (ISOLADA) -->
+        <!-- ========================================== -->
+        <div id="pane-test-dashboard" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2rem; border-color: rgba(245, 158, 11, 0.4);">
+            <div style="display:flex; align-items:center; gap:0.75rem; color:var(--status-warning);">
+              <span style="font-size:1.5rem;">⚠️</span>
+              <div>
+                <strong style="color:#fff;">AVISO DE AMBIENTE DE SIMULAÇÃO</strong>
+                <div style="font-size:0.82rem; color:var(--text-muted);">
+                  Todos os dados exibidos nesta área são 100% simulados e não representam pagamentos, saques ou recebimentos reais.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="glass-card kpi-card" style="--card-accent:#f59e0b;">
+              <div class="kpi-title">Faturamento Simulado</div>
+              <div id="simMetricFaturamento" class="kpi-value" style="color:var(--status-warning);">R$ 0,00</div>
+              <div class="kpi-footer">Exclusivo das rodadas de teste</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent:#10b981;">
+              <div class="kpi-title">Vendas Aprovadas Simuladas</div>
+              <div id="simMetricApproved" class="kpi-value">0</div>
+              <div class="kpi-footer">50% da sequência</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent:#f59e0b;">
+              <div class="kpi-title">Vendas Pendentes Simuladas</div>
+              <div id="simMetricPending" class="kpi-value">0</div>
+              <div class="kpi-footer">50% da sequência</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent:#a855f7;">
+              <div class="kpi-title">Ticket Médio Simulado</div>
+              <div id="simMetricTicket" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer">Valores realistas gerados</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent:#06b6d4;">
+              <div class="kpi-title">Investimento em Ads</div>
+              <div id="simMetricAdSpend" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-footer">Informado pelo operador</div>
+            </div>
+
+            <div class="glass-card kpi-card" style="--card-accent:#10b981;">
+              <div class="kpi-title">ROI Simulado</div>
+              <div id="simMetricROI" class="kpi-value" style="color:var(--status-success);">0.0%</div>
+              <div class="kpi-footer">Retorno sobre o investimento</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 21: PREMIAÇÕES & PLACAS 3D -->
+        <!-- ========================================== -->
+        <div id="pane-rewards" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem; margin-bottom: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <h3 style="font-size: 1.5rem; font-weight:800; color:#fff;">Premiações de Elite KryptaPay</h3>
+                <p style="font-size: 0.85rem; color:var(--text-muted);">
+                  Desbloqueadas exclusivamente a partir do faturamento real elegível aprovado.
+                </p>
+              </div>
+              <div>
+                <span style="font-size:0.8rem; color:var(--text-dim);">Faturamento Elegível:</span>
+                <div id="rewardsRevenueLabel" style="font-size:1.6rem; font-weight:800; color:var(--purple-400);">R$ 0,00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Destaque Especial: iPhone Pro Max Bordô -->
+          <div class="glass-card" style="padding: 1.75rem; margin-bottom: 2.5rem; border: 1px solid rgba(190, 18, 60, 0.5); background: linear-gradient(135deg, rgba(30, 10, 20, 0.9), rgba(15, 8, 15, 0.95));">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <div>
+                <span class="badge-status" style="background:rgba(190, 18, 60, 0.2); color:#fb7185; border:1px solid rgba(190, 18, 60, 0.4);">
+                  📱 Prêmio Especial de Elite
+                </span>
+                <h4 style="font-size:1.3rem; font-weight:800; color:#fff; margin-top:0.4rem;">iPhone Pro Max Bordô Exclusivo</h4>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Desbloqueio com R$ 200.000,00 em faturamento elegível.</div>
+              </div>
+              <div id="iphoneProgressPercent" style="font-size:1.6rem; font-weight:800; color:#fb7185;">0%</div>
+            </div>
+            <div style="width:100%; height:12px; background:rgba(255,255,255,0.08); border-radius:var(--radius-full); overflow:hidden;">
+              <div id="iphoneProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #be123c, #fb7185);"></div>
+            </div>
+          </div>
+
+          <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:1.5rem;">Placas de Faturamento 3D</h4>
+          <div id="trophyPlaquesGrid" class="trophy-grid">
+            <!-- Carregado via JS -->
+          </div>
+        </div>
+
+        <div id="pane-leaderboard" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <h3 style="font-size: 1.3rem; font-weight:700; color:#fff; margin-bottom:1rem;">🏁 Corrida de Faturamento</h3>
+            <p style="color:var(--text-muted);">Ranking gamificado entre grandes operadores autorizados.</p>
+          </div>
+        </div>
+
+        <div id="pane-black-voice" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <h3 style="font-size: 1.3rem; font-weight:700; color:#fff; margin-bottom:1rem;">🎙️ Black Voice — Meta 500K</h3>
+            <p style="color:var(--text-muted);">Acompanhamento de alta escala para grandes operações.</p>
+          </div>
+        </div>
+
+        <div id="pane-support" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <h3 style="font-size: 1.3rem; font-weight:700; color:#fff; margin-bottom:1rem;">🎧 Black Suporte Exclusivo</h3>
+            <p style="color:var(--text-muted); margin-bottom:1.5rem;">Atendimento prioritário com tempo médio de resposta inferior a 5 minutos.</p>
+            <button class="btn-primary">+ Abrir Novo Chamado</button>
+          </div>
+        </div>
+
+        <div id="pane-admin" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem; border-color: rgba(239, 68, 68, 0.4);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+              <h3 style="font-size: 1.4rem; font-weight:800; color:#ef4444;">👑 Painel Master Administrativo</h3>
+              <span class="badge-status badge-refused">Acesso Restrito: 2 Administradores</span>
+            </div>
+            <p style="color:var(--text-muted); margin-bottom:1.5rem;">
+              Controle global da plataforma KryptaPay, aprovação de saques em lote, gestão de adquirentes e auditoria de segurança.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/globe3d.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
