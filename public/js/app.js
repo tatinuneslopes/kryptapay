@@ -480,10 +480,29 @@ async function loadRewardsData() {
             <img src="${p.image}" style="width:100%; height:auto; display:block; object-fit:cover;" alt="${p.title}">
           </div>
           <h4 style="font-size: 1.15rem; font-weight:800; color:#fff; margin-bottom:0.25rem;">${p.title}</h4>
-          <p style="font-size: 0.85rem; color: var(--purple-400); margin-bottom:0.5rem; font-weight:600;">Meta: R$ ${p.target.toLocaleString('pt-BR')}</p>
+          <p style="font-size: 0.85rem; color: var(--purple-neon); margin-bottom:0.5rem; font-weight:700;">Meta: R$ ${p.target.toLocaleString('pt-BR')}</p>
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom:1rem;">${p.description || ''}</p>
           <span class="badge-status ${p.unlocked ? 'badge-approved' : 'badge-pending'}">
             ${p.unlocked ? '✨ Conquistada!' : '🔒 Em Progresso'}
+          </span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Renderizar Pulseiras Oficiais
+  const wristbandsGrid = document.getElementById('wristbandsGrid');
+  if (wristbandsGrid && res.bracelets) {
+    wristbandsGrid.innerHTML = res.bracelets.map(b => `
+      <div class="trophy-card">
+        <div class="trophy-inner ${b.unlocked ? '' : 'locked'}" style="padding:1.25rem;">
+          <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+            <img src="${b.image}" style="width:100%; height:auto; display:block; object-fit:cover;" alt="${b.color}">
+          </div>
+          <h4 style="font-size: 1.15rem; font-weight:800; color:#fff; margin-bottom:0.25rem;">${b.color}</h4>
+          <p style="font-size: 0.85rem; color: var(--purple-400); margin-bottom:0.5rem; font-weight:700;">${b.description}</p>
+          <span class="badge-status ${b.unlocked ? 'badge-approved' : 'badge-pending'}">
+            ${b.unlocked ? '✨ Liberada!' : '🔒 Em Progresso'}
           </span>
         </div>
       </div>

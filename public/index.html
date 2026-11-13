@@ -18,21 +18,19 @@
   <link rel="stylesheet" href="/css/components.css">
 
   <style>
-    /* Estilos Cinematográficos Específicos & Paleta Neon das Placas */
     :root {
       --neon-vivid: #b026ff;
       --neon-glow: rgba(176, 38, 255, 0.65);
     }
 
-    /* Header */
     .landing-header {
       position: sticky;
       top: 0;
       z-index: 100;
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      background: rgba(8, 3, 16, 0.88);
-      border-bottom: 1.5px solid rgba(176, 38, 255, 0.3);
+      background: rgba(8, 3, 16, 0.9);
+      border-bottom: 1.5px solid rgba(176, 38, 255, 0.35);
       padding: 1.1rem 2.5rem;
       display: flex;
       align-items: center;
@@ -52,7 +50,6 @@
       font-size: 0.95rem;
       font-weight: 600;
       transition: all 0.25s ease;
-      position: relative;
     }
 
     .landing-nav a:hover {
@@ -60,14 +57,13 @@
       text-shadow: 0 0 10px #c084fc;
     }
 
-    /* Hero Principal Centralizado */
     .hero-center-section {
-      min-height: 100vh;
+      min-height: 92vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 3rem 1.5rem 5rem;
+      padding: 2.5rem 1.5rem 4rem;
       position: relative;
       text-align: center;
     }
@@ -78,7 +74,7 @@
       line-height: 1.12;
       letter-spacing: -1.5px;
       max-width: 950px;
-      margin-bottom: 1rem;
+      margin-bottom: 0.8rem;
       background: linear-gradient(180deg, #ffffff 40%, #e9d5ff 70%, #c084fc 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -89,30 +85,24 @@
       color: #a1a1aa;
       max-width: 680px;
       line-height: 1.6;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2.2rem;
     }
 
     /* CARD DE LOGIN E CADASTRO NO MEIO DA TELA */
     .auth-center-card {
       width: 100%;
-      max-width: 520px;
-      background: linear-gradient(145deg, rgba(20, 8, 38, 0.95), rgba(9, 4, 18, 0.98));
+      max-width: 530px;
+      background: linear-gradient(145deg, rgba(20, 8, 38, 0.96), rgba(9, 4, 18, 0.98));
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border: 1.5px solid rgba(176, 38, 255, 0.5);
       border-radius: 24px;
       padding: 2.25rem 2rem;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(176, 38, 255, 0.35);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 45px rgba(176, 38, 255, 0.4);
       position: relative;
       z-index: 20;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-    .auth-center-card:hover {
-      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.95), 0 0 55px rgba(176, 38, 255, 0.55);
-    }
-
-    /* Alternador de Abas: Login / Cadastro */
     .auth-tab-nav {
       display: flex;
       background: rgba(14, 6, 26, 0.85);
@@ -172,7 +162,6 @@
       background: rgba(18, 7, 34, 0.95);
     }
 
-    /* Aviso de Endereço para Recebimento das Placas */
     .address-reward-notice {
       background: rgba(176, 38, 255, 0.12);
       border: 1px dashed rgba(192, 132, 252, 0.5);
@@ -187,7 +176,6 @@
       gap: 8px;
     }
 
-    /* BOTÃO SUBMIT NEON ROXO VIBRANTE */
     .btn-auth-submit {
       width: 100%;
       padding: 0.95rem;
@@ -209,9 +197,7 @@
       transform: translateY(-2px);
     }
 
-    /* ======================================================= */
-    /* EFEITO 3D DE ENTRAR PARA DENTRO DO COMPUTADOR AO ROLAR */
-    /* ======================================================= */
+    /* Transição 3D: Entrando no Computador */
     .computer-portal-stage {
       perspective: 1500px;
       transform-style: preserve-3d;
@@ -230,8 +216,6 @@
         inset 0 0 40px rgba(176, 38, 255, 0.25);
       padding: 3rem 2rem;
       position: relative;
-      transform: translateZ(0);
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .monitor-glow-top {
@@ -244,77 +228,6 @@
       box-shadow: 0 0 20px #b026ff;
     }
 
-    /* GRADE DAS 5 PLACAS OFICIAIS ENQUADRADAS */
-    .placas-gallery-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      margin-top: 2.5rem;
-    }
-
-    .placa-card-showcase {
-      background: linear-gradient(145deg, rgba(22, 10, 42, 0.9), rgba(10, 4, 20, 0.95));
-      border: 1.5px solid rgba(176, 38, 255, 0.4);
-      border-radius: 20px;
-      padding: 1.25rem;
-      text-align: center;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 20px rgba(176, 38, 255, 0.25);
-      transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .placa-card-showcase:hover {
-      transform: translateY(-8px) scale(1.02);
-      border-color: #b026ff;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.9), 0 0 35px rgba(176, 38, 255, 0.6);
-    }
-
-    .placa-img-wrapper {
-      width: 100%;
-      height: 380px;
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 1.25rem;
-      border: 1px solid rgba(176, 38, 255, 0.3);
-      background: #000;
-    }
-
-    .placa-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.5s ease;
-    }
-
-    .placa-card-showcase:hover .placa-img {
-      transform: scale(1.04);
-    }
-
-    .placa-title {
-      font-size: 1.35rem;
-      font-weight: 900;
-      color: #ffffff;
-      margin-bottom: 0.35rem;
-      letter-spacing: -0.5px;
-    }
-
-    .placa-meta-val {
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: var(--purple-neon);
-      margin-bottom: 0.5rem;
-      text-shadow: 0 0 12px rgba(176, 38, 255, 0.5);
-    }
-
-    .placa-desc {
-      font-size: 0.85rem;
-      color: #a1a1aa;
-      line-height: 1.45;
-    }
-
-    /* Banner Final Épico */
     .epic-footer-banner {
       max-width: 1100px;
       margin: 4rem auto 2rem;
@@ -341,9 +254,9 @@
 
     <ul class="landing-nav" style="margin:0; padding:0;">
       <li><a href="#auth-box">Entrar / Criar Conta</a></li>
-      <li><a href="#portal-computador">Dentro do Computador</a></li>
-      <li><a href="#placas-faturamento">Placas 3D & iPhone</a></li>
+      <li><a href="#portal-computador">Premiações & Placas 3D</a></li>
       <li><a href="#globo-area">Globo em Tempo Real</a></li>
+      <li><a href="#pwa">App Mobile</a></li>
     </ul>
 
     <div style="display:flex; align-items:center; gap:1rem;">
@@ -363,10 +276,96 @@
   </header>
 
   <!-- ======================================================== -->
+  <!-- CARROSSEL CONTÍNUO INFINITO NO TOPO: PLACAS E PULSEIRAS -->
+  <!-- ======================================================== -->
+  <div class="top-marquee-container">
+    <div class="marquee-track">
+      <!-- 1. Placa 10K -->
+      <div class="marquee-card">
+        <img src="/assets/placas/placa-10k.jpg" class="marquee-card-img" alt="10K">
+        <div class="marquee-card-info">
+          <span class="marquee-badge badge-placa">🏆 Troféu Oficial</span>
+          <strong style="font-size:0.95rem; color:#fff;">Placa 10K</strong>
+          <span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 10.000,00</span>
+        </div>
+      </div>
+
+      <!-- 2. Pulseira Roxa Oficial (10K e 50K) -->
+      <div class="marquee-card" style="border-color: rgba(192, 132, 252, 0.6);">
+        <img src="/assets/pulseiras/pulseira-roxa.jpg" class="marquee-card-img" alt="Pulseira Roxa">
+        <div class="marquee-card-info">
+          <span class="marquee-badge badge-pulseira-roxa">🟣 Pulseira Roxa</span>
+          <strong style="font-size:0.95rem; color:#fff;">Pulseira Oficial</strong>
+          <span style="font-size:0.75rem; color:#e9d5ff;">Exclusiva 10K e 50K</span>
+        </div>
+      </div>
+
+      <!-- 3. Placa 50K -->
+      <div class="marquee-card">
+        <img src="/assets/placas/placa-50k.jpg" class="marquee-card-img" alt="50K">
+        <div class="marquee-card-info">
+          <span class="marquee-badge badge-placa">🏆 Troféu Oficial</span>
+          <strong style="font-size:0.95rem; color:#fff;">Placa 50K</strong>
+          <span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 50.000,00</span>
+        </div>
+      </div>
+
+      <!-- 4. Placa 100K Black -->
+      <div class="marquee-card">
+        <img src="/assets/placas/placa-100k.jpg" class="marquee-card-img" alt="100K">
+        <div class="marquee-card-info">
+          <span class="marquee-badge badge-placa">💎 Marco Black</span>
+          <strong style="font-size:0.95rem; color:#fff;">Placa 100K Black</strong>
+          <span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 100.000,00</span>
+        </div>
+      </div>
+
+      <!-- 5. Pulseira Preta VIP (100K, 1M e 10 Milhões) -->
+      <div class="marquee-card" style="border-color: #b026ff; box-shadow: 0 0 20px rgba(176,38,255,0.4);">
+        <img src="/assets/pulseiras/pulseira-preta.jpg" class="marquee-card-img" alt="Pulseira Preta VIP">
+        <div class="marquee-card-info">
+          <span class="marquee-badge badge-pulseira-preta">👑 Pulseira Preta VIP</span>
+          <strong style="font-size:0.95rem; color:#fff;">Elite KryptaPay</strong>
+          <span style="font-size:0.75rem; color:var(--purple-neon);">100K, 1M e 10 Milhões</span>
+        </div>
+      </div>
+
+      <!-- 6. Placa 1 Milhão + iPhone 18 Pro Max Bordô Red -->
+      <div class="marquee-card" style="border-color: #be123c;">
+        <img src="/assets/placas/placa-1m.jpg" class="marquee-card-img" alt="1 Milhão + iPhone">
+        <div class="marquee-card-info">
+          <span class="marquee-badge" style="background:#be123c; color:#fff;">🔥 Placa + iPhone</span>
+          <strong style="font-size:0.95rem; color:#fff;">Placa 1 Milhão</strong>
+          <span style="font-size:0.75rem; color:#fb7185;">+ iPhone 18 Pro Max</span>
+        </div>
+      </div>
+
+      <!-- 7. Placa 10 Milhões Titan -->
+      <div class="marquee-card">
+        <img src="/assets/placas/placa-10m.jpg" class="marquee-card-img" alt="10 Milhões">
+        <div class="marquee-card-info">
+          <span class="marquee-badge badge-placa">👑 Titan 8 Dígitos</span>
+          <strong style="font-size:0.95rem; color:#fff;">Placa 10 Milhões</strong>
+          <span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 10.000.000,00</span>
+        </div>
+      </div>
+
+      <!-- Duplicação para loop infinito suave -->
+      <div class="marquee-card"><img src="/assets/placas/placa-10k.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge badge-placa">🏆 Troféu Oficial</span><strong style="font-size:0.95rem; color:#fff;">Placa 10K</strong><span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 10.000,00</span></div></div>
+      <div class="marquee-card"><img src="/assets/pulseiras/pulseira-roxa.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge badge-pulseira-roxa">🟣 Pulseira Roxa</span><strong style="font-size:0.95rem; color:#fff;">Pulseira Oficial</strong><span style="font-size:0.75rem; color:#e9d5ff;">Exclusiva 10K e 50K</span></div></div>
+      <div class="marquee-card"><img src="/assets/placas/placa-50k.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge badge-placa">🏆 Troféu Oficial</span><strong style="font-size:0.95rem; color:#fff;">Placa 50K</strong><span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 50.000,00</span></div></div>
+      <div class="marquee-card"><img src="/assets/placas/placa-100k.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge badge-placa">💎 Marco Black</span><strong style="font-size:0.95rem; color:#fff;">Placa 100K Black</strong><span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 100.000,00</span></div></div>
+      <div class="marquee-card"><img src="/assets/pulseiras/pulseira-preta.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge badge-pulseira-preta">👑 Pulseira Preta VIP</span><strong style="font-size:0.95rem; color:#fff;">Elite KryptaPay</strong><span style="font-size:0.75rem; color:var(--purple-neon);">100K, 1M e 10 Milhões</span></div></div>
+      <div class="marquee-card"><img src="/assets/placas/placa-1m.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge" style="background:#be123c; color:#fff;">🔥 Placa + iPhone</span><strong style="font-size:0.95rem; color:#fff;">Placa 1 Milhão</strong><span style="font-size:0.75rem; color:#fb7185;">+ iPhone 18 Pro Max</span></div></div>
+      <div class="marquee-card"><img src="/assets/placas/placa-10m.jpg" class="marquee-card-img"><div class="marquee-card-info"><span class="marquee-badge badge-placa">👑 Titan 8 Dígitos</span><strong style="font-size:0.95rem; color:#fff;">Placa 10 Milhões</strong><span style="font-size:0.75rem; color:var(--purple-400);">Meta: R$ 10.000.000,00</span></div></div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- HERO PRINCIPAL COM OS BOTÕES E FORMULÁRIO NO MEIO DA TELA -->
   <!-- ======================================================== -->
   <section class="hero-center-section">
-    <div style="margin-bottom:1.5rem;">
+    <div style="margin-bottom:1.25rem;">
       <span class="badge-status badge-approved" style="font-size:0.85rem; padding:0.4rem 1.2rem; border-color:rgba(176,38,255,0.5); background:rgba(176,38,255,0.15); color:#d8b4fe;">
         ⚡ CONECTANDO VOCÊ AO SEU SUCESSO • PAGAMENTOS SEM LIMITES
       </span>
@@ -376,14 +375,14 @@
       O Gateway dos Grandes Operadores Digitais.
     </h1>
     <p class="hero-subhead">
-      Inteligência de roteamento multi-adquirente, aprovação máxima de Pix e cartão, e as maiores premiações de faturamento do mercado.
+      Inteligência de roteamento multi-adquirente, aprovação máxima de Pix e cartão, e as maiores premiações físicas de faturamento do mercado.
     </p>
 
     <!-- CARD DE LOGIN E CADASTRO NO MEIO DA TELA -->
     <div id="auth-box" class="auth-center-card">
       <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:1.5rem;">
-        <img src="/icons/logo.png" style="width:42px; height:42px; border-radius:10px;" alt="KryptaPay">
-        <span style="font-size:1.4rem; font-weight:900;">
+        <img src="/icons/logo.png" style="width:44px; height:44px; border-radius:10px;" alt="KryptaPay">
+        <span style="font-size:1.45rem; font-weight:900;">
           <span class="brand-k-purple">K</span><span class="brand-krypta-white">rypta</span><span class="brand-pay-purple">Pay</span>
         </span>
       </div>
@@ -398,7 +397,7 @@
         </button>
       </div>
 
-      <!-- FORMULÁRIO DE CADASTRO COMPLETO (PEDE NOME, EMAIL, TELEFONE, CPF, SENHA E ENDEREÇO) -->
+      <!-- FORMULÁRIO DE CADASTRO -->
       <form id="registerForm" onsubmit="handleRegister(event)">
         <div class="auth-input-group">
           <label class="auth-label">Nome Completo</label>
@@ -434,7 +433,7 @@
           <div class="address-reward-notice">
             <span style="font-size:1.1rem;">🎁</span>
             <span>
-              <strong>Por que pedimos seu endereço?</strong> Para enviarmos fisicamente até você as suas <strong>Placas 3D de Faturamento</strong> e o <strong>iPhone 18 Pro Max Bordô Red</strong> assim que você atingir as metas na KryptaPay!
+              <strong>Por que pedimos seu endereço?</strong> Para enviarmos fisicamente até você as suas <strong>Placas 3D de Faturamento</strong>, as <strong>Pulseiras Oficiais</strong> e o <strong>iPhone 18 Pro Max Bordô Red</strong> assim que você atingir as metas na KryptaPay!
             </span>
           </div>
         </div>
@@ -470,10 +469,10 @@
       </form>
     </div>
 
-    <!-- Indicador de Scroll para Entrar Dentro do Computador -->
+    <!-- Indicador de Scroll -->
     <div style="margin-top:3.5rem; display:flex; flex-direction:column; align-items:center; gap:8px;">
       <span style="font-size:0.85rem; font-weight:700; color:var(--purple-400); letter-spacing:1px;">
-        ROLE PARA BAIXO PARA ENTRAR DENTRO DA PLATAFORMA
+        ROLE PARA BAIXO PARA ENTRAR DENTRO DO COMPUTADOR
       </span>
       <div style="width:24px; height:38px; border:2px solid var(--purple-neon); border-radius:12px; display:flex; justify-content:center; padding-top:6px;">
         <div style="width:4px; height:8px; background:#ffffff; border-radius:2px; animation:floatPulse 1.5s infinite;"></div>
@@ -482,94 +481,94 @@
   </section>
 
   <!-- ======================================================== -->
-  <!-- TRANSIÇÃO 3D: ENTRANDO PARA DENTRO DO COMPUTADOR -->
+  <!-- TRANSIÇÃO 3D: DENTRO DO COMPUTADOR COM O SLIDER COVERFLOW -->
   <!-- ======================================================== -->
   <section id="portal-computador" class="computer-portal-stage">
     <div class="monitor-frame-3d">
       <div class="monitor-glow-top"></div>
 
-      <div style="text-align:center; max-width:850px; margin:0 auto 2.5rem;">
+      <div style="text-align:center; max-width:850px; margin:0 auto 2rem;">
         <span class="badge-status badge-approved" style="background:rgba(176,38,255,0.2); color:#d8b4fe; border-color:#b026ff;">
           🖥️ AMBIENTE INTERNO DA KRYPTAPAY
         </span>
         <h2 style="font-size:clamp(2rem, 4vw, 3.2rem); font-weight:900; color:#fff; margin-top:0.75rem;">
-          Você Entrou no Coração da Operação.
+          Cofre de Conquistas & Premiações de Elite
         </h2>
         <p style="color:#a1a1aa; font-size:1.05rem; line-height:1.6; margin-top:0.5rem;">
-          Abaixo estão as <strong>Placas Oficiais de Faturamento</strong> que enviamos diretamente para o endereço cadastrado de cada operador. Aqui você não roda sozinho: cada marco é eternizado em metal, seda roxa e troféus de luxo.
+          Gire para os lados com as setas ou arraste com o dedo para visualizar todas as <strong>Placas 3D</strong> e as <strong>Pulseiras Oficiais</strong> que enviamos na sua residência.
         </p>
       </div>
 
       <!-- ======================================================== -->
-      <!-- AS 5 FOTOS REAIS DAS PLACAS DE FATURAMENTO ENQUADRADAS -->
+      <!-- SLIDER 3D INTERATIVO (PLACAS E PULSEIRAS UMA ATRÁS DA OUTRA) -->
       <!-- ======================================================== -->
-      <div id="placas-faturamento" class="placas-gallery-grid">
-        
-        <!-- 1. Placa 10K -->
-        <div class="placa-card-showcase">
-          <div class="placa-img-wrapper">
-            <img src="/assets/placas/placa-10k.jpg" class="placa-img" alt="Placa 10K KryptaPay">
+      <div class="coverflow-stage-3d">
+        <div id="coverflowWrapper" class="coverflow-carousel-wrapper">
+          
+          <!-- 1. Placa 10K -->
+          <div class="coverflow-item" data-index="0">
+            <img src="/assets/placas/placa-10k.jpg" class="coverflow-img" alt="10K">
+            <h4 style="font-size:1.2rem; font-weight:900; color:#fff;">Placa 10K Faturados</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:var(--purple-neon); margin:2px 0;">Meta: R$ 10.000,00</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">“Parabéns! Você fez parte da nossa história!” — Com coroa dourada real e base de seda roxa.</p>
           </div>
-          <h3 class="placa-title">Placa 10K Faturados</h3>
-          <div class="placa-meta-val">Meta: R$ 10.000,00</div>
-          <p class="placa-desc">
-            “Parabéns! Você fez parte da nossa história!” — Acompanha coroa imperial e o primeiro troféu de metal com acabamento roxo vibrante.
-          </p>
+
+          <!-- 2. Pulseira Roxa Oficial -->
+          <div class="coverflow-item" data-index="1">
+            <img src="/assets/pulseiras/pulseira-roxa.jpg" class="coverflow-img" alt="Pulseira Roxa">
+            <h4 style="font-size:1.2rem; font-weight:900; color:#fff;">Pulseira Roxa KryptaPay</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:#c084fc; margin:2px 0;">Exclusiva 10K e 50K</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">Pulseira em silicone roxo acetinado com gravação em preto alto relevo, entregue para operadores de 10K e 50K.</p>
+          </div>
+
+          <!-- 3. Placa 50K -->
+          <div class="coverflow-item" data-index="2">
+            <img src="/assets/placas/placa-50k.jpg" class="coverflow-img" alt="50K">
+            <h4 style="font-size:1.2rem; font-weight:900; color:#fff;">Placa 50K Faturados</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:var(--purple-neon); margin:2px 0;">Meta: R$ 50.000,00</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">“Juntos, vamos ainda mais longe!” — Placa metálica com acabamento espelhado e coroa com pedrarias.</p>
+          </div>
+
+          <!-- 4. Placa 100K Black -->
+          <div class="coverflow-item" data-index="3">
+            <img src="/assets/placas/placa-100k.jpg" class="coverflow-img" alt="100K">
+            <h4 style="font-size:1.2rem; font-weight:900; color:#fff;">Placa 100K Black</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:var(--purple-neon); margin:2px 0;">Meta: R$ 100.000,00</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">O primeiro marco de 6 dígitos faturados no digital! Placa de luxo em alumínio maciço e coroa imperial lapidada.</p>
+          </div>
+
+          <!-- 5. Pulseira Preta VIP Oficial -->
+          <div class="coverflow-item" data-index="4">
+            <img src="/assets/pulseiras/pulseira-preta.jpg" class="coverflow-img" alt="Pulseira Preta VIP">
+            <h4 style="font-size:1.2rem; font-weight:900; color:#fff;">Pulseira Preta VIP</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:#c084fc; margin:2px 0;">100K, 1M e 10 Milhões</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">A pulseira da alta cúpula: silicone preto ônix com a marca KryptaPay em roxo neon metálico, exclusiva para quem faz 6, 7 e 8 dígitos!</p>
+          </div>
+
+          <!-- 6. Placa 1 Milhão + iPhone 18 Pro Max Bordô Red -->
+          <div class="coverflow-item" data-index="5" style="border-color:#be123c;">
+            <img src="/assets/placas/placa-1m.jpg" class="coverflow-img" alt="1 Milhão + iPhone">
+            <h4 style="font-size:1.15rem; font-weight:900; color:#fff;">Placa 1M + iPhone 18 Pro Max</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:#fb7185; margin:2px 0;">Meta: R$ 1.000.000,00</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">Você ganha a <strong>Placa Imperial 1 Milhão</strong> junto com o <strong>iPhone 18 Pro Max Bordô Red</strong> na caixa lacrada entregue na sua porta!</p>
+          </div>
+
+          <!-- 7. Placa 10 Milhões Titan -->
+          <div class="coverflow-item" data-index="6">
+            <img src="/assets/placas/placa-10m.jpg" class="coverflow-img" alt="10 Milhões">
+            <h4 style="font-size:1.2rem; font-weight:900; color:#fff;">Placa 10 Milhões Titan</h4>
+            <div style="font-size:0.95rem; font-weight:800; color:var(--purple-neon); margin:2px 0;">Meta: R$ 10.000.000,00</div>
+            <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.4;">O troféu do topo da cadeia: 8 dígitos faturados com gravação a laser personalizada e coroa real imperial.</p>
+          </div>
+
         </div>
 
-        <!-- 2. Placa 50K -->
-        <div class="placa-card-showcase">
-          <div class="placa-img-wrapper">
-            <img src="/assets/placas/placa-50k.jpg" class="placa-img" alt="Placa 50K KryptaPay">
-          </div>
-          <h3 class="placa-title">Placa 50K Faturados</h3>
-          <div class="placa-meta-val">Meta: R$ 50.000,00</div>
-          <p class="placa-desc">
-            “Juntos, vamos ainda mais longe!” — Placa em alumínio escovado com moldura preta ônix e base iluminada em roxo neon.
-          </p>
+        <!-- Controles com Setas e Indicadores de Pontos -->
+        <div class="coverflow-nav-controls">
+          <button id="cfPrevBtn" class="btn-coverflow-arrow" title="Anterior">‹</button>
+          <div id="coverflowDots" class="coverflow-dots"></div>
+          <button id="cfNextBtn" class="btn-coverflow-arrow" title="Próximo">›</button>
         </div>
-
-        <!-- 3. Placa 100K -->
-        <div class="placa-card-showcase">
-          <div class="placa-img-wrapper">
-            <img src="/assets/placas/placa-100k.jpg" class="placa-img" alt="Placa 100K KryptaPay">
-          </div>
-          <h3 class="placa-title">Placa 100K Black</h3>
-          <div class="placa-meta-val">Meta: R$ 100.000,00</div>
-          <p class="placa-desc">
-            O cobiçado marco de 6 dígitos no digital! Placa de luxo com coroa dourada e pedrarias ametista lapidadas.
-          </p>
-        </div>
-
-        <!-- 4. Placa 1 Milhão + iPhone 18 Pro Max Bordô Red -->
-        <div class="placa-card-showcase" style="border: 2px solid #b026ff; box-shadow: 0 0 35px rgba(176,38,255,0.45);">
-          <div style="position:absolute; top:12px; right:12px; z-index:5;">
-            <span class="badge-status" style="background:#be123c; color:#fff; font-weight:800; border:none;">
-              🔥 PLACA + IPHONE 18 PRO MAX
-            </span>
-          </div>
-          <div class="placa-img-wrapper">
-            <img src="/assets/placas/placa-1m.jpg" class="placa-img" alt="Placa 1 Milhão + iPhone 18 Pro Max Bordô Red">
-          </div>
-          <h3 class="placa-title">Placa 1 Milhão + iPhone 18 Pro Max</h3>
-          <div class="placa-meta-val" style="color:#fb7185;">Meta: R$ 1.000.000,00</div>
-          <p class="placa-desc">
-            A consagração máxima: ao bater 1 Milhão faturados, você recebe a <strong>Placa Imperial 1M</strong> junto com o novíssimo <strong>iPhone 18 Pro Max Bordô Red</strong> na caixa lacrada entregue na sua residência!
-          </p>
-        </div>
-
-        <!-- 5. Placa 10 Milhões -->
-        <div class="placa-card-showcase">
-          <div class="placa-img-wrapper">
-            <img src="/assets/placas/placa-10m.jpg" class="placa-img" alt="Placa 10 Milhões KryptaPay">
-          </div>
-          <h3 class="placa-title">Placa 10 Milhões Titan</h3>
-          <div class="placa-meta-val">Meta: R$ 10.000,000,00</div>
-          <p class="placa-desc">
-            O ápice da elite digital brasileira (8 dígitos)! Troféu Titan exclusivo com gravação a laser personalizada e coroa real banhada.
-          </p>
-        </div>
-
       </div>
 
       <!-- ======================================================== -->
@@ -663,8 +662,8 @@
   <script src="/js/api.js"></script>
   <script src="/js/globe3d.js"></script>
   <script src="/js/particles.js"></script>
+  <script src="/js/coverflow.js"></script>
   <script>
-    // Alternar entre Aba de Cadastro e Aba de Login
     function switchAuthTab(tab) {
       const regBtn = document.getElementById('tabRegisterBtn');
       const loginBtn = document.getElementById('tabLoginBtn');
@@ -684,7 +683,6 @@
       }
     }
 
-    // Processar Cadastro Completo
     async function handleRegister(e) {
       e.preventDefault();
       const payload = {
@@ -714,7 +712,6 @@
       }
     }
 
-    // Processar Login
     async function handleLogin(e) {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value;
@@ -738,8 +735,13 @@
       }
     }
 
-    // Inicializar o Globo 3D Roxo
     document.addEventListener('DOMContentLoaded', () => {
+      // Iniciar Coverflow Slider 3D
+      if (window.KryptaCoverflow) {
+        new KryptaCoverflow('coverflowWrapper');
+      }
+
+      // Iniciar Globo 3D Roxo
       if (window.KryptaGlobe3D && document.getElementById('landingGlobeCanvas')) {
         new KryptaGlobe3D('landingGlobeCanvas', {
           radius: 180,
@@ -750,7 +752,6 @@
       }
     });
 
-    // Tema Claro / Escuro
     const themeBtn = document.getElementById('themeToggleBtn');
     let currentTheme = localStorage.getItem('kryptapay_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', currentTheme);

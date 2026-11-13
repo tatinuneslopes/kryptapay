@@ -372,6 +372,11 @@ const server = http.createServer(async (req, res) => {
       { id: 'p10m', title: 'Placa 10 Milhões Titan', target: 10000000, image: '/assets/placas/placa-10m.jpg', description: 'O ápice da elite: 8 dígitos no digital!', unlocked: revenue >= 10000000 }
     ];
 
+    const bracelets = [
+      { color: 'Pulseira Roxa Oficial', target: 10000, image: '/assets/pulseiras/pulseira-roxa.jpg', description: 'Exclusiva para operadores de 10K e 50K', unlocked: revenue >= 10000 },
+      { color: 'Pulseira Preta VIP Oficial', target: 100000, image: '/assets/pulseiras/pulseira-preta.jpg', description: 'Exclusiva para a alta cúpula de 100K, 1M e 10 Milhões', unlocked: revenue >= 100000 }
+    ];
+
     const specialIPhone = {
       title: 'iPhone 18 Pro Max Bordô Red',
       target: 1000000,
