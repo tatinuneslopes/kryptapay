@@ -1,25 +1,44 @@
-// KryptaPay 3D Interactive Neon Globe Engine (Vanilla 3D Canvas Projection - 60 FPS)
+// KryptaPay Official 3D Neon Earth Globe Engine (Foto Oficial + Pontos Roxos Delicados)
 class KryptaGlobe3D {
   constructor(canvasId, options = {}) {
     this.canvas = document.getElementById(canvasId);
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
     this.options = Object.assign({
-      radius: 170,
-      dotCount: 420,
-      autoRotateSpeed: 0.007,
-      glowColor: '#a855f7',
-      ringColor: '#c084fc',
-      activeBuyers: 45
+      radius: 200,
+      autoRotateSpeed: 0.006,
+      activeDotsCount: 22 // Poucos pontinhos dentro da bola
     }, options);
 
-    this.dots = [];
-    this.buyers = [];
-    this.rotationX = 0.25;
     this.rotationY = 0;
+    this.rotationX = 0.22;
     this.isDragging = false;
     this.prevMouseX = 0;
     this.prevMouseY = 0;
+
+    // Carregar a foto oficial do mapa mundi
+    this.globeImg = new Image();
+    this.globeImg.src = '/assets/globo-oficial.jpg';
+    this.imgLoaded = false;
+    this.globeImg.onload = () => {
+      this.imgLoaded = true;
+    };
+
+    // Gerar poucos pontinhos roxos delicados dentro da esfera
+    this.purpleNodes = [];
+    for (let i = 0; i < this.options.activeDotsCount; i++) {
+      // Distribuição esférica
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      this.purpleNodes.push({
+        x: Math.sin(phi) * Math.cos(theta),
+        y: Math.cos(phi),
+        z: Math.sin(phi) * Math.sin(theta),
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.03 + Math.random() * 0.03,
+        size: Math.random() * 1.2 + 1.8 // Bem pequenininho
+      });
+    }
 
     this.init();
   }
@@ -27,32 +46,6 @@ class KryptaGlobe3D {
   init() {
     this.resize();
     window.addEventListener('resize', () => this.resize());
-
-    // Gerar pontos da esfera 3D (Fibonacci Sphere Algorithm para distribuição uniforme)
-    const phi = Math.PI * (3 - Math.sqrt(5));
-    for (let i = 0; i < this.options.dotCount; i++) {
-      const y = 1 - (i / (this.options.dotCount - 1)) * 2;
-      const radiusAtY = Math.sqrt(1 - y * y);
-      const theta = phi * i;
-      const x = Math.cos(theta) * radiusAtY;
-      const z = Math.sin(theta) * radiusAtY;
-      this.dots.push({ x, y, z });
-    }
-
-    // Gerar pontos de clientes ativos ("bolinhas roxas intensas pulsando")
-    for (let i = 0; i < this.options.activeBuyers; i++) {
-      const dot = this.dots[Math.floor(Math.random() * this.dots.length)];
-      this.buyers.push({
-        x: dot.x,
-        y: dot.y,
-        z: dot.z,
-        pulsePhase: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.04 + Math.random() * 0.04,
-        amount: [24.90, 49.90, 97.00, 197.00, 497.00][Math.floor(Math.random() * 5)]
-      });
-    }
-
-    // Eventos de arraste com mouse e touch no celular (rotação 3D livre)
     this.setupInteractivity();
     this.animate();
   }
@@ -61,12 +54,12 @@ class KryptaGlobe3D {
     if (!this.canvas) return;
     const rect = this.canvas.parentElement.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    this.width = rect.width || 600;
-    this.height = this.canvas.height || 450;
+    this.width = rect.width || 680;
+    this.height = this.canvas.height || 480;
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
     this.ctx.scale(dpr, dpr);
-    this.radius = Math.min(this.width, this.height) * 0.38;
+    this.radius = Math.min(this.width, this.height) * 0.42; // Bem grandão
   }
 
   setupInteractivity() {
@@ -108,7 +101,6 @@ class KryptaGlobe3D {
     if (!this.isDragging) {
       this.rotationY += this.options.autoRotateSpeed;
     }
-
     this.render();
     requestAnimationFrame(() => this.animate());
   }
@@ -120,107 +112,131 @@ class KryptaGlobe3D {
     const cx = width / 2;
     const cy = height / 2;
 
-    // 1. Brilho Ambiente Central
-    const radialGlow = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius * 1.3);
-    radialGlow.addColorStop(0, 'rgba(139, 92, 246, 0.25)');
-    radialGlow.addColorStop(0.6, 'rgba(124, 58, 237, 0.12)');
-    radialGlow.addColorStop(1, 'rgba(6, 6, 9, 0)');
-    ctx.fillStyle = radialGlow;
+    // 1. Brilho Ambiente Roxo Profundo no Fundo
+    const bgGlow = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius * 1.4);
+    bgGlow.addColorStop(0, 'rgba(176, 38, 255, 0.28)');
+    bgGlow.addColorStop(0.5, 'rgba(147, 51, 234, 0.15)');
+    bgGlow.addColorStop(1, 'rgba(4, 1, 8, 0)');
+    ctx.fillStyle = bgGlow;
     ctx.beginPath();
-    ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
+    ctx.arc(cx, cy, radius * 1.4, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Anel Orbital Neon em Volta do Globo (Exatamente como na Logomarca Oficial)
-    this.drawOrbitalRing(cx, cy, radius);
+    // 2. Desenhar o Globo Base Oficial com Máscara Esférica
+    if (this.imgLoaded) {
+      ctx.save();
+      // Criar máscara circular do mundo
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.clip();
 
-    // Matriz de Rotação 3D
+      // Rotação da imagem simulada
+      ctx.translate(cx, cy);
+      ctx.rotate(this.rotationX * 0.1);
+      ctx.drawImage(this.globeImg, -radius, -radius, radius * 2, radius * 2);
+
+      // Sombra esfumada para efeito de esfera 3D
+      const sphereShade = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, radius * 0.2, cx, cy, radius);
+      sphereShade.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+      sphereShade.addColorStop(0.7, 'rgba(10, 4, 20, 0.2)');
+      sphereShade.addColorStop(1, 'rgba(4, 1, 8, 0.75)');
+      ctx.fillStyle = sphereShade;
+      ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+
+      ctx.restore();
+    }
+
+    // 3. Desenhar os Múltiplos Anéis Orbitais Neon em Roxo (Igual à Foto Oficial)
+    this.drawOfficialOrbitalRings(cx, cy, radius);
+
+    // 4. Desenhar os POUCOS PONTINHOS ROXOS DELICADOS DENTRO DA BOLA
     const cosY = Math.cos(rotationY);
     const sinY = Math.sin(rotationY);
     const cosX = Math.cos(rotationX);
     const sinX = Math.sin(rotationX);
 
-    // 3. Projetar e ordenar os pontos da Terra
-    const projectedDots = [];
+    for (const node of this.purpleNodes) {
+      node.phase += node.speed;
+      const pulse = Math.sin(node.phase);
+      const alpha = 0.5 + pulse * 0.45; // Oscilação suave
 
-    for (const p of this.dots) {
-      // Rotação no eixo Y
-      const x1 = p.x * cosY - p.z * sinY;
-      const z1 = p.z * cosY + p.x * sinY;
-      // Rotação no eixo X
-      const y2 = p.y * cosX - z1 * sinX;
-      const z2 = z1 * cosX + p.y * sinX;
+      // Projeção 3D
+      const x1 = node.x * cosY - node.z * sinY;
+      const z1 = node.z * cosY + node.x * sinY;
+      const y2 = node.y * cosX - z1 * sinX;
+      const z2 = z1 * cosX + node.y * sinX;
 
-      const scale = 280 / (280 + z2 * radius);
-      const px = cx + x1 * radius;
-      const py = cy + y2 * radius;
-      const alpha = (z2 + 1) / 2; // Profundidade
+      // Desenhar apenas na parte visível da esfera
+      if (z2 > -0.15) {
+        const px = cx + x1 * (radius * 0.95);
+        const py = cy + y2 * (radius * 0.95);
 
-      projectedDots.push({ px, py, z2, alpha, scale });
-    }
-
-    // Desenhar pontos da malha do mapa mundi
-    for (const d of projectedDots) {
-      if (d.z2 < -0.3) continue; // Ocultar lado posterior
-      ctx.beginPath();
-      ctx.arc(d.px, d.py, Math.max(1, 1.8 * d.scale), 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(168, 85, 247, ${Math.min(1, d.alpha * 0.75)})`;
-      ctx.fill();
-    }
-
-    // 4. Desenhar os Clientes Ativos ("Bolinhas Roxas Pulsantes em Tempo Real")
-    for (const b of this.buyers) {
-      b.pulsePhase += b.pulseSpeed;
-      const pulseScale = 1 + Math.sin(b.pulsePhase) * 0.45;
-
-      const x1 = b.x * cosY - b.z * sinY;
-      const z1 = b.z * cosY + b.x * sinY;
-      const y2 = b.y * cosX - z1 * sinX;
-      const z2 = z1 * cosX + b.y * sinX;
-
-      if (z2 > -0.2) {
-        const px = cx + x1 * radius;
-        const py = cy + y2 * radius;
-        const alpha = Math.min(1, (z2 + 1) * 0.85);
-
-        // Halo de pulso
+        // Halo roxo neon oscilante
         ctx.beginPath();
-        ctx.arc(px, py, 9 * pulseScale, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(192, 132, 252, ${0.35 * alpha})`;
+        ctx.arc(px, py, node.size * 2.8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(176, 38, 255, ${0.3 * alpha})`;
         ctx.fill();
 
-        // Ponto central vibrante
+        // Ponto central roxo vibrante bem pequenininho
         ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.shadowColor = '#c084fc';
-        ctx.shadowBlur = 12;
+        ctx.arc(px, py, node.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(217, 70, 239, ${alpha})`;
+        ctx.shadowColor = '#b026ff';
+        ctx.shadowBlur = 8;
         ctx.fill();
-        ctx.shadowBlur = 0; // reset
+        ctx.shadowBlur = 0;
       }
     }
   }
 
-  // Desenhar Anel Orbital Iluminado 3D (Inspirado na logo KryptaPay)
-  drawOrbitalRing(cx, cy, radius) {
+  // Desenhar os múltiplos anéis orbitais com brilho roxo neon da foto oficial
+  drawOfficialOrbitalRings(cx, cy, radius) {
     const { ctx } = this;
+    const time = Date.now() * 0.001;
+
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(-0.35); // Ângulo inclinado elíptico da logo
 
+    // Anel Principal Inclinado
+    ctx.save();
+    ctx.rotate(-0.35 + Math.sin(time * 0.5) * 0.03);
     ctx.beginPath();
-    ctx.ellipse(0, 0, radius * 1.45, radius * 0.38, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#a855f7';
-    ctx.shadowBlur = 18;
+    ctx.ellipse(0, 0, radius * 1.35, radius * 0.36, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(176, 38, 255, 0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#b026ff';
+    ctx.shadowBlur = 20;
     ctx.stroke();
 
-    // Brilho intenso no arco frontal
+    // Destaque de brilho roxo vibrante no arco frontal
     ctx.beginPath();
-    ctx.ellipse(0, 0, radius * 1.45, radius * 0.38, 0, Math.PI * 0.2, Math.PI * 0.85);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
+    ctx.ellipse(0, 0, radius * 1.35, radius * 0.36, 0, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.strokeStyle = '#d946ef';
+    ctx.lineWidth = 3.5;
     ctx.stroke();
+    ctx.restore();
+
+    // Segundo Anel Transversal
+    ctx.save();
+    ctx.rotate(0.45);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius * 1.28, radius * 0.32, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(192, 132, 252, 0.35)';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.restore();
+
+    // Terceiro Anel da Base (Reflexo de pedestal)
+    ctx.save();
+    ctx.translate(0, radius * 0.85);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius * 1.15, radius * 0.22, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(176, 38, 255, 0.45)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#b026ff';
+    ctx.shadowBlur = 15;
+    ctx.stroke();
+    ctx.restore();
 
     ctx.restore();
   }

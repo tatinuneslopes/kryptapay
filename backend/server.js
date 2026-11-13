@@ -373,8 +373,9 @@ const server = http.createServer(async (req, res) => {
     ];
 
     const bracelets = [
-      { color: 'Pulseira Roxa Oficial', target: 10000, image: '/assets/pulseiras/pulseira-roxa.jpg', description: 'Exclusiva para operadores de 10K e 50K', unlocked: revenue >= 10000 },
-      { color: 'Pulseira Preta VIP Oficial', target: 100000, image: '/assets/pulseiras/pulseira-preta.jpg', description: 'Exclusiva para a alta cúpula de 100K, 1M e 10 Milhões', unlocked: revenue >= 100000 }
+      { color: 'Pulseira Roxa Oficial', target: 10000, image: '/assets/pulseiras/pulseira-roxa.jpg', description: 'Silicone roxo com gravação preta • Exclusiva 10K e 50K', unlocked: revenue >= 10000 },
+      { color: 'Pulseira Preta VIP Oficial', target: 100000, image: '/assets/pulseiras/pulseira-preta.jpg', description: 'Silicone preto ônix com roxo neon metálico • Exclusiva 100K e 1M', unlocked: revenue >= 100000 },
+      { color: 'Pulseira Titan 10 Milhões #1', target: 10000000, image: '/assets/pulseiras/pulseira-10m.jpg', description: 'Com a medalha real do 01 • O ápice de 8 dígitos faturados', unlocked: revenue >= 10000000 }
     ];
 
     const specialIPhone = {

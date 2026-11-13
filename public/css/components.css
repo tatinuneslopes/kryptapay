@@ -829,3 +829,23 @@
   .coverflow-item.next-1 { transform: translateX(140px) scale(0.85); }
   .coverflow-item.prev-2, .coverflow-item.next-2 { display: none; }
 }
+/* Adição de Estilos para 3D Card Tilt, Rotação Livre e Specular Glare */
+.card-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 10;
+}
+
+.tilt-card-3d {
+  transform-style: preserve-3d;
+  will-change: transform;
+  cursor: grab;
+}
+
+.tilt-card-3d:active {
+  cursor: grabbing;
+}
