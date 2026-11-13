@@ -20,6 +20,8 @@ db.exec(`
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'merchant', -- 'admin', 'merchant'
     phone TEXT,
+    cpf TEXT,
+    shipping_address TEXT,
     avatar_url TEXT,
     two_factor_enabled INTEGER DEFAULT 0,
     two_factor_secret TEXT,

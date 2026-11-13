@@ -475,14 +475,13 @@ async function loadRewardsData() {
   if (grid && res.plaques) {
     grid.innerHTML = res.plaques.map(p => `
       <div class="trophy-card">
-        <div class="trophy-inner ${p.unlocked ? '' : 'locked'}">
-          <div class="trophy-plate">
-            <img src="/icons/logo.png" style="width:42px; height:42px; border-radius:8px; margin-bottom:4px;" alt="KryptaPay">
-            <div style="font-weight: 800; font-size: 0.8rem; color: #fff; letter-spacing: 1px;">KRYPTAPAY</div>
-            <div style="font-size: 0.7rem; color: var(--purple-400); font-weight:700;">${p.title}</div>
+        <div class="trophy-inner ${p.unlocked ? '' : 'locked'}" style="padding:1.25rem;">
+          <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+            <img src="${p.image}" style="width:100%; height:auto; display:block; object-fit:cover;" alt="${p.title}">
           </div>
-          <h4 style="font-size: 1.15rem; font-weight:700; color:#fff; margin-bottom:0.25rem;">${p.title}</h4>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom:1rem;">Meta: R$ ${p.target.toLocaleString('pt-BR')}</p>
+          <h4 style="font-size: 1.15rem; font-weight:800; color:#fff; margin-bottom:0.25rem;">${p.title}</h4>
+          <p style="font-size: 0.85rem; color: var(--purple-400); margin-bottom:0.5rem; font-weight:600;">Meta: R$ ${p.target.toLocaleString('pt-BR')}</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom:1rem;">${p.description || ''}</p>
           <span class="badge-status ${p.unlocked ? 'badge-approved' : 'badge-pending'}">
             ${p.unlocked ? '✨ Conquistada!' : '🔒 Em Progresso'}
           </span>

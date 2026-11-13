@@ -101,6 +101,45 @@ const server = http.createServer(async (req, res) => {
   // -------------------------------------------------------------
   // ROTAS DE AUTENTICAÇÃO
   // -------------------------------------------------------------
+  if (pathname === '/api/auth/register' && method === 'POST') {
+    const { full_name, email, password, phone, cpf, shipping_address } = await parseBody(req);
+    
+    if (!email || !password || !full_name) {
+      return sendJSON(res, 400, { error: 'Preencha nome completo, e-mail e senha.' });
+    }
+
+    const existing = db.prepare(`SELECT id FROM users WHERE email = ?`).get(email);
+    if (existing) {
+      return sendJSON(res, 400, { error: 'Este e-mail já está cadastrado no KryptaPay.' });
+    }
+
+    const userId = 'usr_' + crypto.randomBytes(6).toString('hex');
+    const passwordHash = hashPassword(password);
+
+    try {
+      db.prepare(`
+        INSERT INTO users (id, email, password_hash, full_name, role, phone, cpf, shipping_address, balance_available, balance_pending, balance_retained)
+        VALUES (?, ?, ?, ?, 'merchant', ?, ?, ?, 0.00, 0.00, 0.00)
+      `).run(userId, email, passwordHash, full_name, phone || '', cpf || '', shipping_address || '');
+
+      const sessionToken = createSession(userId, req.socket.remoteAddress, req.headers['user-agent']);
+      return sendJSON(res, 201, {
+        success: true,
+        token: sessionToken,
+        user: {
+          id: userId,
+          email,
+          full_name,
+          role: 'merchant',
+          balance_available: 0.00
+        }
+      });
+    } catch (err) {
+      console.error('Erro ao registrar:', err);
+      return sendJSON(res, 500, { error: 'Falha ao criar conta. Tente novamente.' });
+    }
+  }
+
   if (pathname === '/api/auth/login' && method === 'POST') {
     const { email, password } = await parseBody(req);
     const user = db.prepare(`SELECT * FROM users WHERE email = ?`).get(email);
@@ -326,26 +365,19 @@ const server = http.createServer(async (req, res) => {
     `).get(userId).eligible_volume;
 
     const plaques = [
-      { id: 'p10k', title: 'Placa 10K', target: 10000, unlocked: revenue >= 10000 },
-      { id: 'p30k', title: 'Placa 30K', target: 30000, unlocked: revenue >= 30000 },
-      { id: 'p50k', title: 'Placa 50K', target: 50000, unlocked: revenue >= 50000 },
-      { id: 'p100k', title: 'Placa 100K Black', target: 100000, unlocked: revenue >= 100000 },
-      { id: 'p500k', title: 'Placa 500K Elite', target: 500000, unlocked: revenue >= 500000 },
-      { id: 'p1m', title: 'Placa 1 Milhão', target: 1000000, unlocked: revenue >= 1000000 },
-      { id: 'p10m', title: 'Placa 10 Milhões Titan', target: 10000000, unlocked: revenue >= 10000000 }
-    ];
-
-    const bracelets = [
-      { color: 'Pulseira Branca', target: 10000, unlocked: revenue >= 10000 },
-      { color: 'Pulseira Roxa e Preta', target: 50000, unlocked: revenue >= 50000 },
-      { color: 'Pulseira Preta com Roxo Neon', target: 100000, unlocked: revenue >= 100000 }
+      { id: 'p10k', title: 'Placa 10K', target: 10000, image: '/assets/placas/placa-10k.jpg', description: 'Parabéns! Você fez parte da nossa história!', unlocked: revenue >= 10000 },
+      { id: 'p50k', title: 'Placa 50K', target: 50000, image: '/assets/placas/placa-50k.jpg', description: 'Juntos, vamos ainda mais longe!', unlocked: revenue >= 50000 },
+      { id: 'p100k', title: 'Placa 100K Black', target: 100000, image: '/assets/placas/placa-100k.jpg', description: 'Marco Black de 6 dígitos faturados!', unlocked: revenue >= 100000 },
+      { id: 'p1m', title: 'Placa 1 Milhão + iPhone 18 Pro Max Bordô Red', target: 1000000, image: '/assets/placas/placa-1m.jpg', description: 'Troféu Imperial 1 Milhão + iPhone 18 Pro Max Bordô Red exclusivo!', unlocked: revenue >= 1000000 },
+      { id: 'p10m', title: 'Placa 10 Milhões Titan', target: 10000000, image: '/assets/placas/placa-10m.jpg', description: 'O ápice da elite: 8 dígitos no digital!', unlocked: revenue >= 10000000 }
     ];
 
     const specialIPhone = {
-      title: 'iPhone Pro Max Bordô Especial',
-      target: 200000,
-      unlocked: revenue >= 200000,
-      progress_percent: Math.min(100, ((revenue / 200000) * 100).toFixed(1))
+      title: 'iPhone 18 Pro Max Bordô Red',
+      target: 1000000,
+      image: '/assets/placas/placa-1m.jpg',
+      unlocked: revenue >= 1000000,
+      progress_percent: Math.min(100, ((revenue / 1000000) * 100).toFixed(1))
     };
 
     return sendJSON(res, 200, {
