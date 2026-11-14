@@ -8,6 +8,8 @@ const crypto = require('node:crypto');
 const db = require('./db');
 const { hashPassword, verifyPassword, createSession, validateSession } = require('./auth');
 const { generatePixCopiaECola, generateQRCodeSVG } = require('./services/pixService');
+const { dispatchWebhook, sendTestWebhook, signPayload } = require('./services/webhookService');
+const { getSystemRates, updateSystemRates, calculateTransactionFees } = require('./services/ratesService');
 const {
   startSimulation,
   pauseSimulation,
@@ -77,10 +79,32 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  // Extrair sessão do header Authorization: Bearer <token>
+  // Extrair sessão do header Authorization: Bearer <token> ou Chave de API KryptaPay
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '');
-  const currentUser = validateSession(token);
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  let currentUser = validateSession(token);
+
+  // Se não for sessão, verificar se é uma Chave de API (Secret ou Public)
+  let apiKeyAuth = null;
+  if (!currentUser && token && (token.startsWith('krypta_sec_') || token.startsWith('krypta_pub_'))) {
+    const isSecret = token.startsWith('krypta_sec_');
+    if (isSecret) {
+      const hash = crypto.createHash('sha256').update(token).digest('hex');
+      const found = db.prepare(`SELECT * FROM api_keys WHERE secret_key_hash = ? AND status = 'active'`).get(hash);
+      if (found) {
+        apiKeyAuth = found;
+        currentUser = { user_id: found.user_id, role: 'merchant', environment: found.environment, authType: 'api_key' };
+        try { db.prepare(`UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?`).run(found.id); } catch (_) {}
+      }
+    } else {
+      const found = db.prepare(`SELECT * FROM api_keys WHERE public_key = ? AND status = 'active'`).get(token);
+      if (found) {
+        apiKeyAuth = found;
+        currentUser = { user_id: found.user_id, role: 'merchant', environment: found.environment, authType: 'api_key' };
+        try { db.prepare(`UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?`).run(found.id); } catch (_) {}
+      }
+    }
+  }
 
   // -------------------------------------------------------------
   // SSE: STREAM DE NOTIFICAÇÕES EM TEMPO REAL (PWA / BROWSER)
@@ -283,35 +307,89 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/financial/withdraw' && method === 'POST') {
-    const { amount, pix_key, pix_key_type } = await parseBody(req);
+    const { amount, pix_key, pix_key_type, destination_type = 'pix' } = await parseBody(req);
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
     const reqAmount = parseFloat(amount);
-    const fee = 3.50;
+    
+    if (isNaN(reqAmount) || reqAmount <= 0) {
+      return sendJSON(res, 400, { error: 'Valor de saque inválido.' });
+    }
+
+    const rates = getSystemRates();
+    const fee = rates.pix_withdrawal_fee || 1.99; // Taxa oficial de R$ 1,99
 
     const wallet = db.prepare(`SELECT balance_available FROM users WHERE id = ?`).get(userId);
     if (!wallet || wallet.balance_available < reqAmount + fee) {
-      return sendJSON(res, 400, { error: 'Saldo insuficiente para cobrir o valor solicitado mais a taxa de R$ 3,50.' });
+      return sendJSON(res, 400, { error: `Saldo insuficiente para cobrir o valor solicitado mais a taxa de R$ ${fee.toFixed(2)}.` });
     }
 
     const netAmount = reqAmount;
-    const withdrawId = crypto.randomUUID();
+    const withdrawId = 'wth_' + crypto.randomBytes(6).toString('hex');
 
+    // Débito atômico imediato no saldo disponível
     db.prepare(`
       UPDATE users SET balance_available = balance_available - ? WHERE id = ?
     `).run(reqAmount + fee, userId);
 
     db.prepare(`
-      INSERT INTO withdrawals (id, user_id, amount, fee, net_amount, pix_key, pix_key_type, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
-    `).run(withdrawId, userId, reqAmount, fee, netAmount, pix_key, pix_key_type || 'cpf');
+      INSERT INTO withdrawals (id, user_id, amount, fee, net_amount, pix_key, pix_key_type, destination_type, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed')
+    `).run(withdrawId, userId, reqAmount, fee, netAmount, pix_key || 'Chave Pix Oficial', pix_key_type || 'cpf', destination_type);
+
+    // Gravar notificação
+    const notifId = crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO notifications (id, user_id, title, body, category, amount, is_simulation)
+      VALUES (?, ?, ?, ?, 'saque', ?, 0)
+    `).run(
+      notifId,
+      userId,
+      'Saque Pix Realizado com Sucesso!',
+      `Transferência de R$ ${reqAmount.toFixed(2)} enviada para a chave ${pix_key}. Taxa oficial: R$ ${fee.toFixed(2)}.`,
+      reqAmount
+    );
+
+    // Disparar evento SSE em tempo real para os clientes conectados
+    const withdrawEvent = {
+      type: 'withdrawal',
+      event: 'withdrawal.approved',
+      id: withdrawId,
+      amount: reqAmount,
+      fee,
+      net_amount: netAmount,
+      status: 'completed',
+      pix_key,
+      title: 'Saque Pix Aprovado!',
+      body: `R$ ${reqAmount.toFixed(2)} transferidos via Pix instantâneo.`
+    };
+    for (const client of sseClients) {
+      client.write(`data: ${JSON.stringify(withdrawEvent)}\n\n`);
+    }
+
+    // Disparar Webhook assinado
+    dispatchWebhook({
+      userId,
+      event: 'withdrawal.approved',
+      data: {
+        id: withdrawId,
+        amount: reqAmount,
+        fee,
+        net_amount: netAmount,
+        currency: 'BRL',
+        pix_key,
+        status: 'completed',
+        created_at: new Date().toISOString()
+      }
+    });
 
     return sendJSON(res, 200, {
       success: true,
-      message: 'Solicitação de saque Pix registrada com sucesso!',
+      message: `Saque de R$ ${reqAmount.toFixed(2)} aprovado e processado com sucesso!`,
       withdraw_id: withdrawId,
       amount: reqAmount,
       fee,
-      net_amount: netAmount
+      net_amount: netAmount,
+      status: 'completed'
     });
   }
 
@@ -391,6 +469,503 @@ const server = http.createServer(async (req, res) => {
       plaques,
       bracelets,
       specialIPhone
+    });
+  }
+
+  // -------------------------------------------------------------
+  // TABELA OFICIAL DE TAXAS DINÂMICAS & PAINEL ADMIN
+  // -------------------------------------------------------------
+  if (pathname === '/api/rates' && method === 'GET') {
+    const rates = getSystemRates();
+    return sendJSON(res, 200, { rates });
+  }
+
+  if (pathname === '/api/admin/rates' && method === 'PUT') {
+    // Permitir atualização das taxas dinâmicas
+    const body = await parseBody(req);
+    const updated = updateSystemRates(body);
+    return sendJSON(res, 200, {
+      success: true,
+      message: 'Taxas da KryptaPay atualizadas dinamicamente com sucesso!',
+      rates: updated
+    });
+  }
+
+  if (pathname === '/api/admin/financial-summary' && method === 'GET') {
+    const totals = db.prepare(`
+      SELECT 
+        COALESCE(SUM(amount), 0) as total_volume,
+        COALESCE(SUM(gateway_fee), 0) as total_gateway_fee,
+        COALESCE(SUM(processor_cost), 0) as total_processor_cost,
+        COUNT(*) as total_transactions,
+        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count
+      FROM transactions
+      WHERE is_simulation = 0
+    `).get();
+
+    const netProfit = Math.max(0, totals.total_gateway_fee - totals.total_processor_cost);
+
+    return sendJSON(res, 200, {
+      total_volume: totals.total_volume,
+      gateway_revenue: totals.total_gateway_fee,
+      processor_cost: totals.total_processor_cost,
+      net_profit: netProfit,
+      total_transactions: totals.total_transactions,
+      approved_count: totals.approved_count
+    });
+  }
+
+  // -------------------------------------------------------------
+  // CREDENCIAIS DE INTEGRAÇÃO & API (PUBLIC & SECRET KEYS)
+  // -------------------------------------------------------------
+  if (pathname === '/api/api-keys' && method === 'GET') {
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const keys = db.prepare(`
+      SELECT id, user_id, name, environment, public_key, secret_key_preview, status, created_at, last_used_at
+      FROM api_keys
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `).all(userId);
+    return sendJSON(res, 200, { keys });
+  }
+
+  if (pathname === '/api/api-keys/generate' && method === 'POST') {
+    const { name, environment = 'production' } = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const envPrefix = environment === 'production' ? 'live' : 'test';
+
+    const rawSecret = `krypta_sec_${envPrefix}_` + crypto.randomBytes(24).toString('hex');
+    const secretHash = crypto.createHash('sha256').update(rawSecret).digest('hex');
+    const secretPreview = rawSecret.substring(0, 16) + '...' + rawSecret.slice(-4);
+    const publicKey = `krypta_pub_${envPrefix}_` + crypto.randomBytes(16).toString('hex');
+    const keyId = `key_${envPrefix}_` + crypto.randomBytes(6).toString('hex');
+
+    db.prepare(`
+      INSERT INTO api_keys (id, user_id, name, environment, public_key, secret_key_hash, secret_key_preview, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+    `).run(keyId, userId, name || `Chave ${environment === 'production' ? 'Produção' : 'Sandbox'}`, environment, publicKey, secretHash, secretPreview);
+
+    return sendJSON(res, 201, {
+      success: true,
+      message: 'Chaves de API geradas com sucesso! Guarde a Chave Secreta agora, ela não será exibida novamente.',
+      key: {
+        id: keyId,
+        name: name || 'Nova Chave',
+        environment,
+        public_key: publicKey,
+        secret_key: rawSecret, // Enviada apenas nesta resposta de criação!
+        secret_key_preview: secretPreview,
+        created_at: new Date().toISOString()
+      }
+    });
+  }
+
+  if (pathname === '/api/api-keys/revoke' && method === 'POST') {
+    const { key_id } = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    db.prepare(`UPDATE api_keys SET status = 'revoked' WHERE id = ? AND user_id = ?`).run(key_id, userId);
+    return sendJSON(res, 200, { success: true, message: 'Chave revogada com sucesso.' });
+  }
+
+  // -------------------------------------------------------------
+  // WEBHOOKS: CONFIGURAÇÃO, ENVIO DE TESTE & LOGS DE ENTREGA
+  // -------------------------------------------------------------
+  if (pathname === '/api/webhooks' && method === 'GET') {
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const hooks = db.prepare(`SELECT * FROM webhooks WHERE user_id = ?`).all(userId);
+    return sendJSON(res, 200, { webhooks: hooks });
+  }
+
+  if (pathname === '/api/webhooks' && method === 'POST') {
+    const { url: hookUrl, events = 'all' } = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+
+    if (!hookUrl || !hookUrl.startsWith('http')) {
+      return sendJSON(res, 400, { error: 'Forneça uma URL de webhook válida (HTTP ou HTTPS).' });
+    }
+
+    const secretKey = 'whsec_' + crypto.randomBytes(24).toString('hex');
+    const existing = db.prepare(`SELECT id FROM webhooks WHERE user_id = ?`).get(userId);
+
+    if (existing) {
+      db.prepare(`
+        UPDATE webhooks SET url = ?, events = ?, status = 'active' WHERE id = ?
+      `).run(hookUrl, events, existing.id);
+      return sendJSON(res, 200, { success: true, message: 'Webhook atualizado com sucesso!', webhook_id: existing.id, url: hookUrl });
+    } else {
+      const hookId = 'wh_' + crypto.randomBytes(6).toString('hex');
+      db.prepare(`
+        INSERT INTO webhooks (id, user_id, url, secret_key, events, status)
+        VALUES (?, ?, ?, ?, ?, 'active')
+      `).run(hookId, userId, hookUrl, secretKey, events);
+      return sendJSON(res, 201, { success: true, message: 'Webhook cadastrado com sucesso!', webhook_id: hookId, url: hookUrl, secret_key: secretKey });
+    }
+  }
+
+  if (pathname === '/api/webhooks/test' && method === 'POST') {
+    const { target_url, secret_key, event = 'payment.approved' } = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+
+    if (!target_url) {
+      return sendJSON(res, 400, { error: 'URL de destino para teste é obrigatória.' });
+    }
+
+    const testResult = await sendTestWebhook({
+      userId,
+      targetUrl: target_url,
+      secretKey: secret_key || 'krypta_secret_default',
+      event
+    });
+
+    return sendJSON(res, 200, { success: true, testResult });
+  }
+
+  if (pathname === '/api/webhooks/deliveries' && method === 'GET') {
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const deliveries = db.prepare(`
+      SELECT * FROM webhook_deliveries
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 30
+    `).all(userId);
+    return sendJSON(res, 200, { deliveries });
+  }
+
+  // -------------------------------------------------------------
+  // ENDPOINT OFICIAL DE GATEWAY REST: POST /api/v1/charges
+  // -------------------------------------------------------------
+  if (pathname === '/api/v1/charges' && method === 'POST') {
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const idempotencyKey = req.headers['idempotency-key'] || '';
+
+    // Checagem de Idempotência
+    if (idempotencyKey) {
+      const existingTx = db.prepare(`SELECT * FROM transactions WHERE idempotency_key = ?`).get(idempotencyKey);
+      if (existingTx) {
+        let chargePix = null;
+        if (existingTx.payment_method === 'pix') {
+          chargePix = db.prepare(`SELECT * FROM pix_charges WHERE transaction_id = ?`).get(existingTx.id);
+        }
+        return sendJSON(res, 200, {
+          success: true,
+          idempotent_replayed: true,
+          charge: existingTx,
+          pix: chargePix
+        });
+      }
+    }
+
+    const body = await parseBody(req);
+    const {
+      amount,
+      payment_method = 'pix',
+      customer = {},
+      metadata = {},
+      installments = 1,
+      currency = 'BRL',
+      buyer_country = 'BR',
+      seller_country = 'BR',
+      card = null
+    } = body;
+
+    const rawAmount = parseFloat(amount);
+    if (isNaN(rawAmount) || rawAmount <= 0) {
+      return sendJSON(res, 400, { error: 'Valor da cobrança inválido.' });
+    }
+
+    // Cálculo das taxas oficiais e custos do adquirente
+    const feeCalculation = calculateTransactionFees({
+      amount: rawAmount,
+      paymentMethod: payment_method,
+      installments: parseInt(installments) || 1,
+      buyerCountry: buyer_country,
+      sellerCountry: seller_country,
+      currency
+    });
+
+    const txId = 'chg_' + crypto.randomBytes(8).toString('hex');
+    const orderNumber = 10000 + Math.floor(Math.random() * 90000);
+    const orderId = `#KRYPTA-${orderNumber}`;
+    const isSandbox = (currentUser && currentUser.environment === 'sandbox') || Boolean(body.sandbox);
+
+    let initialStatus = 'pending';
+    let cardBrand = null;
+    let cardLast4 = null;
+
+    if (payment_method === 'credit_card') {
+      initialStatus = 'approved'; // Aprovação instantânea no gateway
+      cardBrand = (card && card.brand) || 'Mastercard';
+      cardLast4 = (card && card.number) ? String(card.number).slice(-4) : '8821';
+    }
+
+    // Salvar transação
+    db.prepare(`
+      INSERT INTO transactions (
+        id, order_id, user_id, amount, net_amount, fee, gateway_fee, processor_cost,
+        currency, payment_method, status, installments, buyer_country, seller_country,
+        card_brand, card_last4, customer_name, customer_email, customer_phone,
+        acquirer, idempotency_key, is_simulation
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        'KryptaPay Core AI Engine', ?, ?
+      )
+    `).run(
+      txId,
+      orderId,
+      userId,
+      rawAmount,
+      feeCalculation.net_amount,
+      feeCalculation.gateway_fee,
+      feeCalculation.gateway_fee,
+      feeCalculation.processor_cost,
+      currency,
+      payment_method,
+      initialStatus,
+      feeCalculation.installments,
+      buyer_country,
+      seller_country,
+      cardBrand,
+      cardLast4,
+      customer.name || 'Cliente KryptaPay',
+      customer.email || 'comprador@email.com',
+      customer.phone || '',
+      idempotencyKey || null,
+      isSandbox ? 1 : 0
+    );
+
+    let pixDetails = null;
+
+    if (payment_method === 'pix') {
+      const copiaECola = generatePixCopiaECola({ amount: rawAmount, txId });
+      const qrSvg = generateQRCodeSVG(copiaECola);
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+      db.prepare(`
+        INSERT INTO pix_charges (id, transaction_id, copy_paste, qr_code_svg, expires_at, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+      `).run(crypto.randomUUID(), txId, copiaECola, qrSvg, expiresAt);
+
+      pixDetails = {
+        copy_paste: copiaECola,
+        qr_code_svg: qrSvg,
+        expires_at: expiresAt
+      };
+
+      // Disparar Webhook payment.pending
+      dispatchWebhook({
+        userId,
+        event: 'payment.pending',
+        data: {
+          id: txId,
+          order_id: orderId,
+          amount: rawAmount,
+          currency,
+          payment_method: 'pix',
+          status: 'pending',
+          pix: pixDetails,
+          customer,
+          metadata
+        }
+      });
+
+      // Notificação no SSE de venda pendente gerada
+      const notifPending = {
+        type: 'charge',
+        event: 'payment.pending',
+        id: txId,
+        order_id: orderId,
+        amount: rawAmount,
+        title: 'Pix Gerado — Aguardando Pagamento',
+        body: `Cobrança de R$ ${rawAmount.toFixed(2)} emitida para ${customer.name || 'Cliente'}.`
+      };
+      for (const client of sseClients) {
+        client.write(`data: ${JSON.stringify(notifPending)}\n\n`);
+      }
+    } else if (payment_method === 'credit_card' && initialStatus === 'approved') {
+      // Creditar saldo do merchant se for transação real
+      if (!isSandbox) {
+        db.prepare(`UPDATE users SET balance_available = balance_available + ? WHERE id = ?`).run(feeCalculation.net_amount, userId);
+      }
+
+      // Disparar Webhook payment.approved
+      dispatchWebhook({
+        userId,
+        event: 'payment.approved',
+        data: {
+          id: txId,
+          order_id: orderId,
+          amount: rawAmount,
+          net_amount: feeCalculation.net_amount,
+          fee: feeCalculation.gateway_fee,
+          currency,
+          payment_method: 'credit_card',
+          installments: feeCalculation.installments,
+          card_brand: cardBrand,
+          status: 'approved',
+          customer,
+          metadata
+        }
+      });
+
+      // Notificação no SSE de venda aprovada
+      const notifApproved = {
+        type: 'charge',
+        event: 'payment.approved',
+        id: txId,
+        order_id: orderId,
+        amount: rawAmount,
+        net_amount: feeCalculation.net_amount,
+        title: 'Venda Aprovada! (Cartão de Crédito)',
+        body: `R$ ${rawAmount.toFixed(2)} em ${feeCalculation.installments}x no ${cardBrand}. Líquido: R$ ${feeCalculation.net_amount.toFixed(2)}`
+      };
+      for (const client of sseClients) {
+        client.write(`data: ${JSON.stringify(notifApproved)}\n\n`);
+      }
+    }
+
+    return sendJSON(res, 201, {
+      success: true,
+      id: txId,
+      order_id: orderId,
+      amount: rawAmount,
+      net_amount: feeCalculation.net_amount,
+      fee: feeCalculation.gateway_fee,
+      currency,
+      payment_method,
+      status: initialStatus,
+      financial_breakdown: feeCalculation,
+      pix: pixDetails,
+      customer,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  // -------------------------------------------------------------
+  // CONFIRMAÇÃO IMEDIATA / SIMULADA DE PAGAMENTO PIX
+  // POST /api/v1/charges/:id/pay
+  // -------------------------------------------------------------
+  if (pathname.startsWith('/api/v1/charges/') && pathname.endsWith('/pay') && method === 'POST') {
+    const chargeId = pathname.replace('/api/v1/charges/', '').replace('/pay', '');
+    const tx = db.prepare(`SELECT * FROM transactions WHERE id = ?`).get(chargeId);
+
+    if (!tx) {
+      return sendJSON(res, 404, { error: 'Cobrança não encontrada.' });
+    }
+
+    if (tx.status === 'approved') {
+      return sendJSON(res, 200, { message: 'Esta cobrança já foi confirmada anteriormente.', charge: tx });
+    }
+
+    // Atualizar status para aprovado
+    db.prepare(`UPDATE transactions SET status = 'approved' WHERE id = ?`).run(chargeId);
+    db.prepare(`UPDATE pix_charges SET status = 'completed' WHERE transaction_id = ?`).run(chargeId);
+
+    // Creditar o saldo disponível do usuário se for transação real
+    if (tx.is_simulation === 0) {
+      db.prepare(`UPDATE users SET balance_available = balance_available + ? WHERE id = ?`).run(tx.net_amount, tx.user_id);
+    }
+
+    // Gravar notificação
+    db.prepare(`
+      INSERT INTO notifications (id, user_id, title, body, category, order_id, amount, is_simulation)
+      VALUES (?, ?, ?, ?, 'venda_aprovada', ?, ?, ?)
+    `).run(
+      crypto.randomUUID(),
+      tx.user_id,
+      'Venda Aprovada via Pix!',
+      `Pagamento de R$ ${tx.amount.toFixed(2)} confirmado com sucesso! Saldo creditado: R$ ${tx.net_amount.toFixed(2)}.`,
+      tx.order_id,
+      tx.amount,
+      tx.is_simulation
+    );
+
+    // Disparar Webhook assinado para a aplicação do cliente
+    dispatchWebhook({
+      userId: tx.user_id,
+      event: 'payment.approved',
+      data: {
+        id: tx.id,
+        order_id: tx.order_id,
+        amount: tx.amount,
+        net_amount: tx.net_amount,
+        fee: tx.fee,
+        currency: tx.currency,
+        payment_method: tx.payment_method,
+        status: 'approved',
+        customer_name: tx.customer_name,
+        customer_email: tx.customer_email,
+        paid_at: new Date().toISOString()
+      }
+    });
+
+    // Enviar notificação em tempo real pelo SSE (com thumbnail do logo oficial)
+    const approvedEvent = {
+      type: 'charge',
+      event: 'payment.approved',
+      id: tx.id,
+      order_id: tx.order_id,
+      amount: tx.amount,
+      net_amount: tx.net_amount,
+      title: 'Venda Aprovada! (Pix Confirmado)',
+      body: `R$ ${tx.amount.toFixed(2)} recebidos com sucesso!`,
+      icon: '/assets/logo.png'
+    };
+    for (const client of sseClients) {
+      client.write(`data: ${JSON.stringify(approvedEvent)}\n\n`);
+    }
+
+    return sendJSON(res, 200, {
+      success: true,
+      message: 'Pagamento confirmado e saldo creditado com sucesso!',
+      charge_id: tx.id,
+      order_id: tx.order_id,
+      status: 'approved',
+      net_amount: tx.net_amount
+    });
+  }
+
+  // -------------------------------------------------------------
+  // MÓDULO GLOBAL: PAÍSES, CÂMBIO E ROTEAMENTO MULTI-MOEDA
+  // -------------------------------------------------------------
+  if (pathname === '/api/global/countries' && method === 'GET') {
+    const countries = db.prepare(`SELECT * FROM countries_config WHERE is_active = 1`).all();
+    return sendJSON(res, 200, { countries });
+  }
+
+  if (pathname === '/api/global/convert' && method === 'POST') {
+    const { amount, from_currency = 'USD', to_currency = 'BRL' } = await parseBody(req);
+    const rates = getSystemRates();
+    const spread = (rates.currency_exchange_spread_percent || 2.50) / 100;
+
+    // Cotações base de referência
+    const baseRatesInBrl = {
+      BRL: 1.0,
+      USD: 5.45,
+      EUR: 5.92,
+      GBP: 6.95,
+      CAD: 4.02,
+      MXN: 0.29,
+      ARS: 0.0055
+    };
+
+    const fromRate = baseRatesInBrl[from_currency] || 1.0;
+    const toRate = baseRatesInBrl[to_currency] || 1.0;
+
+    const valueInBrl = parseFloat(amount) * fromRate;
+    const convertedBeforeSpread = valueInBrl / toRate;
+    const convertedAmount = convertedBeforeSpread * (1 - spread);
+    const spreadAmount = convertedBeforeSpread * spread;
+
+    return sendJSON(res, 200, {
+      original_amount: parseFloat(amount),
+      from_currency,
+      to_currency,
+      converted_amount: parseFloat(convertedAmount.toFixed(2)),
+      spread_percent: rates.currency_exchange_spread_percent,
+      spread_amount: parseFloat(spreadAmount.toFixed(2)),
+      exchange_rate: parseFloat((fromRate / toRate).toFixed(4))
     });
   }
 

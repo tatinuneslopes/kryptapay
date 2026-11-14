@@ -90,6 +90,10 @@ function switchTab(tabId) {
   if (tabId === 'dashboard') loadDashboardData();
   else if (tabId === 'sales' || tabId === 'transactions') loadTransactionsData();
   else if (tabId === 'financial') loadFinancialData();
+  else if (tabId === 'global') loadGlobalData();
+  else if (tabId === 'integrations') loadApiKeysData();
+  else if (tabId === 'webhooks') loadWebhooksData();
+  else if (tabId === 'admin') loadAdminData();
   else if (tabId === 'acquirers') loadAcquirersData();
   else if (tabId === 'products') loadProductsData();
   else if (tabId === 'rewards') loadRewardsData();
@@ -108,6 +112,13 @@ function setupSSE() {
       const data = JSON.parse(event.data);
       if (data.type === 'notification') {
         handleIncomingNotification(data);
+      } else if (data.type === 'charge') {
+        // Notificação de venda via API oficial ou Pix em tempo real
+        handleChargeNotification(data);
+      } else if (data.type === 'withdrawal') {
+        showToastAlert(`💸 ${data.title}: ${data.body}`);
+        if (AppState.currentTab === 'financial') loadFinancialData();
+        if (AppState.currentTab === 'dashboard') loadDashboardData();
       } else if (data.type === 'simulation_completed') {
         showToastAlert('Simulação de notificações KryptaPay concluída com sucesso!');
         updateSimProgress(100, 'Concluída');
@@ -542,7 +553,428 @@ async function loadProductsData() {
 function setupModalListeners() {
   document.querySelectorAll('.modal-overlay').forEach(modal => {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
+      if (e.target === modal) modal.style.display = 'none';
     });
   });
 }
+
+// ------------------------------------------------------------------
+// NOTIFICAÇÕES DE TRANSAÇÃO REAL (COM FOTO DA LOGOMARCA OFICIAL)
+// ------------------------------------------------------------------
+function handleChargeNotification(chargeEvent) {
+  const isApproved = chargeEvent.event === 'payment.approved';
+
+  // Som de venda
+  NotificationAudio.playCashSound();
+
+  const container = document.getElementById('toastContainer');
+  if (container) {
+    const toast = document.createElement('div');
+    toast.className = 'krypta-toast';
+    toast.innerHTML = `
+      <img src="/icons/logo.png" class="toast-logo-img" alt="KryptaPay">
+      <div class="toast-body-content">
+        <div class="toast-brand-header">
+          <span>KRYPTAPAY GATEWAY</span>
+          <span style="font-size: 0.65rem; color: var(--text-dim);">Agora</span>
+        </div>
+        <div class="toast-title" style="color: ${isApproved ? '#fff' : '#f59e0b'};">
+          ${isApproved ? '🎉 Venda Aprovada!' : '⏳ Venda Pendente (Pix Emitido)'}
+        </div>
+        <div class="toast-amount" style="color: ${isApproved ? 'var(--status-success)' : 'var(--status-warning)'};">
+          R$ ${chargeEvent.amount.toFixed(2).replace('.', ',')}
+        </div>
+        <div class="toast-meta">
+          <span>Pedido: ${chargeEvent.order_id}</span>
+          <span style="color: var(--purple-400); font-weight: 600;">${isApproved ? 'Saldo Creditado' : 'Aguardando Pagamento'}</span>
+        </div>
+      </div>
+    `;
+    container.prepend(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px) scale(0.95)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 5500);
+  }
+
+  // Recarregar métricas da dashboard se estiver visível
+  if (AppState.currentTab === 'dashboard') loadDashboardData();
+  if (AppState.currentTab === 'sales' || AppState.currentTab === 'transactions') loadTransactionsData();
+}
+
+// ------------------------------------------------------------------
+// MÓDULO 13: GLOBAL FX MULTI-MOEDA
+// ------------------------------------------------------------------
+async function loadGlobalData() {
+  const res = await API.get('/api/global/countries');
+  const container = document.getElementById('globalCountriesList');
+  if (!container || !res || !res.countries) return;
+
+  container.innerHTML = res.countries.map(c => `
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:0.9rem 1rem; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:1.6rem;">${c.flag_emoji}</span>
+        <div>
+          <strong style="color:#fff; font-size:0.95rem;">${c.name}</strong>
+          <div style="font-size:0.78rem; color:var(--text-muted);">Moeda: <span style="color:#22d3ee; font-weight:600;">${c.currency}</span> (${c.code})</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.85rem; font-weight:700; color:#fff;">1 ${c.currency} = R$ ${c.exchange_rate_to_brl.toFixed(2)}</div>
+        <span class="badge-status badge-approved" style="font-size:0.7rem; padding:0.2rem 0.5rem;">Ativo FX</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function calculateFxConversion() {
+  const amount = document.getElementById('fxInputAmount').value;
+  const from = document.getElementById('fxFromCurrency').value;
+  const to = document.getElementById('fxToCurrency').value;
+
+  if (!amount || parseFloat(amount) <= 0) {
+    alert('Informe um valor válido para conversão.');
+    return;
+  }
+
+  const res = await API.post('/api/global/convert', {
+    amount: parseFloat(amount),
+    from_currency: from,
+    to_currency: to
+  });
+
+  if (res && res.converted_amount !== undefined) {
+    const card = document.getElementById('fxResultCard');
+    const amtEl = document.getElementById('fxConvertedAmount');
+    const infoEl = document.getElementById('fxSpreadInfo');
+
+    card.style.display = 'block';
+    amtEl.textContent = `${to} ${res.converted_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    infoEl.textContent = `Cotação: 1 ${from} = ${res.exchange_rate} ${to} • Spread transparente de ${res.spread_percent}% (${to} ${res.spread_amount})`;
+  }
+}
+
+// ------------------------------------------------------------------
+// MÓDULO 14: INTEGRAÇÕES & API KEYS (SANDBOX & PRODUÇÃO)
+// ------------------------------------------------------------------
+let activeApiEnv = 'production';
+let currentApiSnippets = {
+  curl: `curl -X POST https://api.kryptapay.com/api/v1/charges \\
+  -H "Authorization: Bearer krypta_sec_live_SEU_TOKEN_AQUI" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: pedido_10928_xyz" \\
+  -d '{
+    "amount": 97.00,
+    "payment_method": "pix",
+    "customer": {
+      "name": "Comprador Exemplo",
+      "email": "cliente@email.com",
+      "phone": "+5511999998888"
+    }
+  }'`,
+  node: `const response = await fetch('https://api.kryptapay.com/api/v1/charges', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer krypta_sec_live_SEU_TOKEN_AQUI',
+    'Content-Type': 'application/json',
+    'Idempotency-Key': 'pedido_10928_xyz'
+  },
+  body: JSON.stringify({
+    amount: 97.00,
+    payment_method: 'pix',
+    customer: {
+      name: 'Comprador Exemplo',
+      email: 'cliente@email.com'
+    }
+  })
+});
+const data = await response.json();
+console.log('Pix Copia e Cola:', data.pix.copy_paste);`,
+  python: `import requests
+
+url = "https://api.kryptapay.com/api/v1/charges"
+headers = {
+    "Authorization": "Bearer krypta_sec_live_SEU_TOKEN_AQUI",
+    "Content-Type": "application/json",
+    "Idempotency-Key": "pedido_10928_xyz"
+}
+payload = {
+    "amount": 97.00,
+    "payment_method": "pix",
+    "customer": {
+        "name": "Comprador Exemplo",
+        "email": "cliente@email.com"
+    }
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())`
+};
+
+let activeSnippetLang = 'curl';
+
+function setApiCodeTab(lang) {
+  activeSnippetLang = lang;
+  document.getElementById('btnCodeCurl').classList.toggle('active', lang === 'curl');
+  document.getElementById('btnCodeNode').classList.toggle('active', lang === 'node');
+  document.getElementById('btnCodePython').classList.toggle('active', lang === 'python');
+  document.getElementById('apiCodeBlock').textContent = currentApiSnippets[lang];
+}
+
+function copyCurrentCodeSnippet() {
+  navigator.clipboard.writeText(currentApiSnippets[activeSnippetLang]);
+  showToastAlert('Exemplo de código copiado para a área de transferência!');
+}
+
+function switchApiKeyTab(env) {
+  activeApiEnv = env;
+  document.getElementById('tabKeyProd').classList.toggle('active', env === 'production');
+  document.getElementById('tabKeySand').classList.toggle('active', env === 'sandbox');
+  loadApiKeysData();
+}
+
+async function loadApiKeysData() {
+  const res = await API.get('/api/api-keys');
+  const container = document.getElementById('apiKeysList');
+  if (!container || !res || !res.keys) return;
+
+  const filtered = res.keys.filter(k => k.environment === activeApiEnv);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:2rem; color:var(--text-muted);">
+        Nenhuma chave de ${activeApiEnv === 'production' ? 'Produção' : 'Sandbox'} encontrada. Clique em "+ Gerar Nova Chave" acima.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(k => `
+    <div class="glass-card" style="padding:1.25rem; margin-bottom:1rem; border-left:3px solid ${k.environment === 'production' ? '#10b981' : '#f59e0b'};">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+        <div>
+          <strong style="color:#fff; font-size:1.05rem;">${k.name}</strong>
+          <span style="font-size:0.75rem; color:var(--text-dim); margin-left:0.5rem;">Criada em ${new Date(k.created_at).toLocaleDateString('pt-BR')}</span>
+        </div>
+        <span class="badge-status ${k.status === 'active' ? 'badge-approved' : 'badge-refused'}">${k.status.toUpperCase()}</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;">
+        <div>
+          <label style="font-size:0.8rem; color:var(--text-muted);">Chave Pública (Frontend / Checkout):</label>
+          <div style="display:flex; gap:0.4rem; margin-top:0.2rem;">
+            <input type="text" readonly value="${k.public_key}" class="glass-card" style="flex:1; padding:0.5rem 0.7rem; font-size:0.8rem; color:#a78bfa; background:var(--bg-surface);">
+            <button onclick="navigator.clipboard.writeText('${k.public_key}'); showToastAlert('Chave Pública copiada!');" class="btn-secondary" style="padding:0.4rem 0.75rem; font-size:0.8rem;">Copiar</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:0.8rem; color:var(--text-muted);">Chave Secreta (Backend):</label>
+          <div style="display:flex; gap:0.4rem; margin-top:0.2rem;">
+            <input type="text" readonly value="${k.secret_key_preview}" class="glass-card" style="flex:1; padding:0.5rem 0.7rem; font-size:0.8rem; color:var(--text-dim); background:var(--bg-surface);">
+            <button onclick="revokeApiKey('${k.id}')" class="btn-secondary" style="padding:0.4rem 0.75rem; font-size:0.8rem; color:var(--status-danger);">Revogar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function showGenerateKeyModal() {
+  const name = prompt('Nome de identificação da Chave (ex: Minha Loja Shopify, Checkout Principal):', 'Chave Oficial');
+  if (!name) return;
+
+  const res = await API.post('/api/api-keys/generate', {
+    name,
+    environment: activeApiEnv
+  });
+
+  if (res && res.key) {
+    alert(`🔑 ATENÇÃO! Guarde sua Chave Secreta agora:\n\n${res.key.secret_key}\n\nPor motivos de segurança financeira, ela NÃO será exibida novamente!`);
+    loadApiKeysData();
+  }
+}
+
+async function revokeApiKey(keyId) {
+  if (!confirm('Deseja realmente revogar esta Chave de API? Qualquer integração que utilize ela parará de funcionar.')) return;
+  await API.post('/api/api-keys/revoke', { key_id: keyId });
+  showToastAlert('Chave de API revogada com sucesso.');
+  loadApiKeysData();
+}
+
+// ------------------------------------------------------------------
+// MÓDULO 15: WEBHOOKS & EVENTOS
+// ------------------------------------------------------------------
+async function loadWebhooksData() {
+  const res = await API.get('/api/webhooks');
+  if (res && res.webhooks && res.webhooks.length > 0) {
+    const hook = res.webhooks[0];
+    document.getElementById('webhookInputUrl').value = hook.url;
+    document.getElementById('webhookSecretKey').value = hook.secret_key;
+  }
+
+  // Carregar entregas recentes
+  const delivRes = await API.get('/api/webhooks/deliveries');
+  const tbody = document.getElementById('webhookDeliveriesTableBody');
+  if (tbody && delivRes && delivRes.deliveries) {
+    if (delivRes.deliveries.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Nenhum disparo de webhook registrado ainda. Faça um teste abaixo.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = delivRes.deliveries.map(d => `
+      <tr>
+        <td><strong style="color:#a78bfa;">${d.event}</strong></td>
+        <td style="font-family:monospace; font-size:0.8rem; color:var(--text-muted);">${d.url.substring(0, 35)}...</td>
+        <td>
+          <span class="badge-status ${d.status === 'success' ? 'badge-approved' : 'badge-refused'}">
+            HTTP ${d.status_code || '0'} (${d.status.toUpperCase()})
+          </span>
+        </td>
+        <td style="font-size:0.85rem;">${d.response_time_ms || 0} ms</td>
+        <td><code style="font-size:0.75rem; color:var(--text-dim);">${d.signature.substring(0, 16)}...</code></td>
+        <td style="font-size:0.8rem; color:var(--text-dim);">${new Date(d.created_at).toLocaleTimeString('pt-BR')}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+async function saveWebhookConfig() {
+  const url = document.getElementById('webhookInputUrl').value;
+  if (!url || !url.startsWith('http')) {
+    alert('Digite uma URL válida (http:// ou https://)');
+    return;
+  }
+
+  const res = await API.post('/api/webhooks', { url, events: 'all' });
+  if (res && res.success) {
+    showToastAlert('Configurações de Webhook salvas com sucesso!');
+    loadWebhooksData();
+  }
+}
+
+function copyWebhookSecret() {
+  const secret = document.getElementById('webhookSecretKey').value;
+  navigator.clipboard.writeText(secret);
+  showToastAlert('Chave Secreta do Webhook copiada!');
+}
+
+async function triggerWebhookTest() {
+  const targetUrl = document.getElementById('webhookInputUrl').value;
+  const secretKey = document.getElementById('webhookSecretKey').value;
+
+  if (!targetUrl) {
+    alert('Preencha a URL de destino do Webhook antes de disparar o teste.');
+    return;
+  }
+
+  showToastAlert('Enviando requisição de teste assinada HMAC-SHA256...');
+
+  const res = await API.post('/api/webhooks/test', {
+    target_url: targetUrl,
+    secret_key: secretKey,
+    event: 'payment.approved'
+  });
+
+  const card = document.getElementById('webhookTestResultCard');
+  if (card && res && res.testResult) {
+    card.style.display = 'block';
+    const t = res.testResult;
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <strong style="color:#fff;">Resultado do Disparo de Teste:</strong>
+        <span class="badge-status ${t.success ? 'badge-approved' : 'badge-refused'}">
+          HTTP ${t.statusCode} (${t.success ? 'Sucesso' : 'Falha na Entrega'})
+        </span>
+      </div>
+      <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem;">
+        Tempo de Resposta: <strong>${t.responseTimeMs} ms</strong> | Assinatura Enviada: <code style="color:#a78bfa;">${t.signature}</code>
+      </div>
+      <pre style="background:#090614; padding:0.8rem; border-radius:6px; font-size:0.78rem; color:#e2e8f0; overflow-x:auto;">${t.responseBody || 'Sem resposta do servidor'}</pre>
+    `;
+    loadWebhooksData();
+  }
+}
+
+// ------------------------------------------------------------------
+// MÓDULO 16: PAINEL ADMIN MASTER & TAXAS DINÂMICAS
+// ------------------------------------------------------------------
+async function loadAdminData() {
+  // 1. Resumo financeiro do Gateway
+  const summary = await API.get('/api/admin/financial-summary');
+  if (summary) {
+    document.getElementById('adminTotalVolume').textContent = `R$ ${(summary.total_volume || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('adminGatewayRev').textContent = `R$ ${(summary.gateway_revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('adminProcessorCost').textContent = `R$ ${(summary.processor_cost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('adminNetProfit').textContent = `R$ ${(summary.net_profit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  }
+
+  // 2. Taxas atuais
+  const ratesRes = await API.get('/api/rates');
+  if (ratesRes && ratesRes.rates) {
+    const r = ratesRes.rates;
+    document.getElementById('adminRatePix').value = r.pix_percent;
+    document.getElementById('adminRateWithdraw').value = r.pix_withdrawal_fee;
+    document.getElementById('adminRateCardNat').value = r.card_national_percent;
+    document.getElementById('adminRateCardFixed').value = r.card_national_fixed;
+    document.getElementById('adminRateCardInt').value = r.card_international_percent;
+    document.getElementById('adminRateInstallment').value = r.installment_rate_per_month;
+  }
+}
+
+async function saveAdminRates() {
+  const newRates = {
+    pix_percent: parseFloat(document.getElementById('adminRatePix').value),
+    pix_withdrawal_fee: parseFloat(document.getElementById('adminRateWithdraw').value),
+    card_national_percent: parseFloat(document.getElementById('adminRateCardNat').value),
+    card_national_fixed: parseFloat(document.getElementById('adminRateCardFixed').value),
+    card_international_percent: parseFloat(document.getElementById('adminRateCardInt').value),
+    installment_rate_per_month: parseFloat(document.getElementById('adminRateInstallment').value)
+  };
+
+  const res = await API.put('/api/admin/rates', newRates);
+  if (res && res.success) {
+    showToastAlert('✅ Tabela de taxas oficiais do KryptaPay atualizada com sucesso no SQLite!');
+  }
+}
+
+// ------------------------------------------------------------------
+// INTERNACIONALIZAÇÃO & SELETOR DE IDIOMAS
+// ------------------------------------------------------------------
+function toggleLangMenu() {
+  const menu = document.getElementById('langMenu');
+  if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function changeAppLang(langCode) {
+  if (window.KryptaI18n) {
+    window.KryptaI18n.setLanguage(langCode);
+  }
+  const menu = document.getElementById('langMenu');
+  if (menu) menu.style.display = 'none';
+  showToastAlert(`Idioma alterado com sucesso!`);
+}
+
+// ------------------------------------------------------------------
+// MODAL PWA
+// ------------------------------------------------------------------
+function showPWAModal() {
+  const modal = document.getElementById('pwaInstructionsModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closePWAModal() {
+  const modal = document.getElementById('pwaInstructionsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Fechar menu de idiomas se clicar fora
+document.addEventListener('click', (e) => {
+  const dropdown = document.querySelector('.lang-selector-dropdown');
+  const menu = document.getElementById('langMenu');
+  if (menu && dropdown && !dropdown.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});

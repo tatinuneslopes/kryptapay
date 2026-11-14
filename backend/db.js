@@ -50,12 +50,21 @@ db.exec(`
     amount REAL NOT NULL,
     net_amount REAL NOT NULL,
     fee REAL NOT NULL DEFAULT 0.00,
+    gateway_fee REAL NOT NULL DEFAULT 0.00,
+    processor_cost REAL NOT NULL DEFAULT 0.00,
+    currency TEXT NOT NULL DEFAULT 'BRL',
     payment_method TEXT NOT NULL, -- 'pix', 'credit_card', 'bank_slip'
     status TEXT NOT NULL, -- 'approved', 'pending', 'refused', 'refunded'
+    installments INTEGER DEFAULT 1,
+    buyer_country TEXT DEFAULT 'BR',
+    seller_country TEXT DEFAULT 'BR',
+    card_brand TEXT,
+    card_last4 TEXT,
     customer_name TEXT,
     customer_email TEXT,
     customer_phone TEXT,
     acquirer TEXT DEFAULT 'CryptaPay Core',
+    idempotency_key TEXT,
     is_simulation INTEGER DEFAULT 0, -- 0 = Real, 1 = Simulado
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -73,16 +82,18 @@ db.exec(`
     FOREIGN KEY(transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
   );
 
-  -- 5. Saques Pix
+  -- 5. Saques Pix & Internacionais
   CREATE TABLE IF NOT EXISTS withdrawals (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     amount REAL NOT NULL,
-    fee REAL NOT NULL DEFAULT 3.50,
+    fee REAL NOT NULL DEFAULT 1.99, -- Taxa oficial de R$ 1,99 por saque Pix
     net_amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'BRL',
     pix_key TEXT NOT NULL,
     pix_key_type TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'completed', 'rejected'
+    destination_type TEXT DEFAULT 'pix', -- 'pix', 'swift_iban', 'usdt'
+    status TEXT NOT NULL DEFAULT 'completed', -- 'pending', 'completed', 'rejected'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
@@ -235,7 +246,162 @@ db.exec(`
     ip_address TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- 17. Tabela Oficial de Taxas do Sistema (Configurável dinamicamente pelo Admin)
+  CREATE TABLE IF NOT EXISTS system_rates (
+    id TEXT PRIMARY KEY,
+    pix_percent REAL NOT NULL DEFAULT 1.49,
+    pix_fixed REAL NOT NULL DEFAULT 0.00,
+    pix_withdrawal_fee REAL NOT NULL DEFAULT 1.99,
+    card_national_percent REAL NOT NULL DEFAULT 4.49,
+    card_national_fixed REAL NOT NULL DEFAULT 0.39,
+    card_international_percent REAL NOT NULL DEFAULT 5.99,
+    card_international_fixed REAL NOT NULL DEFAULT 0.39,
+    installment_rate_per_month REAL NOT NULL DEFAULT 1.99,
+    currency_exchange_spread_percent REAL NOT NULL DEFAULT 2.50,
+    processor_cost_pix_percent REAL NOT NULL DEFAULT 0.70,
+    processor_cost_card_percent REAL NOT NULL DEFAULT 2.50,
+    processor_cost_card_fixed REAL NOT NULL DEFAULT 0.20,
+    processor_cost_withdrawal REAL NOT NULL DEFAULT 0.80,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 18. Chaves de Integração e API (Public & Secret Keys — Sandbox & Produção)
+  CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    environment TEXT NOT NULL DEFAULT 'production', -- 'production', 'sandbox'
+    public_key TEXT UNIQUE NOT NULL,
+    secret_key_hash TEXT NOT NULL,
+    secret_key_preview TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'revoked'
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  -- 19. Módulo Global & Regras de Países
+  CREATE TABLE IF NOT EXISTS countries_config (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    flag_emoji TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    exchange_rate_to_brl REAL NOT NULL,
+    supported_methods TEXT NOT NULL, -- JSON array
+    is_active INTEGER DEFAULT 1
+  );
+
+  -- 20. Logs Detalhados de Entregas de Webhooks
+  CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id TEXT PRIMARY KEY,
+    webhook_id TEXT,
+    user_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    url TEXT NOT NULL,
+    signature TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    status_code INTEGER,
+    response_body TEXT,
+    response_time_ms INTEGER,
+    status TEXT NOT NULL, -- 'success', 'failed'
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
+
+// Migrações defensivas para tabelas existentes
+try { db.exec(`ALTER TABLE transactions ADD COLUMN gateway_fee REAL NOT NULL DEFAULT 0.00;`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN processor_cost REAL NOT NULL DEFAULT 0.00;`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'BRL';`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN installments INTEGER DEFAULT 1;`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN buyer_country TEXT DEFAULT 'BR';`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN seller_country TEXT DEFAULT 'BR';`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN card_brand TEXT;`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN card_last4 TEXT;`); } catch (_) {}
+try { db.exec(`ALTER TABLE transactions ADD COLUMN idempotency_key TEXT;`); } catch (_) {}
+
+// Semear Taxas Padrão Oficiais
+const existingRates = db.prepare(`SELECT id FROM system_rates WHERE id = 'default'`).get();
+if (!existingRates) {
+  db.prepare(`
+    INSERT INTO system_rates (
+      id, pix_percent, pix_fixed, pix_withdrawal_fee,
+      card_national_percent, card_national_fixed,
+      card_international_percent, card_international_fixed,
+      installment_rate_per_month, currency_exchange_spread_percent,
+      processor_cost_pix_percent, processor_cost_card_percent,
+      processor_cost_card_fixed, processor_cost_withdrawal
+    ) VALUES (
+      'default', 1.49, 0.00, 1.99,
+      4.49, 0.39,
+      5.99, 0.39,
+      1.99, 2.50,
+      0.70, 2.50, 0.20, 0.80
+    )
+  `).run();
+}
+
+// Semear Países Padrão para o Módulo GLOBAL
+const countriesCount = db.prepare(`SELECT COUNT(*) as count FROM countries_config`).get().count;
+if (countriesCount === 0) {
+  const insertCountry = db.prepare(`
+    INSERT INTO countries_config (code, name, flag_emoji, currency, exchange_rate_to_brl, supported_methods, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, 1)
+  `);
+
+  const initialCountries = [
+    { code: 'BR', name: 'Brasil', flag: '🇧🇷', currency: 'BRL', rate: 1.00, methods: '["pix", "card_national", "card_international"]' },
+    { code: 'US', name: 'Estados Unidos', flag: '🇺🇸', currency: 'USD', rate: 5.45, methods: '["card_international", "wire"]' },
+    { code: 'EU', name: 'União Europeia', flag: '🇪🇺', currency: 'EUR', rate: 5.92, methods: '["card_international", "sepa"]' },
+    { code: 'GB', name: 'Reino Unido', flag: '🇬🇧', currency: 'GBP', rate: 6.95, methods: '["card_international", "bacs"]' },
+    { code: 'CA', name: 'Canadá', flag: '🇨🇦', currency: 'CAD', rate: 4.02, methods: '["card_international"]' },
+    { code: 'PT', name: 'Portugal', flag: '🇵🇹', currency: 'EUR', rate: 5.92, methods: '["card_international", "multibanco"]' },
+    { code: 'ES', name: 'Espanha', flag: '🇪🇸', currency: 'EUR', rate: 5.92, methods: '["card_international", "bizum"]' },
+    { code: 'MX', name: 'México', flag: '🇲🇽', currency: 'MXN', rate: 0.29, methods: '["card_international", "oxxo"]' },
+    { code: 'AR', name: 'Argentina', flag: '🇦🇷', currency: 'ARS', rate: 0.0055, methods: '["card_international"]' }
+  ];
+
+  for (const c of initialCountries) {
+    insertCountry.run(c.code, c.name, c.flag, c.currency, c.rate, c.methods);
+  }
+}
+
+// Semear chaves padrão de API para o merchant demo e admin se não existirem
+const demoKeys = db.prepare(`SELECT id FROM api_keys WHERE user_id = 'usr_merchant_demo'`).all();
+if (demoKeys.length === 0) {
+  const insertKey = db.prepare(`
+    INSERT INTO api_keys (id, user_id, name, environment, public_key, secret_key_hash, secret_key_preview, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+  `);
+  
+  // Chave de Produção
+  const secLive = 'krypta_sec_live_' + crypto.randomBytes(24).toString('hex');
+  const secLiveHash = crypto.createHash('sha256').update(secLive).digest('hex');
+  const pubLive = 'krypta_pub_live_' + crypto.randomBytes(16).toString('hex');
+  insertKey.run(
+    'key_live_' + crypto.randomBytes(4).toString('hex'),
+    'usr_merchant_demo',
+    'Chave de Produção Oficial',
+    'production',
+    pubLive,
+    secLiveHash,
+    secLive.substring(0, 16) + '...' + secLive.slice(-4)
+  );
+
+  // Chave de Sandbox
+  const secTest = 'krypta_sec_test_' + crypto.randomBytes(24).toString('hex');
+  const secTestHash = crypto.createHash('sha256').update(secTest).digest('hex');
+  const pubTest = 'krypta_pub_test_' + crypto.randomBytes(16).toString('hex');
+  insertKey.run(
+    'key_test_' + crypto.randomBytes(4).toString('hex'),
+    'usr_merchant_demo',
+    'Chave de Testes Sandbox',
+    'sandbox',
+    pubTest,
+    secTestHash,
+    secTest.substring(0, 16) + '...' + secTest.slice(-4)
+  );
+}
 
 console.log('✅ Banco de dados KryptaPay inicializado com sucesso.');
 

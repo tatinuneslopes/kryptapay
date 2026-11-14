@@ -42,18 +42,23 @@
         <div class="nav-section-title">Principal</div>
         <a class="nav-item active" data-tab="dashboard">
           <span class="nav-icon">📊</span>
-          <span class="nav-label">1. Dashboard</span>
+          <span class="nav-label" data-i18n="dashboard">1. Dashboard</span>
         </a>
         <a class="nav-item" data-tab="quick-pay">
           <span class="nav-icon">⚡</span>
-          <span class="nav-label">2. Pagamento Rápido</span>
+          <span class="nav-label" data-i18n="quick_pix">2. Pagamento Rápido</span>
           <span class="nav-badge">Pix</span>
+        </a>
+        <a class="nav-item" data-tab="global">
+          <span class="nav-icon">🌍</span>
+          <span class="nav-label" data-i18n="global">Módulo Global FX</span>
+          <span class="nav-badge" style="background:#06b6d4; color:#fff;">Multi-FX</span>
         </a>
 
         <div class="nav-section-title">Operações & Vendas</div>
         <a class="nav-item" data-tab="sales">
           <span class="nav-icon">🛒</span>
-          <span class="nav-label">3. Vendas</span>
+          <span class="nav-label" data-i18n="sales">3. Vendas</span>
         </a>
         <a class="nav-item" data-tab="transactions">
           <span class="nav-icon">📑</span>
@@ -66,11 +71,8 @@
         </a>
         <a class="nav-item" data-tab="financial">
           <span class="nav-icon">💰</span>
-          <span class="nav-label">6. Financeiro</span>
-        </a>
-        <a class="nav-item" data-tab="financial">
-          <span class="nav-icon">🏦</span>
-          <span class="nav-label">7. Saques Pix</span>
+          <span class="nav-label" data-i18n="financial">6. Financeiro & Saques</span>
+          <span class="nav-badge" style="background:#10b981; color:#fff;">R$ 1,99</span>
         </a>
 
         <div class="nav-section-title">Catálogo & Checkout</div>
@@ -191,11 +193,28 @@
         </div>
 
         <div class="header-right">
+          <!-- Seletor de Idiomas Multi-Línguas -->
+          <div class="lang-selector-dropdown" style="position:relative; display:inline-block;">
+            <button id="langSelectBtn" class="btn-secondary" style="padding: 0.45rem 0.8rem; font-size: 0.85rem; display:flex; align-items:center; gap:0.4rem;" onclick="toggleLangMenu()">
+              <span id="currentLangFlag">🇧🇷</span>
+              <span id="currentLangName" class="nav-label">Português</span>
+              <span style="font-size:0.65rem; opacity:0.7;">▼</span>
+            </button>
+            <div id="langMenu" class="dropdown-menu-box" style="display:none; position:absolute; right:0; top:110%; z-index:999; background:rgba(18,15,35,0.98); border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:0.5rem; min-width:145px; box-shadow:0 12px 30px rgba(0,0,0,0.6); backdrop-filter:blur(10px);">
+              <div class="lang-option" onclick="changeAppLang('pt-BR')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇧🇷 Português</div>
+              <div class="lang-option" onclick="changeAppLang('en')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇺🇸 English</div>
+              <div class="lang-option" onclick="changeAppLang('es')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇪🇸 Español</div>
+              <div class="lang-option" onclick="changeAppLang('fr')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇫🇷 Français</div>
+              <div class="lang-option" onclick="changeAppLang('de')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇩🇪 Deutsch</div>
+              <div class="lang-option" onclick="changeAppLang('it')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇮🇹 Italiano</div>
+            </div>
+          </div>
+
           <button onclick="switchTab('quick-pay')" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
             <span>⚡ Cobrança Pix</span>
           </button>
 
-          <button onclick="triggerPWAInstall()" class="btn-secondary" style="padding: 0.5rem 0.9rem; font-size: 0.85rem;" title="Instalar no Celular">
+          <button onclick="showPWAModal()" class="btn-secondary" style="padding: 0.5rem 0.9rem; font-size: 0.85rem;" title="Instalar no Celular">
             📱 App Mobile
           </button>
 
@@ -590,8 +609,8 @@
                   <label style="font-size: 0.85rem; color: var(--text-muted);">Chave Pix</label>
                   <input id="withdrawPixKey" type="text" placeholder="Digite sua chave Pix cadastrada" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
                 </div>
-                <div style="font-size: 0.8rem; color: var(--text-dim);">
-                  Taxa de transferência Pix bancária: <strong>R$ 3,50</strong> (descontada do saldo disponível).
+                <div style="font-size: 0.85rem; color: #a78bfa; background: rgba(139,92,246,0.12); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(139,92,246,0.25);">
+                  💸 Taxa oficial de transferência Pix da KryptaPay: <strong>R$ 1,99</strong> (sem trava de valor mínimo e liquidação instantânea).
                 </div>
                 <button onclick="requestWithdrawal()" class="btn-primary" style="justify-content:center; padding:0.85rem;">
                   Confirmar e Transferir Agora
@@ -843,6 +862,234 @@
           </div>
         </div>
 
+        <!-- ========================================== -->
+        <!-- MÓDULO NOVO: EXPANSÃO GLOBAL & FX MULTI-MOEDA -->
+        <!-- ========================================== -->
+        <div id="pane-global" class="view-pane" style="display:none;">
+          <div class="glass-card glow-border" style="padding: 2rem; margin-bottom: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem;">
+              <div>
+                <span class="badge-status" style="background:rgba(6,182,212,0.15); color:#22d3ee; border:1px solid rgba(6,182,212,0.3); margin-bottom:0.5rem;">
+                  🌐 Roteamento Cross-Border & FX
+                </span>
+                <h3 style="font-size: 1.6rem; font-weight:800; color:#fff;" data-i18n="global_title">Expansão Global KryptaPay</h3>
+                <p style="font-size:0.88rem; color:var(--text-muted); max-width:680px; margin-top:0.3rem;">
+                  Processe cobranças internacionais em mais de 9 países e moedas (USD, EUR, GBP, CAD, BRL), com conversão de câmbio transparente e liquidação direta.
+                </p>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.8rem; color:var(--text-dim);">Spread Cambial Médio:</div>
+                <div style="font-size:1.5rem; font-weight:800; color:#22d3ee;">2.50%</div>
+                <span style="font-size:0.75rem; color:var(--status-success);">Zero taxa oculta</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- As 4 Rotas Inteligentes de Pagamento -->
+          <h4 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:1rem;">4 Rotas de Processamento Inteligente</h4>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem; margin-bottom:2.5rem;">
+            <div class="glass-card" style="padding:1.25rem; border-left:3px solid #8b5cf6;">
+              <div style="font-weight:700; color:#fff; margin-bottom:0.3rem;">1. Brasil → Brasil</div>
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem;">Comprador no BR e Vendedor no BR</div>
+              <div style="font-size:0.85rem; color:#a78bfa;">Pix Instantâneo (1.49%) ou Cartão Nacional (4.49% + R$ 0,39)</div>
+            </div>
+
+            <div class="glass-card" style="padding:1.25rem; border-left:3px solid #06b6d4;">
+              <div style="font-weight:700; color:#fff; margin-bottom:0.3rem;">2. Brasil → Global</div>
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem;">Comprador no BR comprando produto internacional</div>
+              <div style="font-size:0.85rem; color:#67e8f9;">Cartão Internacional (5.99% + R$ 0,39) com conversão de moeda</div>
+            </div>
+
+            <div class="glass-card" style="padding:1.25rem; border-left:3px solid #10b981;">
+              <div style="font-weight:700; color:#fff; margin-bottom:0.3rem;">3. Estrangeiro → Brasil</div>
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem;">Comprador no exterior comprando no Brasil</div>
+              <div style="font-size:0.85rem; color:#34d399;">Cartão Global liquidado em BRL no saldo disponível do vendedor</div>
+            </div>
+
+            <div class="glass-card" style="padding:1.25rem; border-left:3px solid #f59e0b;">
+              <div style="font-weight:700; color:#fff; margin-bottom:0.3rem;">4. Estrangeiro → Global</div>
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem;">Transação direta entre países estrangeiros</div>
+              <div style="font-size:0.85rem; color:#fde68a;">Cobrança multi-moeda direta (USD/EUR) sem intermediação de bancos locais</div>
+            </div>
+          </div>
+
+          <!-- Calculadora FX & Lista de Países -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:2rem;">
+            <!-- Calculadora de Câmbio -->
+            <div class="glass-card" style="padding:1.75rem;">
+              <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:1rem;" data-i18n="currency_calculator">Calculadora de Câmbio em Tempo Real</h4>
+              <div style="display:flex; flex-direction:column; gap:1rem;">
+                <div>
+                  <label style="font-size:0.85rem; color:var(--text-muted);">Valor Original</label>
+                  <input id="fxInputAmount" type="number" value="100.00" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                  <div>
+                    <label style="font-size:0.85rem; color:var(--text-muted);">De (Moeda Origem)</label>
+                    <select id="fxFromCurrency" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+                      <option value="USD">USD (Dólar Americano)</option>
+                      <option value="EUR">EUR (Euro)</option>
+                      <option value="GBP">GBP (Libra Esterlina)</option>
+                      <option value="BRL">BRL (Real Brasileiro)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.85rem; color:var(--text-muted);">Para (Moeda Destino)</label>
+                    <select id="fxToCurrency" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+                      <option value="BRL" selected>BRL (Real Brasileiro)</option>
+                      <option value="USD">USD (Dólar Americano)</option>
+                      <option value="EUR">EUR (Euro)</option>
+                      <option value="GBP">GBP (Libra)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button onclick="calculateFxConversion()" class="btn-primary" style="justify-content:center; padding:0.85rem; margin-top:0.5rem;" data-i18n="convert_button">
+                  Calcular Câmbio Agora
+                </button>
+
+                <div id="fxResultCard" style="display:none; background:rgba(18,15,35,0.8); border:1px solid rgba(6,182,212,0.3); border-radius:10px; padding:1.25rem; margin-top:0.5rem;">
+                  <div style="font-size:0.85rem; color:var(--text-muted);">Valor Convertido Estimado:</div>
+                  <div id="fxConvertedAmount" style="font-size:1.8rem; font-weight:800; color:#22d3ee; margin:0.3rem 0;">--</div>
+                  <div id="fxSpreadInfo" style="font-size:0.8rem; color:var(--text-dim);">Spread cambial transparente aplicado.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Países Atendidos -->
+            <div class="glass-card" style="padding:1.75rem;">
+              <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:1rem;" data-i18n="supported_countries">Países & Moedas Atendidas</h4>
+              <div id="globalCountriesList" style="display:flex; flex-direction:column; gap:0.75rem; max-height:420px; overflow-y:auto;">
+                <!-- Carregado via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 15 & 16: INTEGRAÇÕES & CREDENCIAIS DE API -->
+        <!-- ========================================== -->
+        <div id="pane-integrations" class="view-pane" style="display:none;">
+          <div class="glass-card glow-border" style="padding: 2rem; margin-bottom: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+              <div>
+                <span class="badge-status badge-approved">⚡ REST API v1.0</span>
+                <h3 style="font-size: 1.5rem; font-weight:800; color:#fff;" data-i18n="api_keys_title">Credenciais de API do Gateway</h3>
+                <p style="font-size:0.88rem; color:var(--text-muted);">
+                  Conecte a KryptaPay à sua loja virtual, checkout ou SaaS para receber vendas reais via Pix e Cartão com confirmação instantânea.
+                </p>
+              </div>
+              <button onclick="showGenerateKeyModal()" class="btn-primary" style="padding:0.75rem 1.25rem;">
+                + Gerar Nova Chave de API
+              </button>
+            </div>
+
+            <!-- Abas Sandbox vs Produção -->
+            <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border-card); padding-bottom:0.5rem;">
+              <button id="tabKeyProd" onclick="switchApiKeyTab('production')" class="pill-btn active">Produção (Valores Reais)</button>
+              <button id="tabKeySand" onclick="switchApiKeyTab('sandbox')" class="pill-btn">Sandbox (Ambiente de Testes)</button>
+            </div>
+
+            <div id="apiKeysList">
+              <!-- Carregado via JS -->
+            </div>
+          </div>
+
+          <!-- Documentação Rápida com Snippets cURL / Node / Python -->
+          <div class="glass-card" style="padding:2rem;">
+            <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:0.75rem;">Exemplo de Integração — POST /api/v1/charges</h4>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+              Envie uma requisição HTTPS autenticada com sua Secret Key no cabeçalho <code style="color:#a78bfa;">Authorization: Bearer krypta_sec_...</code> e receba QR Code Pix ou aprovação no cartão.
+            </p>
+
+            <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+              <button onclick="setApiCodeTab('curl')" id="btnCodeCurl" class="pill-btn active">cURL</button>
+              <button onclick="setApiCodeTab('node')" id="btnCodeNode" class="pill-btn">Node.js</button>
+              <button onclick="setApiCodeTab('python')" id="btnCodePython" class="pill-btn">Python</button>
+              <button onclick="copyCurrentCodeSnippet()" class="btn-secondary" style="margin-left:auto; padding:0.3rem 0.8rem; font-size:0.8rem;">📋 Copiar Código</button>
+            </div>
+
+            <pre id="apiCodeBlock" style="background:#090614; padding:1.25rem; border-radius:10px; border:1px solid rgba(139,92,246,0.3); color:#e2e8f0; font-family:Consolas, monospace; font-size:0.82rem; overflow-x:auto;">
+curl -X POST https://api.kryptapay.com/api/v1/charges \
+  -H "Authorization: Bearer krypta_sec_live_SEU_TOKEN_AQUI" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: pedido_10928_xyz" \
+  -d '{
+    "amount": 97.00,
+    "payment_method": "pix",
+    "customer": {
+      "name": "Comprador Exemplo",
+      "email": "cliente@email.com",
+      "phone": "+5511999998888"
+    }
+  }'</pre>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 17: WEBHOOKS & NOTIFICAÇÕES EXTERNAS -->
+        <!-- ========================================== -->
+        <div id="pane-webhooks" class="view-pane" style="display:none;">
+          <div class="glass-card glow-border" style="padding: 2rem; margin-bottom: 2rem;">
+            <h3 style="font-size:1.5rem; font-weight:800; color:#fff; margin-bottom:0.5rem;">Webhooks & Eventos de Notificação</h3>
+            <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.5rem;">
+              Receba notificações HTTP em tempo real quando uma venda for aprovada, pendente ou reembolsada. Todas as requisições acompanham assinatura de segurança <code style="color:#a78bfa;">X-Krypta-Signature: sha256=...</code>.
+            </p>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom:1.5rem;">
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Sua URL de Endpoint do Webhook</label>
+                <input id="webhookInputUrl" type="url" placeholder="https://seu-site.com/api/webhook-kryptapay" class="glass-card" style="width:100%; padding:0.8rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Chave Secreta de Validação (HMAC-SHA256)</label>
+                <div style="display:flex; gap:0.5rem; margin-top:0.4rem;">
+                  <input id="webhookSecretKey" type="text" readonly value="whsec_krypta_auto_generated" class="glass-card" style="flex:1; padding:0.8rem; color:#a78bfa; background:var(--bg-surface);">
+                  <button onclick="copyWebhookSecret()" class="btn-secondary" style="padding:0.8rem 1rem;">Copiar</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+              <button onclick="saveWebhookConfig()" class="btn-primary" style="padding:0.75rem 1.5rem;">
+                💾 Salvar Configurações do Webhook
+              </button>
+              <button onclick="triggerWebhookTest()" class="btn-secondary" style="padding:0.75rem 1.5rem;">
+                🚀 Disparar Webhook de Teste Agora
+              </button>
+            </div>
+
+            <!-- Resultado do Teste de Webhook ao Vivo -->
+            <div id="webhookTestResultCard" style="display:none; background:rgba(18,15,35,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:1.25rem;">
+              <!-- Preenchido via JS -->
+            </div>
+          </div>
+
+          <!-- Tabela de Logs de Entrega -->
+          <div class="glass-card" style="padding:1.75rem;">
+            <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:1rem;" data-i18n="webhook_logs">Logs Recentes de Entrega</h4>
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>Evento</th>
+                    <th>URL de Destino</th>
+                    <th>Status HTTP</th>
+                    <th>Tempo</th>
+                    <th>Assinatura SHA-256</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody id="webhookDeliveriesTableBody">
+                  <!-- Carregado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div id="pane-leaderboard" class="view-pane" style="display:none;">
           <div class="glass-card" style="padding: 2rem;">
             <h3 style="font-size: 1.3rem; font-weight:700; color:#fff; margin-bottom:1rem;">🏁 Corrida de Faturamento</h3>
@@ -865,15 +1112,124 @@
           </div>
         </div>
 
+        <!-- ========================================== -->
+        <!-- MÓDULO ADMIN: TAXAS DINÂMICAS & DRE FINANCEIRA -->
+        <!-- ========================================== -->
         <div id="pane-admin" class="view-pane" style="display:none;">
-          <div class="glass-card" style="padding: 2rem; border-color: rgba(239, 68, 68, 0.4);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-              <h3 style="font-size: 1.4rem; font-weight:800; color:#ef4444;">👑 Painel Master Administrativo</h3>
-              <span class="badge-status badge-refused">Acesso Restrito: 2 Administradores</span>
+          <div class="glass-card" style="padding: 2rem; border-color: rgba(239, 68, 68, 0.4); margin-bottom: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <h3 style="font-size: 1.5rem; font-weight:800; color:#ef4444;">👑 Painel Master Administrativo</h3>
+                <p style="color:var(--text-muted); font-size:0.88rem;">
+                  Controle dinâmico da tabela de taxas do gateway, margem de lucro líquido e visão financeira executiva.
+                </p>
+              </div>
+              <span class="badge-status badge-refused">Modo Administrador Autorizado</span>
             </div>
-            <p style="color:var(--text-muted); margin-bottom:1.5rem;">
-              Controle global da plataforma KryptaPay, aprovação de saques em lote, gestão de adquirentes e auditoria de segurança.
-            </p>
+
+            <!-- DRE Financeira da Gateway (Receita vs Custo vs Lucro) -->
+            <h4 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:1rem;" data-i18n="financial_ledger">DRE & Lucratividade da Gateway</h4>
+            <div class="kpi-grid" style="margin-bottom:2rem;">
+              <div class="glass-card kpi-card" style="--card-accent:#3b82f6;">
+                <div class="kpi-title" data-i18n="gross_volume">Volume Total Processado</div>
+                <div id="adminTotalVolume" class="kpi-value">R$ 0,00</div>
+                <div class="kpi-footer">Transações reais brutas</div>
+              </div>
+
+              <div class="glass-card kpi-card" style="--card-accent:#8b5cf6;">
+                <div class="kpi-title" data-i18n="gateway_revenue">Receita Bruta KryptaPay</div>
+                <div id="adminGatewayRev" class="kpi-value" style="color:var(--purple-400);">R$ 0,00</div>
+                <div class="kpi-footer">Taxas cobradas dos merchants</div>
+              </div>
+
+              <div class="glass-card kpi-card" style="--card-accent:#ef4444;">
+                <div class="kpi-title" data-i18n="processor_cost">Custo de Processamento</div>
+                <div id="adminProcessorCost" class="kpi-value" style="color:#f87171;">R$ 0,00</div>
+                <div class="kpi-footer">Pago aos adquirentes e bancos</div>
+              </div>
+
+              <div class="glass-card kpi-card" style="--card-accent:#10b981;">
+                <div class="kpi-title" data-i18n="net_profit">Lucro Líquido Real</div>
+                <div id="adminNetProfit" class="kpi-value" style="color:var(--status-success);">R$ 0,00</div>
+                <div class="kpi-footer">Resultado operacional retido</div>
+              </div>
+            </div>
+
+            <!-- Formulário de Edição Dinâmica de Taxas -->
+            <h4 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:1rem;" data-i18n="admin_rates_title">Tabela de Taxas Comerciais do Sistema</h4>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1.25rem; margin-bottom:1.5rem;">
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Taxa Pix Aprovado (%)</label>
+                <input id="adminRatePix" type="number" step="0.01" value="1.49" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Taxa de Saque Pix (R$)</label>
+                <input id="adminRateWithdraw" type="number" step="0.01" value="1.99" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Cartão Nacional (%)</label>
+                <input id="adminRateCardNat" type="number" step="0.01" value="4.49" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Cartão Nacional Fixo (R$)</label>
+                <input id="adminRateCardFixed" type="number" step="0.01" value="0.39" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Cartão Internacional (%)</label>
+                <input id="adminRateCardInt" type="number" step="0.01" value="5.99" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Acréscimo Parcela (% a.m.)</label>
+                <input id="adminRateInstallment" type="number" step="0.01" value="1.99" class="glass-card" style="width:100%; padding:0.75rem; color:#fff; margin-top:0.3rem; background:var(--bg-surface);">
+              </div>
+            </div>
+
+            <button onclick="saveAdminRates()" class="btn-primary" style="padding:0.85rem 1.75rem;" data-i18n="save_rates">
+              💾 Salvar Alterações de Taxas no SQLite
+            </button>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL DE INSTALAÇÃO PWA (IOS & ANDROID) -->
+        <!-- ========================================== -->
+        <div id="pwaInstructionsModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(8px);">
+          <div class="glass-card glow-border" style="max-width:480px; width:100%; padding:2rem; background:var(--bg-surface); position:relative;">
+            <button onclick="closePWAModal()" style="position:absolute; right:1rem; top:1rem; background:transparent; border:none; color:#fff; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div style="text-align:center; margin-bottom:1.5rem;">
+              <img src="/icons/logo.png" style="width:64px; height:64px; border-radius:16px; margin-bottom:0.75rem; border:2px solid var(--purple-400);" alt="Logo">
+              <h3 style="font-size:1.3rem; font-weight:800; color:#fff;">Instale o KryptaPay no Celular</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Tenha o aplicativo oficial na sua tela inicial com notificações em tempo real.</p>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:1rem; font-size:0.88rem;">
+              <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1rem; border-radius:10px;">
+                <strong style="color:#38bdf8;">🍏 No iPhone / Safari:</strong>
+                <ol style="margin-left:1.25rem; margin-top:0.4rem; color:var(--text-muted); line-height:1.5;">
+                  <li>Toque no botão de <strong>Compartilhar</strong> (ícone do quadrado com a seta para cima no rodapé).</li>
+                  <li>Role para baixo e selecione <strong>"Adicionar à Tela de Início"</strong>.</li>
+                  <li>Toque em <strong>"Adicionar"</strong> no canto superior direito.</li>
+                </ol>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1rem; border-radius:10px;">
+                <strong style="color:#4ade80;">🤖 No Android / Chrome:</strong>
+                <ol style="margin-left:1.25rem; margin-top:0.4rem; color:var(--text-muted); line-height:1.5;">
+                  <li>Toque nos <strong>três pontinhos</strong> (menu) no canto superior direito.</li>
+                  <li>Selecione <strong>"Instalar aplicativo"</strong> ou "Adicionar à tela inicial".</li>
+                  <li>Confirme a instalação.</li>
+                </ol>
+              </div>
+            </div>
+
+            <button onclick="closePWAModal()" class="btn-primary" style="width:100%; justify-content:center; margin-top:1.5rem; padding:0.75rem;">
+              Entendido!
+            </button>
           </div>
         </div>
 
@@ -882,6 +1238,7 @@
   </div>
 
   <script src="/js/api.js"></script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/globe3d.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/js/card3d.js"></script>
