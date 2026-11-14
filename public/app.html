@@ -670,13 +670,13 @@
               <div style="display:flex; align-items:center; gap:1.25rem;">
                 <img src="/icons/logo.png" style="width:62px; height:62px; border-radius:16px; border:2px solid var(--purple-400); box-shadow:0 0 25px rgba(176,38,255,0.6);" alt="Logo KryptaPay">
                 <div>
-                  <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
-                    <span class="badge-status badge-approved" style="font-size:0.75rem;">🔔 Canal Ativo</span>
-                    <span class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">⚡ Som & Vibração Prontos</span>
+                  <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap;">
+                    <span class="badge-status badge-approved" style="font-size:0.75rem;">🔔 Push Nativo Ativo</span>
+                    <span id="notifNativeStatusBadge" class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">📲 Barra de Notificações do Celular</span>
                   </div>
-                  <h3 style="font-size: 1.55rem; font-weight:800; color:#fff; margin-bottom:0.25rem;">Avisos no Celular e Computador</h3>
+                  <h3 style="font-size: 1.55rem; font-weight:800; color:#fff; margin-bottom:0.25rem;">Avisos na Barra de Notificação do Celular</h3>
                   <p style="font-size: 0.88rem; color:var(--text-muted); max-width:680px;">
-                    Ouvir o toque de venda pingando e receber o banner no topo da tela do seu iPhone, Android e computador sempre que entrar um Pix ou venda aprovada.
+                    As vendas pingam direto na barra de status e central de notificações do seu celular (Android ou iPhone), igual ao Temifi e BlackPay.
                   </p>
                 </div>
               </div>
@@ -687,27 +687,27 @@
           <div class="glass-card" style="padding: 2rem; margin-bottom: 1.75rem; border: 1.5px solid rgba(176,38,255,0.45); background: linear-gradient(135deg, rgba(22,9,42,0.85), rgba(11,5,22,0.95));">
             <div style="display:flex; flex-direction:column; gap:1rem;">
               <div>
-                <span style="font-size:0.8rem; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:1px;">Disparo de Teste Imediato</span>
-                <h4 style="font-size:1.35rem; font-weight:800; color:#fff; margin-top:0.25rem;">Testar Alerta de Venda no Celular e Computador</h4>
+                <span style="font-size:0.8rem; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:1px;">Disparo Direto para a Barra do Celular</span>
+                <h4 style="font-size:1.35rem; font-weight:800; color:#fff; margin-top:0.25rem;">Testar Venda na Barra do Celular</h4>
                 <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
-                  Clique no botão abaixo para disparar instantaneamente o som de caixa registradora da KryptaPay, vibrar o aparelho e exibir o banner flutuante no topo.
+                  Toque no botão abaixo para receber a notificação de venda aprovada com som e vibração direto na barra de notificações do seu aparelho celular.
                 </p>
               </div>
 
               <div style="display:flex; flex-wrap:wrap; gap:0.85rem; align-items:center; margin-top:0.5rem;">
                 <button onclick="triggerSingleTestNotification()" class="btn-primary" style="padding: 0.95rem 1.85rem; font-size: 1rem; font-weight: 800; border-radius:12px; box-shadow:0 0 30px rgba(176,38,255,0.65); display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer;">
-                  <span>🎉</span>
-                  <span>Enviar Teste de Venda</span>
+                  <span>📲</span>
+                  <span>Testar Notificação no Celular</span>
+                </button>
+
+                <button id="btnRequestNotifPermission" onclick="requestNotificationPermission()" class="btn-secondary" style="padding: 0.95rem 1.4rem; font-size: 0.92rem; font-weight:700; border-radius:12px; display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                  <span>🔔</span>
+                  <span>Ativar Avisos na Barra do Celular</span>
                 </button>
 
                 <button onclick="NotificationAudio.playCashSound()" class="btn-secondary" style="padding: 0.95rem 1.4rem; font-size: 0.92rem; font-weight:700; border-radius:12px; display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
                   <span>🔊</span>
-                  <span>Ouvir Toque KryptaPay</span>
-                </button>
-
-                <button id="btnRequestNotifPermission" onclick="requestNotificationPermission()" class="btn-secondary" style="padding: 0.95rem 1.4rem; font-size: 0.92rem; font-weight:700; border-radius:12px; display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                  <span>📱</span>
-                  <span>Ativar Avisos do Navegador</span>
+                  <span>Ouvir Toque</span>
                 </button>
               </div>
             </div>
@@ -717,17 +717,17 @@
           <div class="glass-card" style="padding: 2rem; margin-bottom: 1.75rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
               <div>
-                <span style="font-size:0.8rem; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:1px;">Fila de Testes Automatizada</span>
-                <h4 style="font-size:1.25rem; font-weight:800; color:#fff; margin-top:0.25rem;">Disparos Programados de Notificação</h4>
+                <span style="font-size:0.8rem; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:1px;">Disparos Múltiplos para o Celular</span>
+                <h4 style="font-size:1.25rem; font-weight:800; color:#fff; margin-top:0.25rem;">Pingar Vendas Pendentes e Aprovadas no Celular</h4>
                 <p style="font-size:0.85rem; color:var(--text-muted);">
-                  Defina a quantidade de notificações e o intervalo em segundos para testar uma sequência completa de vendas pingando no seu aparelho.
+                  Escolha de 1 a 100 vendas para ficarem pingando na barra do seu celular no intervalo definido.
                 </p>
               </div>
             </div>
 
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
               <div>
-                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Quantidade de Notificações</label>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Quantidade de Notificações (1 a 100)</label>
                 <select id="notifTestCount" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem;">
                   <option value="1">1 Notificação</option>
                   <option value="3">3 Notificações</option>
@@ -735,6 +735,7 @@
                   <option value="10">10 Notificações</option>
                   <option value="20">20 Notificações</option>
                   <option value="50">50 Notificações</option>
+                  <option value="100">100 Notificações (Sequência Máxima)</option>
                 </select>
               </div>
 

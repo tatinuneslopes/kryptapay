@@ -447,7 +447,8 @@ const server = http.createServer(async (req, res) => {
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
     const notif = triggerSingleTestNotification({
       userId,
-      amount: parseFloat(body.amount) || null
+      amount: parseFloat(body.amount) || null,
+      status: body.status || 'approved'
     });
     return sendJSON(res, 200, { success: true, notification: notif });
   }

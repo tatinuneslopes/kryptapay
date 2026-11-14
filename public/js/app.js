@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSSE();
   loadDashboardData();
   setupModalListeners();
+  updateNotificationPermissionBadge();
 
   // Inicializar o Globo 3D da Dashboard
   setTimeout(() => {
@@ -216,9 +217,84 @@ function showToastAlert(msg) {
 }
 
 // ========================================================
-// CENTRAL DE NOTIFICAÇÕES: DISPARO DE TESTES & FILAS
+// CENTRAL DE NOTIFICAÇÕES: DISPARO DIRETO NA BARRA DO CELULAR
 // ========================================================
-async function triggerSingleTestNotification(customAmount) {
+
+// Dispara a Notificação Real na Barra de Status/Notificações do Celular (Android & iOS PWA)
+async function sendNativePhoneNotification(notifObj) {
+  // 1. Assegurar permissão do navegador
+  if ('Notification' in window) {
+    if (Notification.permission !== 'granted') {
+      try {
+        const perm = await Notification.requestPermission();
+        updateNotificationPermissionBadge();
+        if (perm !== 'granted') return false;
+      } catch (e) {
+        return false;
+      }
+    }
+  } else {
+    return false;
+  }
+
+  const title = notifObj.title || '🎉 Venda aprovada! - KryptaPay';
+  const bodyText = notifObj.nativeBody || `${notifObj.amount} • Pedido ${notifObj.orderId}\n${notifObj.subtitle || 'Pix Aprovado'}`;
+
+  // 2. Método Oficial e Obrigatório para Celular: ServiceWorkerRegistration.showNotification
+  if ('serviceWorker' in navigator) {
+    try {
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.3');
+      }
+      await navigator.serviceWorker.ready;
+
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, {
+          body: bodyText,
+          icon: '/icons/logo.png',
+          badge: '/icons/logo.png',
+          vibrate: [300, 100, 300, 100, 300],
+          tag: 'kryptapay-sale-' + (notifObj.orderId || Date.now()) + '-' + Math.floor(Math.random() * 10000),
+          renotify: true,
+          silent: false,
+          requireInteraction: false,
+          data: { url: '/app.html' }
+        });
+        return true;
+      } else if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          notification: {
+            title: title,
+            body: bodyText,
+            url: '/app.html'
+          }
+        });
+        return true;
+      }
+    } catch (swErr) {
+      console.warn('Erro ao disparar via ServiceWorker:', swErr);
+    }
+  }
+
+  // 3. Fallback para Desktop / navegadores legados
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: bodyText,
+        icon: '/icons/logo.png',
+        badge: '/icons/logo.png'
+      });
+      return true;
+    } catch (e) {}
+  }
+
+  return false;
+}
+
+// Disparo Único com Alternância (Aprovada ou Pendente)
+async function triggerSingleTestNotification(customAmount, isPending = false) {
   const prefSound = document.getElementById('prefSoundToggle') ? document.getElementById('prefSoundToggle').checked : true;
   const prefVibrate = document.getElementById('prefVibrateToggle') ? document.getElementById('prefVibrateToggle').checked : true;
 
@@ -226,7 +302,7 @@ async function triggerSingleTestNotification(customAmount) {
     NotificationAudio.playCashSound();
   }
   if (prefVibrate && navigator.vibrate) {
-    navigator.vibrate([150, 80, 200]);
+    navigator.vibrate([250, 100, 250]);
   }
 
   const selectVal = document.getElementById('notifTestAmount') ? document.getElementById('notifTestAmount').value : 'random';
@@ -243,53 +319,81 @@ async function triggerSingleTestNotification(customAmount) {
   const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
 
+  const isApproved = !isPending;
+  const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
+  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Aguardando Pagamento do Cliente';
+
   const notifObj = {
     id: 'test_' + Date.now(),
     brand: 'KRYPTAPAY',
     icon: '/icons/logo.png',
-    title: '🎉 Venda aprovada!',
+    title: title,
     amount: `R$ ${formattedAmount}`,
     rawAmount: amount,
     orderId: orderId,
-    status: 'approved',
+    status: isApproved ? 'approved' : 'pending',
+    subtitle: subtitle,
+    nativeBody: `Valor: R$ ${formattedAmount} • Pedido ${orderId}\n${subtitle}`,
     timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   };
 
-  // Exibir Toast flutuante no topo
+  // 1. DISPARAR NOTIFICAÇÃO NATIVA DIRETO NA BARRA DO CELULAR
+  await sendNativePhoneNotification(notifObj);
+
+  // 2. Exibir banner flutuante interno
   showFloatingToast(notifObj);
 
-  // Notificação de Sistema no Mobile / Desktop
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification('🎉 Venda aprovada! from KryptaPay', {
-        body: `Valor: R$ ${formattedAmount} • Pedido ${orderId}`,
-        icon: '/icons/logo.png',
-        badge: '/icons/logo.png'
-      });
-    } catch (e) {}
-  }
-
-  // Preencher no histórico da tela de Notificações
+  // 3. Preencher no histórico
   if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
   AppState.notificationsHistory.unshift(notifObj);
   renderNotificationsList();
 
-  // Registrar no backend
-  API.post('/api/notifications/test-single', { amount }).catch(() => {});
+  // 4. Registrar no backend
+  API.post('/api/notifications/test-single', { amount, status: notifObj.status }).catch(() => {});
 }
 
 async function requestNotificationPermission() {
   if (!('Notification' in window)) {
-    alert('Seu navegador não suporta notificações de sistema.');
+    alert('Seu navegador não possui suporte a notificações nativas.');
     return;
   }
-  const perm = await Notification.requestPermission();
+  try {
+    const perm = await Notification.requestPermission();
+    updateNotificationPermissionBadge();
+    if (perm === 'granted') {
+      showToastAlert('Notificações na barra do seu celular ativadas com sucesso!');
+      // Dispara 1 teste para confirmar que apitou no celular
+      triggerSingleTestNotification();
+    } else {
+      alert('Permissão bloqueada. Toque no ícone de configurações/cadeado da barra de endereço para permitir notificações deste site.');
+    }
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+function updateNotificationPermissionBadge() {
+  const badge = document.getElementById('notifNativeStatusBadge');
   const btn = document.getElementById('btnRequestNotifPermission');
-  if (perm === 'granted') {
-    if (btn) btn.innerHTML = '<span>✅</span> <span>Avisos Ativados no Celular</span>';
-    showToastAlert('Notificações no celular e computador ativadas com sucesso!');
-  } else {
-    alert('Permissão de notificações não concedida nas configurações do navegador.');
+  if (!('Notification' in window)) return;
+
+  if (Notification.permission === 'granted') {
+    if (badge) {
+      badge.innerHTML = '📲 Barra do Celular: <strong>ATIVADA</strong>';
+      badge.style.background = 'rgba(34, 197, 94, 0.2)';
+      badge.style.color = '#4ade80';
+      badge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+    }
+    if (btn) {
+      btn.innerHTML = '<span>✅</span> <span>Barra do Celular Ativa</span>';
+      btn.style.borderColor = '#22c55e';
+    }
+  } else if (Notification.permission === 'denied') {
+    if (badge) {
+      badge.innerHTML = '⚠️ Notificações Bloqueadas (Toque no cadeado da URL)';
+      badge.style.background = 'rgba(239, 68, 68, 0.2)';
+      badge.style.color = '#f87171';
+    }
   }
 }
 
@@ -297,7 +401,17 @@ let notifSeqTimer = null;
 let notifSeqCurrent = 0;
 let notifSeqTotal = 0;
 
-function startNotificationSequence() {
+async function startNotificationSequence() {
+  // Se ainda não tiver permissão, solicita imediatamente ao usuário
+  if ('Notification' in window && Notification.permission !== 'granted') {
+    const perm = await Notification.requestPermission();
+    updateNotificationPermissionBadge();
+    if (perm !== 'granted') {
+      alert('Para as notificações pingarem na barra do seu celular, você precisa tocar em "Permitir" na mensagem do navegador!');
+      return;
+    }
+  }
+
   const countSelect = document.getElementById('notifTestCount');
   const intervalSelect = document.getElementById('notifTestInterval');
   const count = parseInt(countSelect ? countSelect.value : 5, 10);
@@ -315,11 +429,12 @@ function startNotificationSequence() {
   const countLabel = document.getElementById('notifSeqCountLabel');
   const pBar = document.getElementById('notifSeqProgressBar');
 
-  if (statusLabel) statusLabel.textContent = `Disparando sequência... Intervalo: ${intervalSec}s`;
+  if (statusLabel) statusLabel.textContent = `📲 Pingando na barra do celular... Intervalo: ${intervalSec}s`;
   if (countLabel) countLabel.textContent = `0 / ${notifSeqTotal}`;
   if (pBar) pBar.style.width = '0%';
 
-  triggerSingleTestNotification();
+  // 1ª Notificação (Venda Aprovada)
+  triggerSingleTestNotification(null, false);
   notifSeqCurrent++;
   if (countLabel) countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
   if (pBar) pBar.style.width = `${Math.round((notifSeqCurrent / notifSeqTotal) * 100)}%`;
@@ -334,7 +449,10 @@ function startNotificationSequence() {
       stopNotificationSequence();
       return;
     }
-    triggerSingleTestNotification();
+
+    // Alterna: venda pendente (índices ímpares) e venda aprovada (índices pares)
+    const isPending = (notifSeqCurrent % 2 !== 0);
+    triggerSingleTestNotification(null, isPending);
     notifSeqCurrent++;
     if (countLabel) countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
     if (pBar) pBar.style.width = `${Math.round((notifSeqCurrent / notifSeqTotal) * 100)}%`;
@@ -356,10 +474,11 @@ function stopNotificationSequence() {
   if (btnStop) btnStop.disabled = true;
 
   const statusLabel = document.getElementById('notifSeqStatusLabel');
-  if (statusLabel) statusLabel.textContent = notifSeqCurrent >= notifSeqTotal ? 'Sequência de testes finalizada!' : 'Sequência interrompida.';
+  if (statusLabel) statusLabel.textContent = notifSeqCurrent >= notifSeqTotal ? `Disparo concluído! ${notifSeqTotal} vendas pingadas no celular.` : 'Disparos interrompidos.';
 }
 
 async function loadNotificationsData() {
+  updateNotificationPermissionBadge();
   const container = document.getElementById('notificationsHistoryList');
   if (!container) return;
 

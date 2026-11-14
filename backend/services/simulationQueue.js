@@ -179,20 +179,24 @@ function getTestDashboardMetrics(userId) {
   };
 }
 
-function triggerSingleTestNotification({ userId, amount }) {
+function triggerSingleTestNotification({ userId, amount, status = 'approved' }) {
   const chosenAmount = amount || SIMULATED_AMOUNTS[Math.floor(Math.random() * SIMULATED_AMOUNTS.length)];
   const orderNumber = 10000 + Math.floor(Math.random() * 90000);
   const orderId = `#${orderNumber}`;
   const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const title = '🎉 Venda aprovada!';
-  const body = `Venda aprovada!\nValor: R$ ${formattedAmount}\nPedido: ${orderId}`;
+  const isApproved = status === 'approved';
+  const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
+  const category = isApproved ? 'venda_aprovada' : 'venda_pendente';
+  const body = isApproved
+    ? `Venda aprovada!\nValor: R$ ${formattedAmount}\nPedido: ${orderId} • Pix Instantâneo`
+    : `Pix Gerado!\nValor: R$ ${formattedAmount}\nPedido: ${orderId} • Aguardando Pagamento`;
   const notifId = crypto.randomUUID();
 
   try {
     db.prepare(`
       INSERT INTO notifications (id, user_id, title, body, category, order_id, amount, is_simulation)
-      VALUES (?, ?, ?, ?, 'venda_aprovada', ?, ?, 1)
-    `).run(notifId, userId, title, body, orderId, chosenAmount);
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(notifId, userId, title, body, category, orderId, chosenAmount);
   } catch (e) {
     console.warn('Erro ao salvar notificação única:', e);
   }
@@ -206,8 +210,8 @@ function triggerSingleTestNotification({ userId, amount }) {
     amount: `R$ ${formattedAmount}`,
     rawAmount: chosenAmount,
     orderId,
-    category: 'venda_aprovada',
-    status: 'approved',
+    category,
+    status,
     timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   };
 

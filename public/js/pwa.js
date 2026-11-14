@@ -97,4 +97,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const banner = document.getElementById('iosInstallBanner');
     if (banner) banner.style.display = 'block';
   }
+
+  // Registro Obrigatório do Service Worker para Notificações Nativas no Celular (Android & iOS)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js?v=2026.3')
+      .then(reg => {
+        console.log('✅ ServiceWorker KryptaPay ativo para notificações na barra do celular:', reg.scope);
+      })
+      .catch(err => {
+        console.warn('Erro ao registrar ServiceWorker:', err);
+      });
+  }
 });

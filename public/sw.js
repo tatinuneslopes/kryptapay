@@ -1,5 +1,5 @@
 // KryptaPay Service Worker - PWA & Push Notifications com Logomarca Oficial
-const CACHE_NAME = 'kryptapay-v2';
+const CACHE_NAME = 'kryptapay-v2026.3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -43,6 +43,31 @@ self.addEventListener('fetch', (event) => {
       return cachedResponse || fetch(event.request).catch(() => cachedResponse);
     })
   );
+});
+
+// Suporte a mensagens diretas do app para disparar notificações na barra do celular
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const d = event.data.notification || {};
+    const title = d.title || '🎉 Venda aprovada! - KryptaPay';
+    const body = d.body || 'Venda confirmada com sucesso!';
+    const tag = d.tag || ('kryptapay-sale-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
+
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body: body,
+        icon: '/icons/logo.png',
+        badge: '/icons/logo.png',
+        image: d.image || null,
+        vibrate: [300, 100, 300, 100, 300],
+        tag: tag,
+        renotify: true,
+        silent: false,
+        requireInteraction: false,
+        data: d.url || '/app.html'
+      })
+    );
+  }
 });
 
 // Suporte a Web Push Notifications reais com a foto da logomarca
