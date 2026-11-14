@@ -345,7 +345,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.3');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.9');
       }
       await navigator.serviceWorker.ready;
 
@@ -518,6 +518,97 @@ let notifSeqSessionStart = 0;
 let simWakeLock = null;
 let simTimerWorker = null;
 
+// ========================================================
+// MOTOR DE EXECUÇÃO EM SEGUNDO PLANO (TELA BLOQUEADA / FORA DO APP)
+// Mantém as notificações ativas no Safari (iOS) e Chrome (Android) mesmo
+// com a tela apagada/bloqueada através de sessão de áudio de baixa prioridade.
+// ========================================================
+class BackgroundNotificationEngine {
+  static _audioEl = null;
+  static _isActive = false;
+  static _lastTickTimestamp = 0;
+
+  static start(onTickCallback, getIntervalMs) {
+    if (this._isActive) return;
+    this._isActive = true;
+    this._lastTickTimestamp = Date.now();
+
+    try {
+      if (!this._audioEl) {
+        // Áudio PCM WAV silencioso padrão de 1 segundo em loop
+        const silentBase64 = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP//AAD//w==';
+        this._audioEl = new Audio(silentBase64);
+        this._audioEl.loop = true;
+        this._audioEl.volume = 0.01;
+      }
+
+      // O evento 'timeupdate' continua disparando ininterruptamente no iOS e Android
+      // mesmo quando o usuário sai do app, vai para o WhatsApp ou apaga/bloqueia a tela!
+      this._audioEl.ontimeupdate = () => {
+        if (!this._isActive) return;
+        const now = Date.now();
+        const intervalMs = getIntervalMs ? getIntervalMs() : 120000;
+        if (now - this._lastTickTimestamp >= intervalMs) {
+          this._lastTickTimestamp = now;
+          if (typeof onTickCallback === 'function') {
+            onTickCallback();
+          }
+        }
+      };
+
+      const p = this._audioEl.play();
+      if (p !== undefined) {
+        p.catch(err => {
+          console.log('Autoplay silencioso aguardando interação do usuário:', err);
+        });
+      }
+    } catch (e) {
+      console.warn('Erro ao inicializar áudio em segundo plano:', e);
+    }
+
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'KryptaPay — Vendas Ativas',
+          artist: 'Disparando Notificações Contínuas',
+          album: 'KryptaPay Gateway Oficial',
+          artwork: [
+            { src: '/icons/logo.png', sizes: '192x192', type: 'image/png' },
+            { src: '/icons/logo.png', sizes: '512x512', type: 'image/png' }
+          ]
+        });
+        navigator.mediaSession.playbackState = 'playing';
+
+        navigator.mediaSession.setActionHandler('play', () => {
+          if (this._audioEl) this._audioEl.play();
+          navigator.mediaSession.playbackState = 'playing';
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          navigator.mediaSession.playbackState = 'paused';
+        });
+      } catch (_) {}
+    }
+  }
+
+  static stop() {
+    this._isActive = false;
+    if (this._audioEl) {
+      try {
+        this._audioEl.ontimeupdate = null;
+        this._audioEl.pause();
+        this._audioEl.currentTime = 0;
+      } catch (_) {}
+    }
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'none';
+    }
+  }
+
+  static markTick() {
+    this._lastTickTimestamp = Date.now();
+  }
+}
+
 // Gestão de Wake Lock para evitar tela apagada ou suspensão no celular
 async function requestSimulationWakeLock() {
   try {
@@ -612,6 +703,11 @@ async function startNotificationSequence() {
   };
   localStorage.setItem('kryptapay_sim_session', JSON.stringify(sessionData));
 
+  // Iniciar Motor de Segundo Plano (Audio Keep-Alive) para tela bloqueada / fora do app
+  BackgroundNotificationEngine.start(() => {
+    handleSeqTick();
+  }, () => notifSeqIntervalSec * 1000);
+
   // Manter a tela acordada / não suspender
   requestSimulationWakeLock();
 
@@ -641,6 +737,8 @@ function handleSeqTick() {
     stopNotificationSequence(true);
     return;
   }
+
+  BackgroundNotificationEngine.markTick();
 
   // Alterna: venda pendente (índices ímpares) e venda aprovada (índices pares)
   const isPending = (notifSeqCurrent % 2 !== 0);
@@ -697,6 +795,7 @@ function updateNotifSeqProgressUI(customStatus) {
 
 // Parar disparos
 function stopNotificationSequence(completed = false) {
+  BackgroundNotificationEngine.stop();
   if (simTimerWorker) {
     try { simTimerWorker.postMessage({ action: 'stop' }); } catch (_) {}
   }
