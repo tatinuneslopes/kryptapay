@@ -176,31 +176,32 @@
 
         <div class="header-right">
           <!-- Seletor de Idiomas Multi-Línguas -->
-          <div class="lang-selector-dropdown" style="position:relative; display:inline-block;">
-            <button id="langSelectBtn" class="btn-secondary" style="padding: 0.45rem 0.8rem; font-size: 0.85rem; display:flex; align-items:center; gap:0.4rem;" onclick="toggleLangMenu()">
+          <div class="lang-selector-dropdown" style="position:relative; display:inline-block; z-index:1001;">
+            <button id="langSelectBtn" class="btn-secondary" style="padding: 0.42rem 0.65rem; font-size: 0.82rem; display:flex; align-items:center; gap:0.35rem;" onclick="toggleLangMenu()">
               <span id="currentLangFlag">🇧🇷</span>
-              <span id="currentLangName" class="nav-label">Português</span>
-              <span style="font-size:0.65rem; opacity:0.7;">▼</span>
+              <span id="currentLangName" class="header-desktop-only" style="font-weight:600;">Português</span>
+              <span style="font-size:0.6rem; opacity:0.7;">▼</span>
             </button>
-            <div id="langMenu" class="dropdown-menu-box" style="display:none; position:absolute; right:0; top:110%; z-index:999; background:rgba(18,15,35,0.98); border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:0.5rem; min-width:145px; box-shadow:0 12px 30px rgba(0,0,0,0.6); backdrop-filter:blur(10px);">
-              <div class="lang-option" onclick="changeAppLang('pt-BR')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇧🇷 Português</div>
-              <div class="lang-option" onclick="changeAppLang('en')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇺🇸 English</div>
-              <div class="lang-option" onclick="changeAppLang('es')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇪🇸 Español</div>
-              <div class="lang-option" onclick="changeAppLang('fr')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇫🇷 Français</div>
-              <div class="lang-option" onclick="changeAppLang('de')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇩🇪 Deutsch</div>
-              <div class="lang-option" onclick="changeAppLang('it')" style="padding:0.4rem 0.6rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇮🇹 Italiano</div>
+            <div id="langMenu" class="dropdown-menu-box" style="display:none; position:absolute; right:0; top:125%; z-index:9999999; background:rgba(18,15,35,0.98); border:1.5px solid rgba(139,92,246,0.4); border-radius:12px; padding:0.5rem; min-width:160px; box-shadow:0 15px 40px rgba(0,0,0,0.95); backdrop-filter:blur(20px);">
+              <div class="lang-option" onclick="changeAppLang('pt-BR')" style="padding:0.45rem 0.65rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇧🇷 Português</div>
+              <div class="lang-option" onclick="changeAppLang('en')" style="padding:0.45rem 0.65rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇺🇸 English</div>
+              <div class="lang-option" onclick="changeAppLang('es')" style="padding:0.45rem 0.65rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇪🇸 Español</div>
+              <div class="lang-option" onclick="changeAppLang('fr')" style="padding:0.45rem 0.65rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇫🇷 Français</div>
+              <div class="lang-option" onclick="changeAppLang('de')" style="padding:0.45rem 0.65rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇩🇪 Deutsch</div>
+              <div class="lang-option" onclick="changeAppLang('it')" style="padding:0.45rem 0.65rem; cursor:pointer; font-size:0.85rem; border-radius:6px; display:flex; align-items:center; gap:0.5rem;">🇮🇹 Italiano</div>
             </div>
           </div>
 
-          <button onclick="switchTab('quick-pay')" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+          <!-- Botão Cobrança Pix Enquadrado Perfeitamente no Celular e PC -->
+          <button onclick="switchTab('quick-pay')" class="btn-primary btn-header-pix" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; font-weight:700; white-space:nowrap; border-radius:8px; display:inline-flex; align-items:center; gap:0.35rem;">
             <span>⚡ Cobrança Pix</span>
           </button>
 
-          <button onclick="showPWAModal()" class="btn-secondary" style="padding: 0.5rem 0.9rem; font-size: 0.85rem;" title="Instalar no Celular">
+          <button onclick="showPWAModal()" class="btn-secondary header-desktop-only" style="padding: 0.45rem 0.8rem; font-size: 0.82rem; white-space:nowrap;" title="Instalar no Celular">
             📱 App Mobile
           </button>
 
-          <button id="themeToggleBtn" class="btn-icon" title="Alternar Tema">
+          <button id="themeToggleBtn" class="btn-icon header-desktop-only" title="Alternar Tema">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"></circle>
               <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
@@ -210,14 +211,14 @@
             </svg>
           </button>
 
-          <div class="btn-icon" onclick="switchTab('notifications')" title="Notificações">
+          <div class="btn-icon" onclick="switchTab('notifications')" title="Notificações" style="cursor:pointer;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             <div id="notifBellBadge" class="notif-badge-dot" style="display:none;"></div>
           </div>
 
-          <div class="user-profile" onclick="switchTab('settings')">
+          <div class="user-profile" onclick="switchTab('settings')" style="cursor:pointer;" title="Configurações da Conta">
             <div class="avatar-circle">KP</div>
-            <div style="font-size: 0.85rem; font-weight: 600;" class="nav-label">Operador Digital</div>
+            <div style="font-size: 0.85rem; font-weight: 600;" class="nav-label header-desktop-only">Operador Digital</div>
           </div>
         </div>
       </header>
@@ -524,6 +525,41 @@
           </div>
         </div>
 
+        <!-- MÓDULO TRANSAÇÕES (ALIAS DE VENDAS & DETALHES DE COBRANÇA) -->
+        <div id="pane-transactions" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 1.75rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <span class="badge-status badge-approved">📑 Auditoria Financeira</span>
+                <h3 style="font-size: 1.35rem; font-weight:800; color:#fff; margin-top:0.35rem;">Transações de Pagamento</h3>
+              </div>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <input type="text" placeholder="Filtrar por ID ou comprador..." class="glass-card" style="padding:0.45rem 0.85rem; color:#fff; background:var(--bg-surface); font-size:0.85rem; border-radius:8px;">
+                <button onclick="loadTransactionsData()" class="btn-secondary" style="padding:0.45rem 0.85rem; font-size:0.85rem;">🔄 Atualizar</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>ID Transação</th>
+                    <th>Cliente / E-mail</th>
+                    <th>Valor Bruto</th>
+                    <th>Valor Líquido</th>
+                    <th>Status</th>
+                    <th>Adquirente</th>
+                    <th>Data / Hora</th>
+                  </tr>
+                </thead>
+                <tbody id="transactionsTableBody">
+                  <!-- Carregado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- ========================================== -->
         <!-- MÓDULO 5: ADQUIRENTES & AI SMART ROUTING -->
         <!-- ========================================== -->
@@ -660,6 +696,162 @@
           </div>
         </div>
 
+        <!-- MÓDULO 10: MEUS LINKS DE PAGAMENTO -->
+        <div id="pane-links" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <span class="badge-status badge-approved">🔗 Links Diretos</span>
+                <h3 style="font-size: 1.4rem; font-weight:800; color:#fff; margin-top:0.35rem;">Meus Links de Pagamento</h3>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Compartilhe links rápidos de checkout via WhatsApp, Instagram ou redes sociais.</p>
+              </div>
+              <button onclick="showToastAlert('Novo link gerado com sucesso!')" class="btn-primary" style="padding:0.75rem 1.4rem; font-weight:700; border-radius:10px;">
+                + Criar Novo Link
+              </button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>Nome da Oferta</th>
+                    <th>Valor</th>
+                    <th>Cliques</th>
+                    <th>Conversão</th>
+                    <th>Link de Checkout</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentLinksTableBody">
+                  <tr>
+                    <td><strong>Mentoria Black VIP 2027</strong></td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 997,00</td>
+                    <td>1.420</td>
+                    <td><span class="badge-status badge-approved">8.4%</span></td>
+                    <td><code style="color:#c084fc;">https://kryptapay-krsq.vercel.app/pay/vip-2027</code></td>
+                    <td><button class="btn-secondary" style="padding:0.35rem 0.75rem; font-size:0.8rem;" onclick="copyPaymentLink('https://kryptapay-krsq.vercel.app/pay/vip-2027')">📋 Copiar</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>E-book Escala Sem Limites</strong></td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 47,00</td>
+                    <td>3.890</td>
+                    <td><span class="badge-status badge-approved">14.2%</span></td>
+                    <td><code style="color:#c084fc;">https://kryptapay-krsq.vercel.app/pay/escala-livro</code></td>
+                    <td><button class="btn-secondary" style="padding:0.35rem 0.75rem; font-size:0.8rem;" onclick="copyPaymentLink('https://kryptapay-krsq.vercel.app/pay/escala-livro')">📋 Copiar</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO 11: GESTÃO DE CLIENTES -->
+        <div id="pane-customers" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <span class="badge-status badge-approved">👥 CRM & Base</span>
+                <h3 style="font-size: 1.4rem; font-weight:800; color:#fff; margin-top:0.35rem;">Clientes Cadastrados</h3>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Histórico de compradores, LTV, frequência e status de cobrança.</p>
+              </div>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <input type="text" placeholder="Buscar por nome, e-mail ou CPF..." class="glass-card" style="padding:0.45rem 0.85rem; color:#fff; background:var(--bg-surface); font-size:0.85rem; border-radius:8px;">
+                <button class="btn-secondary" style="padding:0.45rem 0.85rem; font-size:0.85rem;">Exportar CRM</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>E-mail</th>
+                    <th>Telefone</th>
+                    <th>Total Gasto (LTV)</th>
+                    <th>Compras</th>
+                    <th>Último Pedido</th>
+                  </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                  <tr>
+                    <td><strong>Larissa Nunes Lopes</strong></td>
+                    <td>larissa@kryptapay.com</td>
+                    <td>(11) 98765-4321</td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 1.944,00</td>
+                    <td>4 pedidos</td>
+                    <td>Hoje, 14:32</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Marcos Vinicius Santos</strong></td>
+                    <td>marcos.v@gmail.com</td>
+                    <td>(21) 97654-3210</td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 497,00</td>
+                    <td>1 pedido</td>
+                    <td>Ontem, 21:15</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Carla Mendonça</strong></td>
+                    <td>carla.mendonca@hotmail.com</td>
+                    <td>(31) 99123-8877</td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 97,00</td>
+                    <td>1 pedido</td>
+                    <td>12/11/2026</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO 12: ASSINATURAS & RECORRÊNCIA -->
+        <div id="pane-subscriptions" class="view-pane" style="display:none;">
+          <div class="glass-card" style="padding: 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <span class="badge-status badge-approved">🔄 Recorrência Ativa</span>
+                <h3 style="font-size: 1.4rem; font-weight:800; color:#fff; margin-top:0.35rem;">Planos & Assinaturas</h3>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Cobrança automática recorrente no Pix e Cartão de Crédito com retentativas inteligentes.</p>
+              </div>
+              <button onclick="showToastAlert('Módulo de criação de planos aberto.')" class="btn-primary" style="padding:0.75rem 1.4rem; font-weight:700; border-radius:10px;">
+                + Criar Novo Plano
+              </button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>Assinante</th>
+                    <th>Plano</th>
+                    <th>Valor Recorrente</th>
+                    <th>Intervalo</th>
+                    <th>Próxima Cobrança</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="subscriptionsTableBody">
+                  <tr>
+                    <td><strong>Pedro Henrique Lima</strong></td>
+                    <td>Comunidade Krypta VIP</td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 97,00 / mês</td>
+                    <td>Mensal</td>
+                    <td>14/12/2026</td>
+                    <td><span class="badge-status badge-approved">Ativa</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Rodrigo Faro Digital</strong></td>
+                    <td>Clube dos Mestres</td>
+                    <td style="color:#4ade80; font-weight:700;">R$ 197,00 / mês</td>
+                    <td>Mensal</td>
+                    <td>01/12/2026</td>
+                    <td><span class="badge-status badge-approved">Ativa</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- ========================================================= -->
         <!-- MÓDULO: CENTRAL DE NOTIFICAÇÕES (AVISOS NO CELULAR E COMPUTADOR) -->
         <!-- ========================================================= -->
@@ -783,48 +975,63 @@
             </div>
           </div>
 
-          <!-- ÁREA: PREFERÊNCIAS DE ALERTAS (TOGGLES) -->
+          <!-- ÁREA: PREFERÊNCIAS DE ALERTAS (TOGGLES DE DESLIZAR) -->
           <div class="glass-card" style="padding: 2rem; margin-bottom: 1.75rem;">
             <h4 style="font-size:1.2rem; font-weight:800; color:#fff; margin-bottom:1.25rem;">Preferências de Alertas no Dispositivo</h4>
             <div style="display:flex; flex-direction:column; gap:1rem;">
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.95rem 1.15rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px;">
                 <div>
-                  <strong style="color:#fff; font-size:0.95rem;">Som de Caixa Registradora (Toque KryptaPay)</strong>
-                  <div style="font-size:0.8rem; color:var(--text-muted);">Toca áudio cristalino a cada venda confirmada.</div>
+                  <strong style="color:#fff; font-size:0.95rem;">Som de Caixa Registradora (Cash Register)</strong>
+                  <div style="font-size:0.8rem; color:var(--text-muted);">Toca áudio cristalino cha-ching da KryptaPay a cada venda.</div>
                 </div>
-                <input type="checkbox" id="prefSoundToggle" checked style="width:20px; height:20px; accent-color:var(--purple-500); cursor:pointer;">
+                <label class="krypta-switch">
+                  <input type="checkbox" id="prefSoundToggle" checked>
+                  <span class="krypta-slider"></span>
+                </label>
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.95rem 1.15rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px;">
                 <div>
                   <strong style="color:#fff; font-size:0.95rem;">Vibração do Celular (Haptic Feedback)</strong>
                   <div style="font-size:0.8rem; color:var(--text-muted);">Vibra duas vezes o celular ao pingar a notificação.</div>
                 </div>
-                <input type="checkbox" id="prefVibrateToggle" checked style="width:20px; height:20px; accent-color:var(--purple-500); cursor:pointer;">
+                <label class="krypta-switch">
+                  <input type="checkbox" id="prefVibrateToggle" checked>
+                  <span class="krypta-slider"></span>
+                </label>
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.95rem 1.15rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px;">
                 <div>
                   <strong style="color:#fff; font-size:0.95rem;">Vendas Aprovadas (Pix & Cartão)</strong>
-                  <div style="font-size:0.8rem; color:var(--text-muted);">Avisa imediatamente quando o dinheiro entrar.</div>
+                  <div style="font-size:0.8rem; color:var(--text-muted);">Notificar na barra do celular quando a venda for aprovada.</div>
                 </div>
-                <input type="checkbox" checked style="width:20px; height:20px; accent-color:var(--purple-500); cursor:pointer;">
+                <label class="krypta-switch">
+                  <input type="checkbox" id="prefApprovedToggle" checked>
+                  <span class="krypta-slider"></span>
+                </label>
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.95rem 1.15rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px;">
                 <div>
                   <strong style="color:#fff; font-size:0.95rem;">Pix Gerado / Aguardando Pagamento</strong>
-                  <div style="font-size:0.8rem; color:var(--text-muted);">Avisa quando o comprador abrir o QR Code Pix.</div>
+                  <div style="font-size:0.8rem; color:var(--text-muted);">Notificar na barra do celular quando o QR Code Pix for aberto.</div>
                 </div>
-                <input type="checkbox" checked style="width:20px; height:20px; accent-color:var(--purple-500); cursor:pointer;">
+                <label class="krypta-switch">
+                  <input type="checkbox" id="prefPendingToggle" checked>
+                  <span class="krypta-slider"></span>
+                </label>
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.95rem 1.15rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px;">
                 <div>
                   <strong style="color:#fff; font-size:0.95rem;">Saques Concluídos</strong>
-                  <div style="font-size:0.8rem; color:var(--text-muted);">Avisa quando o Pix cair na sua conta bancária.</div>
+                  <div style="font-size:0.8rem; color:var(--text-muted);">Notificar quando a transferência Pix cair na sua conta bancária.</div>
                 </div>
-                <input type="checkbox" checked style="width:20px; height:20px; accent-color:var(--purple-500); cursor:pointer;">
+                <label class="krypta-switch">
+                  <input type="checkbox" id="prefPayoutToggle" checked>
+                  <span class="krypta-slider"></span>
+                </label>
               </div>
             </div>
           </div>
@@ -1355,6 +1562,83 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
         </div>
 
         <!-- ========================================== -->
+        <!-- MÓDULO: CONFIGURAÇÕES DA CONTA & SAQUES -->
+        <!-- ========================================== -->
+        <div id="pane-settings" class="view-pane" style="display:none;">
+          <div class="glass-card glow-border" style="padding: 2rem; margin-bottom: 2rem;">
+            <div style="margin-bottom:1.5rem;">
+              <span class="badge-status badge-approved">⚙️ Gestão de Perfil</span>
+              <h3 style="font-size: 1.55rem; font-weight:800; color:#fff; margin-top:0.35rem;">Configurações da Conta</h3>
+              <p style="font-size:0.88rem; color:var(--text-muted); max-width:720px;">
+                Gerencie seus dados de acesso, chave Pix oficial para recebimento de transferências e preferências do gateway KryptaPay.
+              </p>
+            </div>
+
+            <!-- Dados Pessoais e Comerciais -->
+            <div style="margin-bottom: 2rem;">
+              <h4 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+                <span>👤</span> Dados do Titular / Operação
+              </h4>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem;">
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">Nome Completo / Razão Social</label>
+                  <input type="text" id="settingName" value="KryptaPay Operador Digital" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;">
+                </div>
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">E-mail Cadastrado</label>
+                  <input type="email" id="settingEmail" value="admin@kryptapay.com" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;" readonly>
+                </div>
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">Telefone / WhatsApp Comercial</label>
+                  <input type="text" id="settingPhone" value="(11) 99999-9999" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;">
+                </div>
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">CPF / CNPJ</label>
+                  <input type="text" id="settingDoc" value="12.345.678/0001-90" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Chave Pix para Recebimento de Saques -->
+            <div style="margin-bottom: 2rem; padding: 1.5rem; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:16px;">
+              <h4 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+                <span>💸</span> Chave Pix Cadastrada para Saques Automáticos
+              </h4>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+                Seus saques e transferências de saldo em conta serão processados diretamente para esta chave Pix instantaneamente com taxa de R$ 1,99.
+              </p>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1.25rem;">
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">Tipo de Chave Pix</label>
+                  <select id="settingPixType" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;">
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="email" selected>E-mail</option>
+                    <option value="phone">Telefone</option>
+                    <option value="random">Chave Aleatória (EVP)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">Chave Pix</label>
+                  <input type="text" id="settingPixKey" value="financeiro@kryptapay.com" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;">
+                </div>
+                <div>
+                  <label style="font-size:0.82rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:0.35rem;">Instituição Bancária</label>
+                  <input type="text" id="settingPixBank" value="Nubank / Nu Pagamentos" class="auth-input" style="width:100%; padding:0.75rem 1rem; border-radius:10px; background:rgba(12,5,24,0.85); border:1px solid rgba(139,92,246,0.3); color:#fff;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Botão Salvar -->
+            <div style="display:flex; justify-content:flex-end; gap:1rem;">
+              <button onclick="saveUserSettings()" class="btn-primary" style="padding:0.85rem 2rem; font-weight:700; border-radius:12px; box-shadow:0 0 25px rgba(176,38,255,0.4);">
+                💾 Salvar Configurações
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
         <!-- MÓDULO ADMIN: TAXAS DINÂMICAS & DRE FINANCEIRA -->
         <!-- ========================================== -->
         <div id="pane-admin" class="view-pane" style="display:none;">
@@ -1503,16 +1787,22 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
           </button>
         </nav>
 
+        <!-- Frase Oficial KryptaPay -->
+        <div style="text-align:center; padding: 2.5rem 1rem 3.5rem; color:var(--text-dim); font-size:0.85rem; border-top:1px solid rgba(255,255,255,0.05); margin-top:2.5rem;">
+          <p style="font-style:italic; margin-bottom:0.4rem; color:#a1a1aa;">"2027 é nosso. Vamos para cima. Quem não roda black não vive white."</p>
+          <span style="font-weight:700; color:#c084fc;">KryptaPay &copy; 2026-2027 &bull; Plataforma Oficial de Pagamentos</span>
+        </div>
+
       </div>
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.2.3"></script>
-  <script src="/js/i18n.js?v=2026.2.3"></script>
-  <script src="/js/globe3d.js?v=2026.2.3"></script>
-  <script src="/js/particles.js?v=2026.2.3"></script>
-  <script src="/js/card3d.js?v=2026.2.3"></script>
-  <script src="/js/pwa.js?v=2026.2.3"></script>
-  <script src="/js/app.js?v=2026.2.3"></script>
+  <script src="/js/api.js?v=2026.4"></script>
+  <script src="/js/i18n.js?v=2026.4"></script>
+  <script src="/js/globe3d.js?v=2026.4"></script>
+  <script src="/js/particles.js?v=2026.4"></script>
+  <script src="/js/card3d.js?v=2026.4"></script>
+  <script src="/js/pwa.js?v=2026.4"></script>
+  <script src="/js/app.js?v=2026.4"></script>
 </body>
 </html>

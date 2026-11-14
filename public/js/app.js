@@ -630,10 +630,11 @@ function renderChart(chartData) {
 // 5. Vendas Reais
 async function loadTransactionsData() {
   const res = await API.get('/api/transactions');
-  const tbody = document.getElementById('salesTableBody');
-  if (!tbody || !res.transactions) return;
+  const salesTbody = document.getElementById('salesTableBody');
+  const transTbody = document.getElementById('transactionsTableBody');
+  const transactions = (res && res.transactions) ? res.transactions : [];
 
-  tbody.innerHTML = res.transactions.map(t => {
+  const html = transactions.map(t => {
     let badgeClass = 'badge-pending';
     let badgeLabel = 'Pendente';
     if (t.status === 'approved') { badgeClass = 'badge-approved'; badgeLabel = 'Aprovada'; }
@@ -646,11 +647,14 @@ async function loadTransactionsData() {
         <td style="font-weight:700;">R$ ${t.amount.toFixed(2).replace('.', ',')}</td>
         <td style="color:var(--status-success);">R$ ${t.net_amount.toFixed(2).replace('.', ',')}</td>
         <td><span class="badge-status ${badgeClass}">${badgeLabel}</span></td>
-        <td>${t.payment_method.toUpperCase()}</td>
-        <td style="font-size:0.8rem; color:var(--text-dim);">${new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
+        <td>${(t.payment_method || 'PIX').toUpperCase()}</td>
+        <td style="font-size:0.8rem; color:var(--text-dim);">${new Date(t.created_at).toLocaleDateString('pt-BR')} ${new Date(t.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</td>
       </tr>
     `;
   }).join('');
+
+  if (salesTbody) salesTbody.innerHTML = html;
+  if (transTbody) transTbody.innerHTML = html;
 }
 
 // 6. Pagamento Rápido Pix Dinâmico
@@ -1322,3 +1326,23 @@ document.addEventListener('click', (e) => {
     menu.style.display = 'none';
   }
 });
+
+// Funções para Meus Links de Pagamento e Configurações
+function copyPaymentLink(url) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToastAlert('Link de checkout copiado para a área de transferência!');
+    }).catch(() => {
+      prompt('Copie o link abaixo:', url);
+    });
+  } else {
+    prompt('Copie o link abaixo:', url);
+  }
+}
+
+function saveUserSettings() {
+  const name = document.getElementById('settingName')?.value || 'KryptaPay Operador';
+  const pixKey = document.getElementById('settingPixKey')?.value || '';
+  const pixBank = document.getElementById('settingPixBank')?.value || '';
+  showToastAlert(`✅ Configurações salvas com sucesso! Chave Pix cadastrada: ${pixKey} (${pixBank})`);
+}

@@ -81,11 +81,26 @@ const API = {
   }
 };
 
-// Sintetizador de Som de Notificação Realista (Web Audio API - Toque Oficial KryptaPay)
+// Sintetizador de Som de Notificação Realista (Toque Oficial Cash Register KryptaPay)
 class NotificationAudio {
   static _ctx = null;
+  static _audioEl = null;
 
   static async playCashSound() {
+    // 1. Tocar arquivo de áudio WAV autêntico de Cash Register
+    try {
+      if (!this._audioEl) {
+        this._audioEl = new Audio('/audio/cash-register.wav');
+        this._audioEl.preload = 'auto';
+      }
+      this._audioEl.currentTime = 0;
+      const p = this._audioEl.play();
+      if (p !== undefined) {
+        p.catch(() => {});
+      }
+    } catch(e) {}
+
+    // 2. Síntese Web Audio API de alta fidelidade como garantia
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
@@ -98,7 +113,7 @@ class NotificationAudio {
       const ctx = this._ctx;
       const now = ctx.currentTime;
 
-      // Bell 1: Tom cristalino metálico agudo (C6 -> C7)
+      // Bell 1: Tom cristalino metálico agudo de caixa registradora (C6 -> C7)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
@@ -126,9 +141,9 @@ class NotificationAudio {
       osc2.start(now + 0.06);
       osc2.stop(now + 0.58);
 
-      // Vibração no celular
+      // Vibração no celular (dois toques rápidos)
       if (navigator.vibrate) {
-        navigator.vibrate([120, 60, 120]);
+        navigator.vibrate([150, 70, 150]);
       }
     } catch (e) {
       console.warn('Audio play error:', e);
