@@ -427,9 +427,47 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, 200, getTestDashboardMetrics(userId));
   }
 
+// ========================================================
+// FILA GLOBAL DE NOTIFICAÇÕES MULTI-DISPOSITIVOS (COMPUTADOR <-> CELULAR)
+// ========================================================
+const SYNC_STREAM_FILE = path.join(process.env.TMPDIR || '/tmp', 'krypta_sync_stream.json');
+
+function getSyncStream() {
+  if (!global.__krypta_notifications_stream) {
+    global.__krypta_notifications_stream = [];
+    try {
+      if (fs.existsSync(SYNC_STREAM_FILE)) {
+        const raw = fs.readFileSync(SYNC_STREAM_FILE, 'utf8');
+        global.__krypta_notifications_stream = JSON.parse(raw);
+      }
+    } catch (_) {}
+  }
+  return global.__krypta_notifications_stream;
+}
+
+function saveSyncStream(stream) {
+  global.__krypta_notifications_stream = stream.slice(-100);
+  try {
+    fs.writeFileSync(SYNC_STREAM_FILE, JSON.stringify(global.__krypta_notifications_stream), 'utf8');
+  } catch (_) {}
+}
+
   // -------------------------------------------------------------
-  // NOTIFICAÇÕES & DISPARO DE TESTE ÚNICO (ESTILO BLACKPAY / FLEVOPAY)
+  // NOTIFICAÇÕES & DISPARO MULTI-DISPOSITIVOS (COMPUTADOR <-> CELULAR)
   // -------------------------------------------------------------
+  if (pathname === '/api/notifications/sync' && method === 'GET') {
+    const stream = getSyncStream();
+    const parsedUrl = url.parse(req.url, true);
+    const since = parseInt((parsedUrl.query && parsedUrl.query.since) || '0', 10);
+    const newItems = stream.filter(n => n.seqId > since);
+    const latestSeqId = stream.length > 0 ? stream[stream.length - 1].seqId : 0;
+    return sendJSON(res, 200, {
+      success: true,
+      latestSeqId,
+      notifications: newItems
+    });
+  }
+
   if (pathname === '/api/notifications' && method === 'GET') {
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
     try {
@@ -442,15 +480,62 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (pathname === '/api/notifications/test-single' && method === 'POST') {
+  if ((pathname === '/api/notifications/test-single' || pathname === '/api/notifications/dispatch') && method === 'POST') {
     const body = await parseBody(req);
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
-    const notif = triggerSingleTestNotification({
+    const stream = getSyncStream();
+    const lastSeq = stream.length > 0 ? stream[stream.length - 1].seqId : 0;
+    const seqId = lastSeq + 1;
+
+    const chosenAmount = parseFloat(body.amount) || 197.00;
+    const isApproved = body.status !== 'pending';
+    const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const orderNumber = body.orderId || `#${10000 + Math.floor(Math.random() * 90000)}`;
+    const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
+    const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Aguardando Pagamento do Cliente';
+    const nativeBody = `Valor: R$ ${formattedAmount} • Pedido ${orderNumber}\n${subtitle}`;
+
+    const notif = {
+      id: 'krypta_sale_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      seqId,
+      deviceId: body.deviceId || 'unknown',
       userId,
-      amount: parseFloat(body.amount) || null,
-      status: body.status || 'approved'
-    });
-    return sendJSON(res, 200, { success: true, notification: notif });
+      brand: 'KRYPTAPAY',
+      icon: '/icons/logo.png',
+      title,
+      amount: `R$ ${formattedAmount}`,
+      rawAmount: chosenAmount,
+      orderId: orderNumber,
+      status: isApproved ? 'approved' : 'pending',
+      subtitle,
+      nativeBody,
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: Date.now()
+    };
+
+    stream.push(notif);
+    saveSyncStream(stream);
+
+    try {
+      db.prepare(`
+        INSERT INTO notifications (id, user_id, title, body, category, order_id, amount, is_simulation)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      `).run(notif.id, userId, title, nativeBody, isApproved ? 'venda_aprovada' : 'venda_pendente', orderNumber, chosenAmount);
+    } catch (_) {}
+
+    try {
+      const { broadcastToClients } = require('./services/simulationQueue');
+      if (broadcastToClients) {
+        broadcastToClients({
+          type: 'notification',
+          sentCount: 1,
+          totalCount: 1,
+          notification: notif
+        });
+      }
+    } catch (_) {}
+
+    return sendJSON(res, 200, { success: true, notification: notif, latestSeqId: seqId });
   }
 
   // -------------------------------------------------------------

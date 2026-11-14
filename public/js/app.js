@@ -8,10 +8,20 @@ const AppState = {
   notificationsHistory: []
 };
 
+// Identificador exclusivo deste dispositivo (para sincronização Computador <-> Celular)
+const myDeviceId = localStorage.getItem('krypta_device_id') || (() => {
+  const id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+  localStorage.setItem('krypta_device_id', id);
+  return id;
+})();
+const processedNotifIds = new Set();
+let lastSeenSyncSeqId = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   setupNavigation();
   setupSSE();
+  startCrossDeviceSync();
   loadDashboardData();
   setupModalListeners();
   updateNotificationPermissionBadge();
@@ -33,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     checkActiveSimulationSession();
+    fetchCrossDeviceSync();
   }
 });
 
@@ -170,23 +181,83 @@ function setupSSE() {
   };
 }
 
-// Manipular Notificação Recebida via SSE
+// ========================================================
+// SINCRONIZAÇÃO MULTI-DISPOSITIVOS (COMPUTADOR <-> CELULAR)
+// ========================================================
+let isSyncInProgress = false;
+
+async function fetchCrossDeviceSync() {
+  if (isSyncInProgress) return;
+  isSyncInProgress = true;
+  try {
+    const res = await API.get(`/api/notifications/sync?since=${lastSeenSyncSeqId}`);
+    if (res && res.notifications && res.notifications.length > 0) {
+      for (const n of res.notifications) {
+        if (n.seqId) lastSeenSyncSeqId = Math.max(lastSeenSyncSeqId, n.seqId);
+        if (processedNotifIds.has(n.id)) continue;
+        processedNotifIds.add(n.id);
+
+        // Se veio de OUTRO dispositivo (ex: disparado no Notebook e recebido no Celular):
+        if (n.deviceId !== myDeviceId) {
+          // 1. Tocar som de venda oficial no celular
+          NotificationAudio.playCashSound();
+          // 2. Vibrar celular
+          if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+          // 3. Disparar notificação PUSH nativa na barra do celular
+          await sendNativePhoneNotification(n);
+          // 4. Exibir aviso flutuante
+          showFloatingToast(n);
+          // 5. Adicionar faturamento à Dashboard Teste
+          addTestSale(n);
+          // 6. Atualizar histórico
+          if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
+          AppState.notificationsHistory.unshift(n);
+          renderNotificationsList();
+
+          const bellBadge = document.getElementById('notifBellBadge');
+          if (bellBadge) bellBadge.style.display = 'block';
+        }
+      }
+    }
+  } catch (_) {
+  } finally {
+    isSyncInProgress = false;
+  }
+}
+
+function startCrossDeviceSync() {
+  fetchCrossDeviceSync();
+  setInterval(fetchCrossDeviceSync, 1500);
+}
+
+// Manipular Notificação Recebida via SSE (Instantâneo)
 function handleIncomingNotification(data) {
   const notif = data.notification;
+  if (!notif) return;
+  if (processedNotifIds.has(notif.id)) return;
+  processedNotifIds.add(notif.id);
+  if (notif.seqId) lastSeenSyncSeqId = Math.max(lastSeenSyncSeqId, notif.seqId);
+
+  // Se veio de outro dispositivo
+  if (notif.deviceId !== myDeviceId) {
+    NotificationAudio.playCashSound();
+    if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+    sendNativePhoneNotification(notif);
+    showFloatingToast(notif);
+  }
+
   if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
   AppState.notificationsHistory.unshift(notif);
+  renderNotificationsList();
 
-  // Sino da barra superior
   const bellBadge = document.getElementById('notifBellBadge');
   if (bellBadge) bellBadge.style.display = 'block';
 
-  // Barra de progresso da simulação na aba notificações
   if (data.sentCount && data.totalCount) {
     const percent = Math.round((data.sentCount / data.totalCount) * 100);
     updateSimProgress(percent, `Disparando ${data.sentCount} de ${data.totalCount}`);
   }
 
-  // Atualizar a Dashboard Teste em tempo real com os valores da simulação
   addTestSale(notif);
 }
 
@@ -348,8 +419,12 @@ async function triggerSingleTestNotification(customAmount, isPending = false) {
   const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
   const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Aguardando Pagamento do Cliente';
 
+  const notifId = 'krypta_sale_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  processedNotifIds.add(notifId);
+
   const notifObj = {
-    id: 'test_' + Date.now(),
+    id: notifId,
+    deviceId: myDeviceId,
     brand: 'KRYPTAPAY',
     icon: '/icons/logo.png',
     title: title,
@@ -362,7 +437,7 @@ async function triggerSingleTestNotification(customAmount, isPending = false) {
     timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   };
 
-  // 1. DISPARAR NOTIFICAÇÃO NATIVA DIRETO NA BARRA DO CELULAR
+  // 1. DISPARAR NOTIFICAÇÃO NATIVA NO DISPOSITIVO ATUAL
   await sendNativePhoneNotification(notifObj);
 
   // 2. Preencher no histórico da aba Notificações
@@ -373,8 +448,17 @@ async function triggerSingleTestNotification(customAmount, isPending = false) {
   // 3. Atualizar a Dashboard Teste em tempo real
   addTestSale(notifObj);
 
-  // 4. Registrar no backend
-  API.post('/api/notifications/test-single', { amount, status: notifObj.status }).catch(() => {});
+  // 4. TRANSMITIR IMEDIATAMENTE PARA TODOS OS CELULARES LOGADOS PINGAREM!
+  API.post('/api/notifications/dispatch', {
+    amount,
+    status: notifObj.status,
+    deviceId: myDeviceId,
+    orderId
+  }).then(res => {
+    if (res && res.latestSeqId) {
+      lastSeenSyncSeqId = Math.max(lastSeenSyncSeqId, res.latestSeqId);
+    }
+  }).catch(() => {});
 }
 
 async function requestNotificationPermission() {
