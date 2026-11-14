@@ -146,7 +146,8 @@ const server = http.createServer(async (req, res) => {
         VALUES (?, ?, ?, ?, 'merchant', ?, ?, ?, 0.00, 0.00, 0.00)
       `).run(userId, email, passwordHash, full_name, phone || '', cpf || '', shipping_address || '');
 
-      const sessionToken = createSession(userId, req.socket.remoteAddress, req.headers['user-agent']);
+      const clientIp = (req.socket && req.socket.remoteAddress) || req.headers['x-forwarded-for'] || '127.0.0.1';
+      const sessionToken = createSession(userId, clientIp, req.headers['user-agent'] || 'browser');
       return sendJSON(res, 201, {
         success: true,
         token: sessionToken,
@@ -170,7 +171,8 @@ const server = http.createServer(async (req, res) => {
     if (!user || !verifyPassword(password, user.password_hash)) {
       return sendJSON(res, 401, { error: 'E-mail ou senha inválidos.' });
     }
-    const sessionToken = createSession(user.id, req.socket.remoteAddress, req.headers['user-agent']);
+    const clientIp = (req.socket && req.socket.remoteAddress) || req.headers['x-forwarded-for'] || '127.0.0.1';
+    const sessionToken = createSession(user.id, clientIp, req.headers['user-agent'] || 'browser');
     return sendJSON(res, 200, {
       token: sessionToken,
       user: {
@@ -996,7 +998,14 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Gateway KryptaPay ativo e rodando na porta ${PORT}`);
-  console.log(`📱 Acesso Web / PWA: http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Gateway KryptaPay ativo e rodando na porta ${PORT}`);
+    console.log(`📱 Acesso Web / PWA: http://localhost:${PORT}`);
+  });
+}
+
+// Exportar handler Serverless compatível com Vercel
+module.exports = (req, res) => {
+  server.emit('request', req, res);
+};
