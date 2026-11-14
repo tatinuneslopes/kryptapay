@@ -1125,13 +1125,23 @@
               <div>
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Intervalo entre Avisos</label>
                 <select id="notifTestInterval" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
-                  <option value="15">A cada 15 segundos</option>
-                  <option value="30">A cada 30 segundos</option>
-                  <option value="60">A cada 1 minuto (60s)</option>
-                  <option value="120" selected>A cada 2 minutos (120s - Ideal para noites/dias)</option>
-                  <option value="180">A cada 3 minutos (180s)</option>
-                  <option value="300">A cada 5 minutos (300s)</option>
-                  <option value="600">A cada 10 minutos</option>
+                  <optgroup label="⚡ Velocidade Máxima / Instantânea (< 15s)">
+                    <option value="1">⚡ A cada 1 segundo (Instantâneo • Limite Máximo)</option>
+                    <option value="2">⚡ A cada 2 segundos (Ultra Rápido)</option>
+                    <option value="3">⚡ A cada 3 segundos (Super Rápido)</option>
+                    <option value="5" selected>🔥 A cada 5 segundos (Rápido Contínuo)</option>
+                    <option value="8">🔥 A cada 8 segundos (Sequência Acelerada)</option>
+                    <option value="10">🔥 A cada 10 segundos</option>
+                  </optgroup>
+                  <optgroup label="⏱️ Velocidade Padrão">
+                    <option value="15">A cada 15 segundos</option>
+                    <option value="30">A cada 30 segundos</option>
+                    <option value="60">A cada 1 minuto (60s)</option>
+                    <option value="120">A cada 2 minutos (120s - Ideal para noites/dias)</option>
+                    <option value="180">A cada 3 minutos (180s)</option>
+                    <option value="300">A cada 5 minutos (300s)</option>
+                    <option value="600">A cada 10 minutos</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -2186,12 +2196,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.11"></script>
-  <script src="/js/i18n.js?v=2026.11"></script>
-  <script src="/js/globe3d.js?v=2026.11"></script>
-  <script src="/js/particles.js?v=2026.11"></script>
-  <script src="/js/card3d.js?v=2026.11"></script>
-  <script src="/js/pwa.js?v=2026.11"></script>
-  <script src="/js/app.js?v=2026.11"></script>
+  <script src="/js/api.js?v=2026.12"></script>
+  <script src="/js/i18n.js?v=2026.12"></script>
+  <script src="/js/globe3d.js?v=2026.12"></script>
+  <script src="/js/particles.js?v=2026.12"></script>
+  <script src="/js/card3d.js?v=2026.12"></script>
+  <script src="/js/pwa.js?v=2026.12"></script>
+  <script src="/js/app.js?v=2026.12"></script>
 </body>
 </html>

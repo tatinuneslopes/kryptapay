@@ -8,7 +8,7 @@ self.onmessage = function(e) {
   const data = e.data || {};
   if (data.action === 'start') {
     if (intervalId) clearInterval(intervalId);
-    const intervalMs = Math.max(parseInt(data.intervalMs, 10) || 5000, 1000);
+    const intervalMs = Math.max(parseInt(data.intervalMs, 10) || 1000, 500);
     
     intervalId = setInterval(() => {
       self.postMessage({ type: 'TICK', timestamp: Date.now() });

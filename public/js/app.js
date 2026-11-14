@@ -396,8 +396,12 @@ async function sendNativePhoneNotification(notifObj) {
 
 // Disparo Único com Alternância (Aprovada ou Pendente)
 async function triggerSingleTestNotification(customAmount, isPending = false) {
-  const prefVibrate = document.getElementById('prefVibrateToggle') ? document.getElementById('prefVibrateToggle').checked : true;
+  const prefSound = document.getElementById('prefSoundToggle') ? document.getElementById('prefSoundToggle').checked : true;
+  if (prefSound) {
+    NotificationAudio.playCashSound();
+  }
 
+  const prefVibrate = document.getElementById('prefVibrateToggle') ? document.getElementById('prefVibrateToggle').checked : true;
   if (prefVibrate && navigator.vibrate) {
     navigator.vibrate([250, 100, 250]);
   }
