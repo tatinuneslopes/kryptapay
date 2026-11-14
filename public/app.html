@@ -2,11 +2,11 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
   <title>KryptaPay — Pagamentos Sem Limites & Dashboard</title>
 
   <!-- PWA & Mobile Meta Tags -->
-  <meta name="theme-color" content="#8B5CF6">
+  <meta name="theme-color" content="#b026ff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="KryptaPay">
@@ -17,11 +17,12 @@
   <!-- Script Ultra-Rápido: Detecção Mobile e Bloqueio Total de Duplo Toque para Zoom no iPhone e Android -->
   <script>
     (function() {
-      // 1. Detecção e aplicação imediata de layout mobile em iPhone, iPad ou Android
+      // 1. Detecção rigorosa de celulares iPhone, iPad, Android ou telas mobile/tablet
       const isMobileDevice = /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent) || 
-                             (window.screen && Math.min(window.screen.width, window.screen.height) <= 850);
+                             (window.screen && Math.min(window.screen.width, window.screen.height) <= 1024) ||
+                             window.innerWidth <= 1024;
       if (isMobileDevice) {
-        document.documentElement.classList.add('mobile-viewport-enforced');
+        document.documentElement.classList.add('mobile-viewport-enforced', 'is-mobile-device');
       }
 
       // 2. Bloqueio Total de Duplo Toque para Zoom e Pinça no Safari e Chrome
@@ -38,11 +39,17 @@
       document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
       document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
       document.addEventListener('dblclick', function(e) { e.preventDefault(); }, { passive: false });
+
+      document.addEventListener('DOMContentLoaded', function() {
+        if (isMobileDevice && document.body) {
+          document.body.classList.add('is-mobile-screen');
+        }
+      });
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.2.3">
-  <link rel="stylesheet" href="/css/components.css?v=2026.2.3">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.7">
+  <link rel="stylesheet" href="/css/components.css?v=2026.7">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -1069,47 +1076,59 @@
           <div class="glass-card" style="padding: 2rem; margin-bottom: 1.75rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
               <div>
-                <span style="font-size:0.8rem; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:1px;">Disparos Múltiplos para o Celular</span>
-                <h4 style="font-size:1.25rem; font-weight:800; color:#fff; margin-top:0.25rem;">Pingar Vendas Pendentes e Aprovadas no Celular</h4>
-                <p style="font-size:0.85rem; color:var(--text-muted);">
-                  Escolha de 1 a 100 vendas para ficarem pingando na barra do seu celular no intervalo definido.
+                <span style="font-size:0.8rem; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:1px;">Simulador de Escala em Tempo Real</span>
+                <h4 style="font-size:1.35rem; font-weight:800; color:#fff; margin-top:0.25rem;">Disparador Contínuo para o Celular (Dias / Horas)</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted); max-width:720px;">
+                  Deixe suas vendas de teste pingando no seu celular por 1 noite, 24 horas, 2 dias, 3 dias, 7 dias ou até 10 dias seguidos no intervalo que desejar. Só para quando você clicar em Parar Disparos.
                 </p>
               </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
               <div>
-                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Quantidade de Notificações (1 a 100)</label>
-                <select id="notifTestCount" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem;">
-                  <option value="1">1 Notificação</option>
-                  <option value="3">3 Notificações</option>
-                  <option value="5" selected>5 Notificações</option>
-                  <option value="10">10 Notificações</option>
-                  <option value="20">20 Notificações</option>
-                  <option value="50">50 Notificações</option>
-                  <option value="100">100 Notificações (Sequência Máxima)</option>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Duração / Quantidade de Disparos</label>
+                <select id="notifTestCount" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
+                  <optgroup label="⏱️ Duração Contínua (Horas & Dias)">
+                    <option value="dur_2d" selected>🚀 2 Dias (48 Horas - Teste Fim de Semana)</option>
+                    <option value="dur_8h">🌙 1 Noite (8 Horas de Sono)</option>
+                    <option value="dur_24h">☀️ 24 Horas (1 Dia Completo)</option>
+                    <option value="dur_3d">🔥 3 Dias (72 Horas)</option>
+                    <option value="dur_7d">💎 7 Dias (1 Semana Completa)</option>
+                    <option value="dur_10d">👑 10 Dias (Escala Contínua)</option>
+                    <option value="dur_infinite">♾️ Infinito (Só para ao clicar em Parar)</option>
+                  </optgroup>
+                  <optgroup label="🔢 Quantidade Fixa">
+                    <option value="5">5 Notificações Rápidas</option>
+                    <option value="10">10 Notificações</option>
+                    <option value="20">20 Notificações</option>
+                    <option value="50">50 Notificações</option>
+                    <option value="100">100 Notificações</option>
+                  </optgroup>
                 </select>
               </div>
 
               <div>
-                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Intervalo entre Avisos (segundos)</label>
-                <select id="notifTestInterval" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem;">
-                  <option value="1">A cada 1 segundo (Muito rápido)</option>
-                  <option value="2">A cada 2 segundos</option>
-                  <option value="3" selected>A cada 3 segundos (Recomendado)</option>
-                  <option value="5">A cada 5 segundos</option>
-                  <option value="10">A cada 10 segundos</option>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Intervalo entre Avisos</label>
+                <select id="notifTestInterval" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
+                  <option value="15">A cada 15 segundos</option>
+                  <option value="30">A cada 30 segundos</option>
+                  <option value="60">A cada 1 minuto (60s)</option>
+                  <option value="120" selected>A cada 2 minutos (120s - Ideal para noites/dias)</option>
+                  <option value="180">A cada 3 minutos (180s)</option>
+                  <option value="300">A cada 5 minutos (300s)</option>
+                  <option value="600">A cada 10 minutos</option>
                 </select>
               </div>
 
               <div>
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Valor da Venda de Teste</label>
-                <select id="notifTestAmount" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem;">
-                  <option value="random" selected>Valores Aleatórios (R$ 47 a R$ 497)</option>
+                <select id="notifTestAmount" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
+                  <option value="random" selected>Valores Aleatórios (R$ 47 a R$ 997)</option>
                   <option value="47">R$ 47,00 (Ticket Baixo)</option>
                   <option value="97">R$ 97,00 (Ticket Padrão)</option>
                   <option value="197">R$ 197,00 (Ticket Médio)</option>
                   <option value="497">R$ 497,00 (Ticket Alto)</option>
+                  <option value="997">R$ 997,00 (Ticket VIP Black)</option>
                 </select>
               </div>
             </div>
@@ -1217,43 +1236,176 @@
           <div class="glass-card" style="padding: 2rem; margin-bottom: 2rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
               <div>
-                <h3 style="font-size: 1.5rem; font-weight:800; color:#fff;">Premiações de Elite KryptaPay</h3>
-                <p style="font-size: 0.85rem; color:var(--text-muted);">
-                  Desbloqueadas exclusivamente a partir do faturamento real elegível aprovado.
+                <span class="badge-status badge-approved">🏆 Premiações Físicas Oficiais</span>
+                <h3 style="font-size: 1.6rem; font-weight:800; color:#fff; margin-top:0.35rem;">Premiações & Placas de Faturamento KryptaPay</h3>
+                <p style="font-size: 0.85rem; color:var(--text-muted); max-width:680px;">
+                  Conquistas desbloqueadas a partir do seu faturamento na plataforma. Receba troféus e pulseiras personalizadas diretamente no seu endereço.
                 </p>
               </div>
-              <div>
-                <span style="font-size:0.8rem; color:var(--text-dim);">Faturamento Elegível:</span>
-                <div id="rewardsRevenueLabel" style="font-size:1.6rem; font-weight:800; color:var(--purple-400);">R$ 0,00</div>
+              <div style="text-align:right;">
+                <span style="font-size:0.8rem; color:var(--text-dim);">Faturamento Acumulado Elegível:</span>
+                <div id="rewardsRevenueLabel" style="font-size:1.7rem; font-weight:900; color:#c084fc;">R$ 0,00</div>
               </div>
             </div>
           </div>
 
-          <!-- Destaque Especial: iPhone Pro Max Bordô -->
-          <div class="glass-card" style="padding: 1.75rem; margin-bottom: 2.5rem; border: 1px solid rgba(190, 18, 60, 0.5); background: linear-gradient(135deg, rgba(30, 10, 20, 0.9), rgba(15, 8, 15, 0.95));">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-              <div>
-                <span class="badge-status" style="background:rgba(190, 18, 60, 0.2); color:#fb7185; border:1px solid rgba(190, 18, 60, 0.4);">
-                  📱 Prêmio Especial de Elite
-                </span>
-                <h4 style="font-size:1.3rem; font-weight:800; color:#fff; margin-top:0.4rem;">iPhone Pro Max Bordô Exclusivo</h4>
-                <div style="font-size:0.85rem; color:var(--text-muted);">Desbloqueio com R$ 200.000,00 em faturamento elegível.</div>
+          <!-- Destaque Especial: iPhone 18 Pro Max Bordô Red Exclusivo -->
+          <div class="glass-card glow-border" style="padding: 2rem; margin-bottom: 2.5rem; border: 1.5px solid rgba(225, 29, 72, 0.6); background: linear-gradient(135deg, rgba(38, 10, 24, 0.95), rgba(18, 5, 14, 0.98)); box-shadow: 0 10px 40px rgba(225, 29, 72, 0.35);">
+            <div style="display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
+              <div style="flex: 0 0 220px; max-width: 220px; border-radius: 18px; overflow: hidden; border: 2.5px solid #f43f5e; box-shadow: 0 0 30px rgba(244, 63, 94, 0.5);">
+                <img src="/assets/placas/placa-1m.jpg" style="width:100%; height:auto; display:block; object-fit:cover;" alt="iPhone 18 Pro Max Bordô Red + Placa 1 Milhão">
               </div>
-              <div id="iphoneProgressPercent" style="font-size:1.6rem; font-weight:800; color:#fb7185;">0%</div>
-            </div>
-            <div style="width:100%; height:12px; background:rgba(255,255,255,0.08); border-radius:var(--radius-full); overflow:hidden;">
-              <div id="iphoneProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #be123c, #fb7185);"></div>
+              <div style="flex: 1; min-width: 260px;">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                  <span class="badge-status" style="background:rgba(244, 63, 94, 0.2); color:#fda4af; border:1px solid rgba(244, 63, 94, 0.45); font-weight:700;">
+                    👑 Prêmio Especial de Elite
+                  </span>
+                  <span style="font-size:0.8rem; color:#f43f5e; font-weight:700;">EDIÇÃO LIMITADA TITAN</span>
+                </div>
+                <h4 style="font-size: 1.6rem; font-weight:900; color:#fff; margin-bottom:0.35rem;">iPhone 18 Pro Max Bordô Red Exclusivo</h4>
+                <p style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 1.25rem; line-height: 1.5;">
+                  Receba o mais poderoso smartphone da Apple com acabamento de titânio na cor bordô exclusiva da KryptaPay, enviado junto com a sua Placa Imperial de 1 Milhão de Faturamento.
+                </p>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                  <span style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Meta: R$ 1.000.000,00</span>
+                  <span id="iphoneProgressPercent" style="font-size:1.1rem; font-weight:800; color:#fb7185;">0%</span>
+                </div>
+                <div style="width:100%; height:12px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden;">
+                  <div id="iphoneProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #be123c, #f43f5e); transition:width 0.4s ease;"></div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:1.5rem;">Placas de Faturamento 3D</h4>
-          <div id="trophyPlaquesGrid" class="trophy-grid">
-            <!-- Carregado via JS -->
+          <!-- Sequência Oficial de Placas 3D: 10k, 50k, 100k, 1 milhão e 10 milhões -->
+          <div style="margin-bottom: 3rem;">
+            <div style="margin-bottom: 1.5rem;">
+              <span class="badge-status badge-approved">💎 Troféus de Acrílico & Neon</span>
+              <h4 style="font-size:1.35rem; font-weight:800; color:#fff; margin-top:0.35rem;">Placas Oficiais de Faturamento 3D</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Sequência de troféus físicos enviados para os operadores digitais de destaque.</p>
+            </div>
+
+            <div id="trophyPlaquesGrid" class="trophy-grid">
+              <!-- 1. Placa 10K -->
+              <div class="trophy-card">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/placas/placa-10k.jpg" class="trophy-card-img" alt="Placa 10K Faturados">
+                  </div>
+                  <span class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">1º Marco de Escala</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Placa 10K Faturados</h4>
+                  <p style="font-size: 0.88rem; color: var(--purple-neon); margin-bottom:0.4rem; font-weight:700;">Meta: R$ 10.000,00</p>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Troféu de acrílico espelhado e base com gravação a laser KryptaPay.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+
+              <!-- 2. Placa 50K -->
+              <div class="trophy-card">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/placas/placa-50k.jpg" class="trophy-card-img" alt="Placa 50K Faturados">
+                  </div>
+                  <span class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">2º Marco de Escala</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Placa 50K Faturados</h4>
+                  <p style="font-size: 0.88rem; color: var(--purple-neon); margin-bottom:0.4rem; font-weight:700;">Meta: R$ 50.000,00</p>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Troféu em acabamento fumê brilhante com LED ultravioleta integrado.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+
+              <!-- 3. Placa 100K Black -->
+              <div class="trophy-card">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/placas/placa-100k.jpg" class="trophy-card-img" alt="Placa 100K Black">
+                  </div>
+                  <span class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">👑 Marco Black (6 Dígitos)</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Placa 100K Black</h4>
+                  <p style="font-size: 0.88rem; color: var(--purple-neon); margin-bottom:0.4rem; font-weight:700;">Meta: R$ 100.000,00</p>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Troféu Black Edition exclusivo com coroa dourada metálica gravada.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+
+              <!-- 4. Placa 1 Milhão + iPhone 18 Pro Max -->
+              <div class="trophy-card" style="border-color: rgba(225, 29, 72, 0.5);">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(225, 29, 72, 0.5); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/placas/placa-1m.jpg" class="trophy-card-img" alt="Placa 1 Milhão + iPhone 18 Pro Max">
+                  </div>
+                  <span class="badge-status" style="background:rgba(225, 29, 72, 0.2); color:#fda4af; border:1px solid rgba(225, 29, 72, 0.4); font-size:0.75rem;">🔥 7 Dígitos + iPhone</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Placa 1 Milhão + iPhone</h4>
+                  <p style="font-size: 0.88rem; color: #fb7185; margin-bottom:0.4rem; font-weight:700;">Meta: R$ 1.000.000,00</p>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Troféu Imperial 1M + iPhone 18 Pro Max Bordô Red entregue em mãos.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+
+              <!-- 5. Placa 10 Milhões Titan -->
+              <div class="trophy-card" style="border-color: rgba(234, 179, 8, 0.5);">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(234, 179, 8, 0.5); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/placas/placa-10m.jpg" class="trophy-card-img" alt="Placa 10 Milhões Titan">
+                  </div>
+                  <span class="badge-status" style="background:rgba(234, 179, 8, 0.2); color:#fef08a; border:1px solid rgba(234, 179, 8, 0.4); font-size:0.75rem;">💎 Titan 8 Dígitos</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Placa 10 Milhões Titan</h4>
+                  <p style="font-size: 0.88rem; color: #facc15; margin-bottom:0.4rem; font-weight:700;">Meta: R$ 10.000.000,00</p>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">O maior marco da indústria digital com gravação oficial Titan do #1.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <h4 style="font-size:1.2rem; font-weight:700; color:#fff; margin-top:3rem; margin-bottom:1.5rem;">Pulseiras Oficiais de Conquista</h4>
-          <div id="wristbandsGrid" class="trophy-grid">
-            <!-- Carregado via JS -->
+          <!-- Pulseiras Oficiais de Conquista -->
+          <div style="margin-bottom: 2rem;">
+            <div style="margin-bottom: 1.5rem;">
+              <span class="badge-status badge-approved">⚡ Acessórios Oficiais</span>
+              <h4 style="font-size:1.35rem; font-weight:800; color:#fff; margin-top:0.35rem;">Pulseiras Oficiais de Conquista</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Colecionáveis físicos de silicone premium com gravações em alto-relevo da KryptaPay.</p>
+            </div>
+
+            <div id="wristbandsGrid" class="trophy-grid">
+              <!-- Pulseira Roxa -->
+              <div class="trophy-card">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/pulseiras/pulseira-roxa.jpg" class="trophy-card-img" alt="Pulseira Roxa Oficial">
+                  </div>
+                  <span class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">Exclusiva 10K e 50K</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Pulseira Roxa Oficial</h4>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Silicone roxo com gravação preta em alto-relevo da marca KryptaPay.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+
+              <!-- Pulseira Preta VIP -->
+              <div class="trophy-card">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(176,38,255,0.4); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/pulseiras/pulseira-preta.jpg" class="trophy-card-img" alt="Pulseira Preta VIP Oficial">
+                  </div>
+                  <span class="badge-status" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.75rem;">Elite 100K e 1M</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Pulseira Preta VIP Oficial</h4>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Silicone preto ônix com detalhes em roxo neon metálico e fecho especial.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+
+              <!-- Pulseira Titan 10 Milhões -->
+              <div class="trophy-card" style="border-color: rgba(234, 179, 8, 0.5);">
+                <div class="trophy-inner" style="padding:1.25rem;">
+                  <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(234, 179, 8, 0.5); margin-bottom:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.6);">
+                    <img src="/assets/pulseiras/pulseira-10m.jpg" class="trophy-card-img" alt="Pulseira Titan 10 Milhões #1">
+                  </div>
+                  <span class="badge-status" style="background:rgba(234, 179, 8, 0.2); color:#fef08a; border:1px solid rgba(234, 179, 8, 0.4); font-size:0.75rem;">Medalha do #1 (8 Dígitos)</span>
+                  <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin-top:0.35rem; margin-bottom:0.25rem;">Pulseira Titan 10 Milhões #1</h4>
+                  <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom:1rem;">Acompanha a medalha dourada maciça com gravação do número #1 Titan.</p>
+                  <span class="badge-status badge-pending">🎯 Em Progresso</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1957,12 +2109,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.5"></script>
-  <script src="/js/i18n.js?v=2026.5"></script>
-  <script src="/js/globe3d.js?v=2026.5"></script>
-  <script src="/js/particles.js?v=2026.5"></script>
-  <script src="/js/card3d.js?v=2026.5"></script>
-  <script src="/js/pwa.js?v=2026.5"></script>
-  <script src="/js/app.js?v=2026.5"></script>
+  <script src="/js/api.js?v=2026.7"></script>
+  <script src="/js/i18n.js?v=2026.7"></script>
+  <script src="/js/globe3d.js?v=2026.7"></script>
+  <script src="/js/particles.js?v=2026.7"></script>
+  <script src="/js/card3d.js?v=2026.7"></script>
+  <script src="/js/pwa.js?v=2026.7"></script>
+  <script src="/js/app.js?v=2026.7"></script>
 </body>
 </html>

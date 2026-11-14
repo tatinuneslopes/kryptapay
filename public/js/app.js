@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDashboardData();
   setupModalListeners();
   updateNotificationPermissionBadge();
+  checkActiveSimulationSession();
 
   // Inicializar o Globo 3D da Dashboard
   setTimeout(() => {
@@ -27,6 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }, 200);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkActiveSimulationSession();
+  }
 });
 
 // 1. Alternância de Tema Claro / Escuro
@@ -88,7 +95,34 @@ function switchTab(tabId) {
   }
 
   document.querySelectorAll('.view-pane').forEach(pane => pane.style.display = 'none');
-  const targetPane = document.getElementById(`pane-${tabId}`);
+  let targetPane = document.getElementById(`pane-${tabId}`);
+  if (!targetPane) {
+    if (tabId === 'notifications' || tabId === 'avisos' || tabId === 'notificacoes') {
+      targetPane = document.getElementById('pane-notifications');
+    } else if (tabId === 'sales' || tabId === 'vendas') {
+      targetPane = document.getElementById('pane-sales');
+    } else if (tabId === 'rewards' || tabId === 'premiacoes') {
+      targetPane = document.getElementById('pane-rewards');
+    } else if (tabId === 'customers' || tabId === 'clientes') {
+      targetPane = document.getElementById('pane-customers');
+    } else if (tabId === 'links' || tabId === 'meus-links') {
+      targetPane = document.getElementById('pane-links');
+    } else if (tabId === 'checkout') {
+      targetPane = document.getElementById('pane-checkout');
+    } else if (tabId === 'subscriptions' || tabId === 'assinaturas') {
+      targetPane = document.getElementById('pane-subscriptions');
+    } else if (tabId === 'api' || tabId === 'api-keys') {
+      targetPane = document.getElementById('pane-api');
+    } else if (tabId === 'integrations' || tabId === 'integracoes') {
+      targetPane = document.getElementById('pane-integrations');
+    } else if (tabId === 'support' || tabId === 'suporte') {
+      targetPane = document.getElementById('pane-support');
+    } else if (tabId === 'settings' || tabId === 'configuracoes') {
+      targetPane = document.getElementById('pane-settings');
+    } else {
+      targetPane = document.getElementById('pane-dashboard');
+    }
+  }
   if (targetPane) {
     targetPane.style.display = 'block';
   }
@@ -388,84 +422,288 @@ function updateNotificationPermissionBadge() {
   }
 }
 
+// -------------------------------------------------------------
+// SISTEMA DE NOTIFICAÇÕES CONTÍNUAS (2 DIAS, NOITE, HORAS & WEB WORKER)
+// -------------------------------------------------------------
 let notifSeqTimer = null;
 let notifSeqCurrent = 0;
 let notifSeqTotal = 0;
+let notifSeqIsInfinite = false;
+let notifSeqIntervalSec = 120;
+let notifSeqSessionStart = 0;
+let simWakeLock = null;
+let simTimerWorker = null;
 
+// Gestão de Wake Lock para evitar tela apagada ou suspensão no celular
+async function requestSimulationWakeLock() {
+  try {
+    if ('wakeLock' in navigator && !simWakeLock) {
+      simWakeLock = await navigator.wakeLock.request('screen');
+      simWakeLock.addEventListener('release', () => {
+        simWakeLock = null;
+      });
+    }
+  } catch (err) {
+    console.log('Screen Wake Lock não suportado ou bloqueado no navegador:', err);
+  }
+}
+
+function releaseSimulationWakeLock() {
+  if (simWakeLock) {
+    try { simWakeLock.release(); } catch (_) {}
+    simWakeLock = null;
+  }
+}
+
+// Inicializar Web Worker para ticks precisos em segundo plano
+function initSimulationWorker() {
+  if (window.Worker && !simTimerWorker) {
+    try {
+      simTimerWorker = new Worker('/js/timer-worker.js');
+      simTimerWorker.onmessage = function(e) {
+        if (e.data && e.data.type === 'TICK') {
+          handleSeqTick();
+        }
+      };
+    } catch (e) {
+      console.warn('Web Worker não pôde ser instanciado, usando setInterval de fallback:', e);
+      simTimerWorker = null;
+    }
+  }
+}
+
+// Interpretar duração selecionada pelo usuário
+function parseNotifDurationValue(val) {
+  switch (val) {
+    case 'dur_8h': return { totalTicks: 240, durationSec: 8 * 3600, infinite: false, label: '1 Noite (8 Horas)' };
+    case 'dur_24h': return { totalTicks: 720, durationSec: 24 * 3600, infinite: false, label: '24 Horas (1 Dia)' };
+    case 'dur_2d': return { totalTicks: 1440, durationSec: 48 * 3600, infinite: false, label: '2 Dias (48 Horas)' };
+    case 'dur_3d': return { totalTicks: 2160, durationSec: 72 * 3600, infinite: false, label: '3 Dias' };
+    case 'dur_7d': return { totalTicks: 5040, durationSec: 168 * 3600, infinite: false, label: '7 Dias (1 Semana)' };
+    case 'dur_10d': return { totalTicks: 7200, durationSec: 240 * 3600, infinite: false, label: '10 Dias' };
+    case 'dur_infinite': return { totalTicks: Infinity, durationSec: Infinity, infinite: true, label: 'Contínuo / Infinito' };
+    default: {
+      const parsed = parseInt(val, 10) || 5;
+      return { totalTicks: parsed, durationSec: parsed * 60, infinite: false, label: `${parsed} Notificações` };
+    }
+  }
+}
+
+// Iniciar sequência de notificações contínua
 async function startNotificationSequence() {
-  // Se ainda não tiver permissão, solicita imediatamente ao usuário
+  // Solicita permissão de push se ainda não concedida
   if ('Notification' in window && Notification.permission !== 'granted') {
     const perm = await Notification.requestPermission();
     updateNotificationPermissionBadge();
     if (perm !== 'granted') {
-      alert('Para as notificações pingarem na barra do seu celular, você precisa tocar em "Permitir" na mensagem do navegador!');
+      alert('Para as notificações de venda pingarem na barra do seu celular, autorize as notificações tocando em "Permitir"!');
       return;
     }
   }
 
   const countSelect = document.getElementById('notifTestCount');
   const intervalSelect = document.getElementById('notifTestInterval');
-  const count = parseInt(countSelect ? countSelect.value : 5, 10);
-  const intervalSec = parseInt(intervalSelect ? intervalSelect.value : 3, 10);
+  const durConfig = parseNotifDurationValue(countSelect ? countSelect.value : 'dur_2d');
+  const intervalSec = parseInt(intervalSelect ? intervalSelect.value : '120', 10) || 120;
 
-  notifSeqTotal = count;
+  notifSeqIntervalSec = intervalSec;
+  notifSeqIsInfinite = durConfig.infinite;
+  notifSeqTotal = durConfig.infinite ? Infinity : Math.max(1, Math.round(durConfig.durationSec / intervalSec));
+  if (!durConfig.infinite && countSelect && !countSelect.value.startsWith('dur_')) {
+    notifSeqTotal = durConfig.totalTicks;
+  }
   notifSeqCurrent = 0;
+  notifSeqSessionStart = Date.now();
+
+  // Salvar sessão persistente no localStorage
+  const sessionData = {
+    active: true,
+    startTime: notifSeqSessionStart,
+    intervalSec: notifSeqIntervalSec,
+    totalTicks: notifSeqTotal === Infinity ? -1 : notifSeqTotal,
+    currentTicks: 0,
+    isInfinite: notifSeqIsInfinite,
+    lastTickTime: Date.now(),
+    durationLabel: durConfig.label
+  };
+  localStorage.setItem('kryptapay_sim_session', JSON.stringify(sessionData));
+
+  // Manter a tela acordada / não suspender
+  requestSimulationWakeLock();
 
   const btnStart = document.getElementById('btnStartNotifSeq');
   const btnStop = document.getElementById('btnStopNotifSeq');
   if (btnStart) btnStart.disabled = true;
   if (btnStop) btnStop.disabled = false;
 
+  updateNotifSeqProgressUI(`🚀 Disparos Ativos (${durConfig.label}) • Intervalo: ${intervalSec}s`);
+
+  // Disparar o primeiro ping imediato (Venda Aprovada)
+  handleSeqTick();
+
+  // Iniciar timer com Web Worker ou setInterval
+  initSimulationWorker();
+  if (simTimerWorker) {
+    simTimerWorker.postMessage({ action: 'start', intervalMs: intervalSec * 1000 });
+  } else {
+    if (notifSeqTimer) clearInterval(notifSeqTimer);
+    notifSeqTimer = setInterval(handleSeqTick, intervalSec * 1000);
+  }
+}
+
+// Cada disparo individual da sequência
+function handleSeqTick() {
+  if (!notifSeqIsInfinite && notifSeqCurrent >= notifSeqTotal) {
+    stopNotificationSequence(true);
+    return;
+  }
+
+  // Alterna: venda pendente (índices ímpares) e venda aprovada (índices pares)
+  const isPending = (notifSeqCurrent % 2 !== 0);
+  triggerSingleTestNotification(null, isPending);
+  notifSeqCurrent++;
+
+  // Atualizar sessão persistente
+  try {
+    const raw = localStorage.getItem('kryptapay_sim_session');
+    if (raw) {
+      const s = JSON.parse(raw);
+      s.currentTicks = notifSeqCurrent;
+      s.lastTickTime = Date.now();
+      localStorage.setItem('kryptapay_sim_session', JSON.stringify(s));
+    }
+  } catch (_) {}
+
+  updateNotifSeqProgressUI();
+
+  if (!notifSeqIsInfinite && notifSeqCurrent >= notifSeqTotal) {
+    stopNotificationSequence(true);
+  }
+}
+
+// Atualizar interface visual do progresso de disparos
+function updateNotifSeqProgressUI(customStatus) {
   const statusLabel = document.getElementById('notifSeqStatusLabel');
   const countLabel = document.getElementById('notifSeqCountLabel');
   const pBar = document.getElementById('notifSeqProgressBar');
 
-  if (statusLabel) statusLabel.textContent = `📲 Pingando na barra do celular... Intervalo: ${intervalSec}s`;
-  if (countLabel) countLabel.textContent = `0 / ${notifSeqTotal}`;
-  if (pBar) pBar.style.width = '0%';
-
-  // 1ª Notificação (Venda Aprovada)
-  triggerSingleTestNotification(null, false);
-  notifSeqCurrent++;
-  if (countLabel) countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
-  if (pBar) pBar.style.width = `${Math.round((notifSeqCurrent / notifSeqTotal) * 100)}%`;
-
-  if (notifSeqCurrent >= notifSeqTotal) {
-    stopNotificationSequence();
-    return;
+  if (statusLabel && customStatus) {
+    statusLabel.textContent = customStatus;
+  } else if (statusLabel) {
+    statusLabel.textContent = `📲 Pingando no celular • Intervalo: ${notifSeqIntervalSec}s`;
   }
 
-  notifSeqTimer = setInterval(() => {
-    if (notifSeqCurrent >= notifSeqTotal) {
-      stopNotificationSequence();
-      return;
+  if (countLabel) {
+    if (notifSeqIsInfinite) {
+      countLabel.textContent = `${notifSeqCurrent} / ♾️ Contínuo`;
+    } else {
+      countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
     }
+  }
 
-    // Alterna: venda pendente (índices ímpares) e venda aprovada (índices pares)
-    const isPending = (notifSeqCurrent % 2 !== 0);
-    triggerSingleTestNotification(null, isPending);
-    notifSeqCurrent++;
-    if (countLabel) countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
-    if (pBar) pBar.style.width = `${Math.round((notifSeqCurrent / notifSeqTotal) * 100)}%`;
-
-    if (notifSeqCurrent >= notifSeqTotal) {
-      stopNotificationSequence();
+  if (pBar) {
+    if (notifSeqIsInfinite) {
+      pBar.style.width = '100%';
+    } else {
+      const pct = Math.min(100, Math.round((notifSeqCurrent / notifSeqTotal) * 100));
+      pBar.style.width = `${pct}%`;
     }
-  }, intervalSec * 1000);
+  }
 }
 
-function stopNotificationSequence() {
+// Parar disparos
+function stopNotificationSequence(completed = false) {
+  if (simTimerWorker) {
+    try { simTimerWorker.postMessage({ action: 'stop' }); } catch (_) {}
+  }
   if (notifSeqTimer) {
     clearInterval(notifSeqTimer);
     notifSeqTimer = null;
   }
+  releaseSimulationWakeLock();
+  localStorage.removeItem('kryptapay_sim_session');
+
   const btnStart = document.getElementById('btnStartNotifSeq');
   const btnStop = document.getElementById('btnStopNotifSeq');
   if (btnStart) btnStart.disabled = false;
   if (btnStop) btnStop.disabled = true;
 
   const statusLabel = document.getElementById('notifSeqStatusLabel');
-  if (statusLabel) statusLabel.textContent = notifSeqCurrent >= notifSeqTotal ? `Disparo concluído! ${notifSeqTotal} vendas pingadas no celular.` : 'Disparos interrompidos.';
+  if (statusLabel) {
+    statusLabel.textContent = completed 
+      ? `✅ Disparo concluído com sucesso! ${notifSeqCurrent} vendas pingadas no celular.` 
+      : 'Disparos interrompidos pelo usuário.';
+  }
+}
+
+// Recuperar sessão e repor vendas perdidas caso o aparelho tenha dormido à noite
+function checkActiveSimulationSession() {
+  try {
+    const raw = localStorage.getItem('kryptapay_sim_session');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s || !s.active) return;
+
+    const now = Date.now();
+    const intervalMs = (s.intervalSec || 120) * 1000;
+    const elapsedSinceLast = now - (s.lastTickTime || s.startTime);
+    const missedTicks = Math.floor(elapsedSinceLast / intervalMs);
+
+    if (missedTicks > 0) {
+      // Repõe no Dashboard Teste as vendas que ocorreram no período que o aparelho dormiu
+      let accumulatedGross = 0;
+      for (let i = 0; i < Math.min(missedTicks, 500); i++) {
+        const tickIdx = (s.currentTicks || 0) + i;
+        const isPending = (tickIdx % 2 !== 0);
+        const amount = generateTestSaleAmount();
+        recordTestSaleIntoDashboard({
+          id: 'pay_sim_' + Math.random().toString(36).substr(2, 9),
+          title: isPending ? 'Pix Gerado — Aguardando' : 'Venda Aprovada!',
+          amount: amount,
+          status: isPending ? 'pending' : 'approved',
+          timestamp: new Date(s.lastTickTime + (i + 1) * intervalMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          customer: 'Cliente VIP #' + Math.floor(Math.random() * 9000 + 1000)
+        });
+        if (!isPending) accumulatedGross += amount;
+      }
+
+      s.currentTicks = (s.currentTicks || 0) + missedTicks;
+      s.lastTickTime = now;
+      localStorage.setItem('kryptapay_sim_session', JSON.stringify(s));
+
+      if (missedTicks >= 1) {
+        showToastAlert(`☀️ Bom dia! Durante a noite a KryptaPay processou +${missedTicks} vendas de teste (+R$ ${accumulatedGross.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}).`);
+      }
+    }
+
+    const maxTicks = s.totalTicks === -1 ? Infinity : s.totalTicks;
+    if (s.isInfinite || s.currentTicks < maxTicks) {
+      notifSeqIntervalSec = s.intervalSec || 120;
+      notifSeqIsInfinite = s.isInfinite;
+      notifSeqTotal = maxTicks;
+      notifSeqCurrent = s.currentTicks || 0;
+      notifSeqSessionStart = s.startTime || now;
+
+      const btnStart = document.getElementById('btnStartNotifSeq');
+      const btnStop = document.getElementById('btnStopNotifSeq');
+      if (btnStart) btnStart.disabled = true;
+      if (btnStop) btnStop.disabled = false;
+
+      updateNotifSeqProgressUI(`🚀 Continuando disparos em segundo plano (${s.durationLabel || 'Ativo'})...`);
+      requestSimulationWakeLock();
+      initSimulationWorker();
+      if (simTimerWorker) {
+        simTimerWorker.postMessage({ action: 'start', intervalMs: notifSeqIntervalSec * 1000 });
+      } else {
+        if (notifSeqTimer) clearInterval(notifSeqTimer);
+        notifSeqTimer = setInterval(handleSeqTick, notifSeqIntervalSec * 1000);
+      }
+    } else {
+      stopNotificationSequence(true);
+    }
+  } catch (e) {
+    console.error('Erro ao verificar sessão de simulação ativa:', e);
+  }
 }
 
 async function loadNotificationsData() {
