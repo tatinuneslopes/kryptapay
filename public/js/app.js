@@ -65,12 +65,6 @@ function startApp() {
   setTimeout(initDashboardGlobe, 200);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp);
-} else {
-  startApp();
-}
-
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     checkActiveSimulationSession();
@@ -205,6 +199,7 @@ function switchTab(tabId) {
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.classList.remove('mobile-open');
 }
+window.switchTab = switchTab;
 
 // 3. SSE: Escuta de Notificações em Tempo Real (Auto-Reconectável)
 let simulationEvtSource = null;
@@ -343,10 +338,6 @@ function handleIncomingNotification(data) {
     const percent = Math.round((data.sentCount / data.totalCount) * 100);
     updateSimProgress(percent, `Disparando ${data.sentCount} de ${data.totalCount}`);
   }
-}
-  }
-
-  addTestSale(notif);
 }
 
 // Toasts visuais internos na tela desativados conforme solicitação expressa:
@@ -2385,4 +2376,37 @@ function updateTestDashboardUI() {
       }).join('');
     }
   }
+}
+
+// Exposição global de funções essenciais para os botões do HTML
+window.switchTab = switchTab;
+window.toggleSidebarMenu = toggleSidebarMenu;
+window.toggleMobileSidebar = toggleSidebarMenu;
+window.closeMobileSidebar = closeMobileSidebar;
+if (typeof startNotificationSequence !== 'undefined') window.startNotificationSequence = startNotificationSequence;
+if (typeof stopNotificationSequence !== 'undefined') window.stopNotificationSequence = stopNotificationSequence;
+if (typeof triggerSingleTestNotification !== 'undefined') window.triggerSingleTestNotification = triggerSingleTestNotification;
+if (typeof loadTransactionsData !== 'undefined') window.loadTransactionsData = loadTransactionsData;
+if (typeof loadFinancialData !== 'undefined') window.loadFinancialData = loadFinancialData;
+if (typeof loadNotificationsData !== 'undefined') window.loadNotificationsData = loadNotificationsData;
+if (typeof loadDashboardData !== 'undefined') window.loadDashboardData = loadDashboardData;
+if (typeof updateTestDashboardUI !== 'undefined') window.updateTestDashboardUI = updateTestDashboardUI;
+if (typeof resetTestDashboardState !== 'undefined') window.resetTestDashboardState = resetTestDashboardState;
+if (typeof loadSavedPixKey !== 'undefined') window.loadSavedPixKey = loadSavedPixKey;
+if (typeof savePixKeyAction !== 'undefined') window.savePixKeyAction = savePixKeyAction;
+if (typeof copyPixKeyAction !== 'undefined') window.copyPixKeyAction = copyPixKeyAction;
+if (typeof handleQuickPixGeneration !== 'undefined') window.handleQuickPixGeneration = handleQuickPixGeneration;
+if (typeof requestWithdrawAction !== 'undefined') window.requestWithdrawAction = requestWithdrawAction;
+if (typeof openModalCreateProduct !== 'undefined') window.openModalCreateProduct = openModalCreateProduct;
+if (typeof closeModalCreateProduct !== 'undefined') window.closeModalCreateProduct = closeModalCreateProduct;
+if (typeof submitCreateProduct !== 'undefined') window.submitCreateProduct = submitCreateProduct;
+if (typeof changeUserPasswordAction !== 'undefined') window.changeUserPasswordAction = changeUserPasswordAction;
+if (typeof toggleLangMenu !== 'undefined') window.toggleLangMenu = toggleLangMenu;
+if (typeof changeAppLang !== 'undefined') window.changeAppLang = changeAppLang;
+
+// Inicialização segura após o carregamento completo de todos os scripts e funções
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
 }
