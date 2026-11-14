@@ -25,12 +25,14 @@
         document.documentElement.classList.add('mobile-viewport-enforced', 'is-mobile-device');
       }
 
-      // 2. Bloqueio Total de Duplo Toque para Zoom e Pinça no Safari e Chrome
+      // 2. Bloqueio Total de Duplo Toque para Zoom e Pinça no Safari e Chrome (Sem bloquear botões)
       let lastTap = 0;
       document.addEventListener('touchend', function(e) {
         const now = Date.now();
         if (now - lastTap <= 320) {
-          e.preventDefault();
+          if (!e.target.closest('button, a, input, select, textarea, [onclick]')) {
+            e.preventDefault();
+          }
         }
         lastTap = now;
       }, { passive: false });
@@ -48,8 +50,8 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.10">
-  <link rel="stylesheet" href="/css/components.css?v=2026.10">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.17">
+  <link rel="stylesheet" href="/css/components.css?v=2026.17">
 
   <style>
     :root {
@@ -1021,7 +1023,11 @@
     });
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=2026.10').catch(err => console.log('SW:', err));
+      navigator.serviceWorker.register('/sw.js?v=2026.17')
+        .then(reg => {
+          try { reg.update(); } catch (_) {}
+        })
+        .catch(err => console.log('SW:', err));
     }
   </script>
 </body>

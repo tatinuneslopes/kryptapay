@@ -5,12 +5,14 @@ let deferredPrompt = null;
 // CONTROLE RESPONSIVO MOBILE RIGOROSO (SAFARI & ANDROID)
 // ========================================================
 
-// 1. DESATIVAR DUPLO TOQUE QUE DÁ ZOOM NA TELA
+// 1. DESATIVAR DUPLO TOQUE QUE DÁ ZOOM NA TELA (Sem bloquear cliques em botões)
 let lastTouchEnd = 0;
 document.addEventListener('touchend', (event) => {
   const now = Date.now();
   if (now - lastTouchEnd <= 300) {
-    event.preventDefault(); // Impede o Safari de dar zoom ao dar dois cliques rápidos
+    if (!event.target.closest('button, a, input, select, textarea, [onclick], .btn-icon, .nav-item, .mobile-nav-btn')) {
+      event.preventDefault(); // Impede o Safari de dar zoom sem impedir cliques em botões
+    }
   }
   lastTouchEnd = now;
 }, { passive: false });
@@ -100,12 +102,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Registro Obrigatório do Service Worker para Notificações Nativas no Celular (Android & iOS)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=2026.16')
+    navigator.serviceWorker.register('/sw.js?v=2026.17')
       .then(reg => {
-        console.log('✅ ServiceWorker KryptaPay ativo para notificações na barra do celular:', reg.scope);
+        console.log('✅ ServiceWorker KryptaPay ativo v2026.17:', reg.scope);
+        // Forçar verificação imediata de nova versão no servidor
+        try { reg.update(); } catch (_) {}
+        // Checar periodicamente a cada 30 segundos
+        setInterval(() => {
+          try { reg.update(); } catch (_) {}
+        }, 30000);
       })
       .catch(err => {
         console.warn('Erro ao registrar ServiceWorker:', err);
       });
+
+    // Se um novo Service Worker tomar controle, recarregar instantaneamente
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('🔄 Novo Service Worker assumiu controle. Atualizando interface...');
+      window.location.reload();
+    });
   }
 });

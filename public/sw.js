@@ -1,5 +1,5 @@
 // KryptaPay Service Worker - PWA & Push Notifications com Logomarca Oficial
-const CACHE_NAME = 'kryptapay-v2026.16';
+const CACHE_NAME = 'kryptapay-v2026.17';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -38,11 +38,31 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-First: Sempre entrega a versão mais recente e atualizada do servidor
+// Network-First Rigoroso: Sempre entrega a versão mais recente do servidor
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
     return;
   }
+
+  // Navegação e HTML sempre com no-cache direto na rede
+  const isNav = event.request.mode === 'navigate' || 
+                (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) ||
+                event.request.url.endsWith('.html');
+  if (isNav) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' })
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

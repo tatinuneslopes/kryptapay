@@ -108,6 +108,24 @@ const server = http.createServer(async (req, res) => {
   }
 
   // -------------------------------------------------------------
+  // VERSÃO DO SISTEMA (AUTO-UPDATE PWA / CELULARES)
+  // -------------------------------------------------------------
+  if (pathname === '/api/version' && method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Access-Control-Allow-Origin': '*'
+    });
+    return res.end(JSON.stringify({
+      version: '2026.17',
+      build: 202617,
+      timestamp: Date.now()
+    }));
+  }
+
+  // -------------------------------------------------------------
   // SSE: STREAM DE NOTIFICAÇÕES EM TEMPO REAL (PWA / BROWSER)
   // -------------------------------------------------------------
   if (pathname === '/api/simulation/events') {

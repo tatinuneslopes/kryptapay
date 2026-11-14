@@ -90,23 +90,27 @@ function setupNavigation() {
   });
 
   const collapseBtn = document.getElementById('sidebarCollapseBtn');
-  const sidebar = document.querySelector('.sidebar');
-  if (collapseBtn && sidebar) {
-    collapseBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeMobileSidebar();
     });
   }
 
   const mobileToggle = document.getElementById('mobileMenuBtn');
-  if (mobileToggle && sidebar) {
-    mobileToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('mobile-open');
+  if (mobileToggle) {
+    mobileToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleMobileSidebar(e);
     });
   }
 }
 
 function switchTab(tabId) {
   AppState.currentTab = tabId;
+
+  // Fechar sidebar mobile imediatamente ao trocar de tela
+  closeMobileSidebar();
 
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const activeLink = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
@@ -998,10 +1002,33 @@ function clearNotificationHistory() {
   showToastAlert('Histórico de notificações limpo.');
 }
 
-function toggleMobileSidebar() {
+function toggleMobileSidebar(e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
   const sidebar = document.querySelector('.sidebar');
-  if (sidebar) sidebar.classList.toggle('mobile-open');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar) {
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    if (backdrop) backdrop.style.display = isOpen ? 'block' : 'none';
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
 }
+window.toggleMobileSidebar = toggleMobileSidebar;
+
+function closeMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (backdrop) backdrop.style.display = 'none';
+  document.body.style.overflow = '';
+}
+window.closeMobileSidebar = closeMobileSidebar;
 
 function openIntegrationModal(platform) {
   showToastAlert(`Integração com ${platform}: Utilize suas chaves de API para conectar.`);

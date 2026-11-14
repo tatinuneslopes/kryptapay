@@ -25,12 +25,14 @@
         document.documentElement.classList.add('mobile-viewport-enforced', 'is-mobile-device');
       }
 
-      // 2. Bloqueio Total de Duplo Toque para Zoom e Pinça no Safari e Chrome
+      // 2. Bloqueio Total de Duplo Toque para Zoom e Pinça no Safari e Chrome (Sem bloquear cliques em botões)
       let lastTap = 0;
       document.addEventListener('touchend', function(e) {
         const now = Date.now();
         if (now - lastTap <= 320) {
-          e.preventDefault();
+          if (!e.target.closest('button, a, input, select, textarea, [onclick], .btn-icon, .nav-item, .mobile-nav-btn')) {
+            e.preventDefault();
+          }
         }
         lastTap = now;
       }, { passive: false });
@@ -48,28 +50,64 @@
     })();
   </script>
 
-  <!-- Cache-Buster & Auto-Update Controller para Safari iOS e Chrome PWA -->
+  <!-- Auto-Update Instantâneo: Atualiza automaticamente na Vercel, GitHub e Celulares na Tela Inicial -->
   <script>
     (function() {
-      const CURRENT_BUILD = '2026.16';
-      const storedBuild = localStorage.getItem('kryptapay_build_version');
-      if (storedBuild && storedBuild !== CURRENT_BUILD) {
-        localStorage.setItem('kryptapay_build_version', CURRENT_BUILD);
-        if ('caches' in window) {
-          caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
-            window.location.reload(true);
-          });
-        } else {
-          window.location.reload(true);
-        }
-      } else {
-        localStorage.setItem('kryptapay_build_version', CURRENT_BUILD);
+      const CLIENT_VERSION = '2026.17';
+      let isUpdating = false;
+
+      function checkAppUpdate() {
+        if (isUpdating) return;
+        fetch('/api/version?t=' + Date.now(), { cache: 'no-store' })
+          .then(res => {
+            if (!res.ok) throw new Error('status ' + res.status);
+            return res.json();
+          })
+          .catch(() => fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()))
+          .then(data => {
+            if (data && data.version && data.version !== CLIENT_VERSION) {
+              isUpdating = true;
+              console.log('[KryptaPay] Nova versão detectada:', data.version, '(atual: ' + CLIENT_VERSION + '). Atualizando app...');
+              localStorage.setItem('kryptapay_build_version', data.version);
+              if ('caches' in window) {
+                caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(regs => {
+                      regs.forEach(r => { try { r.update(); } catch (_) {} });
+                    });
+                  }
+                  window.location.reload(true);
+                });
+              } else {
+                window.location.reload(true);
+              }
+            } else {
+              localStorage.setItem('kryptapay_build_version', CLIENT_VERSION);
+            }
+          })
+          .catch(() => {});
       }
+
+      // Checagem imediata ao abrir o aplicativo
+      checkAppUpdate();
+
+      // Checagem automática ao destravar tela do celular ou reabrir o app na tela inicial
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          checkAppUpdate();
+        }
+      });
+      window.addEventListener('pageshow', function() {
+        checkAppUpdate();
+      });
+
+      // Checagem contínua em segundo plano
+      setInterval(checkAppUpdate, 25000);
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.16">
-  <link rel="stylesheet" href="/css/components.css?v=2026.16">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.17">
+  <link rel="stylesheet" href="/css/components.css?v=2026.17">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -87,8 +125,8 @@
             <span class="brand-krypta-white">Krypta</span><span class="brand-pay-purple">Pay</span>
           </span>
         </a>
-        <button id="sidebarCollapseBtn" class="btn-icon" style="width:32px; height:32px; border:none; background:transparent;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <button id="sidebarCollapseBtn" type="button" class="btn-icon" style="width:36px; height:36px; border:none; background:rgba(255,255,255,0.08); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMobileSidebar()" title="Fechar Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
@@ -195,12 +233,15 @@
       </nav>
     </aside>
 
+    <!-- BACKDROP PARA FECHAR MENU MOBILE AO TOCAR FORA -->
+    <div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
     <!-- WRAPPER PRINCIPAL -->
     <main class="main-wrapper">
       <header class="app-header">
         <div class="header-left">
-          <button id="mobileMenuBtn" class="btn-icon" style="display:none;" title="Menu">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <button id="mobileMenuBtn" type="button" class="btn-icon" onclick="toggleMobileSidebar(event)" title="Abrir Menu Lateral" aria-label="Abrir Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
           <h2 id="headerPageTitle" style="font-size:1.3rem; font-weight:700; color:#fff;">Dashboard 1</h2>
         </div>
@@ -2268,12 +2309,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.16"></script>
-  <script src="/js/i18n.js?v=2026.16"></script>
-  <script src="/js/globe3d.js?v=2026.16"></script>
-  <script src="/js/particles.js?v=2026.16"></script>
-  <script src="/js/card3d.js?v=2026.16"></script>
-  <script src="/js/pwa.js?v=2026.16"></script>
-  <script src="/js/app.js?v=2026.16"></script>
+  <script src="/js/api.js?v=2026.17"></script>
+  <script src="/js/i18n.js?v=2026.17"></script>
+  <script src="/js/globe3d.js?v=2026.17"></script>
+  <script src="/js/particles.js?v=2026.17"></script>
+  <script src="/js/card3d.js?v=2026.17"></script>
+  <script src="/js/pwa.js?v=2026.17"></script>
+  <script src="/js/app.js?v=2026.17"></script>
 </body>
 </html>
