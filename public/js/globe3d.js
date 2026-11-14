@@ -104,11 +104,21 @@ class KryptaGlobe3D {
   resize() {
     if (!this.canvas) return;
     const parent = this.canvas.parentElement;
-    const rect = parent ? parent.getBoundingClientRect() : { width: 800, height: 620 };
+    const rect = parent ? parent.getBoundingClientRect() : { width: 800, height: 600 };
     const dpr = window.devicePixelRatio || 1;
 
-    this.width = rect.width || 800;
-    this.height = Math.max(560, rect.height || 620);
+    this.width = rect.width || window.innerWidth || 800;
+    const isMobile = this.width < 640;
+
+    // Altura e proporção perfeitas para Computador vs Celular
+    if (isMobile) {
+      this.height = Math.min(this.width * 1.05, 430);
+      this.radius = Math.min(this.width * 0.35, 142); // Encaixa com anéis perfeitos no celular
+    } else {
+      this.height = Math.max(540, rect.height || 620);
+      this.radius = Math.min(this.width * 0.44, this.height * 0.44, 280); // Grandão no Computador
+    }
+
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
     this.canvas.style.width = `${this.width}px`;
@@ -116,9 +126,6 @@ class KryptaGlobe3D {
 
     this.ctx.resetTransform ? this.ctx.resetTransform() : this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);
-
-    // Raio grandão e majestoso
-    this.radius = Math.min(this.width * 0.44, this.height * 0.44, 285);
   }
 
   setupInteractivity() {
