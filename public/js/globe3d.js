@@ -1,23 +1,23 @@
-// KryptaPay Majestic 3D Earth Globe Engine (Ultra Grandão, Foto Oficial, Anéis Orbitais Neon e Pontos Roxos)
+// KryptaPay Majestic 3D Earth Globe Engine
+// Globo Oficial Gigante + Rotação 3D Contínua + Bolinhas Roxas Pulsando em Todos os Estados
 class KryptaGlobe3D {
   constructor(canvasId, options = {}) {
     this.canvas = document.getElementById(canvasId);
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
     this.options = Object.assign({
-      radius: 260, // Grandão por padrão
-      autoRotateSpeed: 0.007,
-      activeDotsCount: 28
+      radius: 260,
+      autoRotateSpeed: 0.0075
     }, options);
 
     this.rotationY = 0;
-    this.rotationX = 0.15;
+    this.rotationX = 0.12;
     this.isDragging = false;
     this.prevMouseX = 0;
     this.prevMouseY = 0;
     this.velocity = 0;
 
-    // Carregar a imagem oficial da KryptaPay
+    // Carregar imagem oficial do mapa mundi
     this.globeImg = new Image();
     this.globeImg.src = '/assets/globo-oficial.jpg';
     this.imgLoaded = false;
@@ -25,56 +25,71 @@ class KryptaGlobe3D {
       this.imgLoaded = true;
     };
 
-    // Coordenadas esféricas de pontos de transações pelo mundo (lat/lon)
-    // Cidades estratégicas: São Paulo, Rio, Miami, Nova York, Londres, Lisboa, Madrid, Frankfurt, Dubai, Tóquio
-    const citiesLatLon = [
-      { lat: -23.55, lon: -46.63, name: 'São Paulo' },
-      { lat: -22.90, lon: -43.17, name: 'Rio de Janeiro' },
-      { lat: -15.78, lon: -47.92, name: 'Brasília' },
-      { lat: -12.97, lon: -38.51, name: 'Salvador' },
-      { lat: -3.71, lon: -38.54, name: 'Fortaleza' },
-      { lat: -30.03, lon: -51.22, name: 'Porto Alegre' },
-      { lat: 25.76, lon: -80.19, name: 'Miami' },
-      { lat: 40.71, lon: -74.00, name: 'Nova York' },
-      { lat: 51.50, lon: -0.12, name: 'Londres' },
-      { lat: 38.72, lon: -9.13, name: 'Lisboa' },
-      { lat: 40.41, lon: -3.70, name: 'Madrid' },
-      { lat: 48.85, lon: 2.35, name: 'Paris' },
-      { lat: 50.11, lon: 8.68, name: 'Frankfurt' },
-      { lat: 25.20, lon: 55.27, name: 'Dubai' },
-      { lat: 35.67, lon: 139.65, name: 'Tóquio' },
-      { lat: -34.60, lon: -58.38, name: 'Buenos Aires' },
-      { lat: 19.43, lon: -99.13, name: 'Cidade do México' },
-      { lat: 43.65, lon: -79.38, name: 'Toronto' }
+    // TODOS OS ESTADOS DO BRASIL + PRINCIPAIS ESTADOS DOS EUA E EUROPA
+    this.stateNodes = [
+      // 🇧🇷 ESTADOS DO BRASIL (Cobertura completa)
+      { lat: -23.55, lon: -46.63, name: 'São Paulo', state: 'SP' },
+      { lat: -22.90, lon: -43.17, name: 'Rio de Janeiro', state: 'RJ' },
+      { lat: -19.92, lon: -43.94, name: 'Minas Gerais', state: 'MG' },
+      { lat: -20.31, lon: -40.33, name: 'Espírito Santo', state: 'ES' },
+      { lat: -25.43, lon: -49.27, name: 'Paraná', state: 'PR' },
+      { lat: -27.59, lon: -48.54, name: 'Santa Catarina', state: 'SC' },
+      { lat: -30.03, lon: -51.23, name: 'Rio Grande do Sul', state: 'RS' },
+      { lat: -12.97, lon: -38.50, name: 'Bahia', state: 'BA' },
+      { lat: -8.05, lon: -34.88, name: 'Pernambuco', state: 'PE' },
+      { lat: -3.73, lon: -38.52, name: 'Ceará', state: 'CE' },
+      { lat: -15.79, lon: -47.88, name: 'Distrito Federal', state: 'DF' },
+      { lat: -16.68, lon: -49.25, name: 'Goiás', state: 'GO' },
+      { lat: -15.60, lon: -56.09, name: 'Mato Grosso', state: 'MT' },
+      { lat: -20.44, lon: -54.64, name: 'Mato Grosso do Sul', state: 'MS' },
+      { lat: -1.45, lon: -48.49, name: 'Pará', state: 'PA' },
+      { lat: -3.11, lon: -60.02, name: 'Amazonas', state: 'AM' },
+      { lat: -2.53, lon: -44.30, name: 'Maranhão', state: 'MA' },
+      { lat: -5.79, lon: -35.20, name: 'Rio Grande do Norte', state: 'RN' },
+      { lat: -7.11, lon: -34.86, name: 'Paraíba', state: 'PB' },
+      { lat: -9.66, lon: -35.73, name: 'Alagoas', state: 'AL' },
+      { lat: -10.94, lon: -37.07, name: 'Sergipe', state: 'SE' },
+      { lat: -5.09, lon: -42.80, name: 'Piauí', state: 'PI' },
+      { lat: -10.24, lon: -48.32, name: 'Tocantins', state: 'TO' },
+      { lat: -8.76, lon: -63.90, name: 'Rondônia', state: 'RO' },
+      { lat: -9.97, lon: -67.82, name: 'Acre', state: 'AC' },
+      { lat: 2.82, lon: -60.67, name: 'Roraima', state: 'RR' },
+      { lat: 0.03, lon: -51.05, name: 'Amapá', state: 'AP' },
+
+      // 🇺🇸 ESTADOS AMERICANOS E CAPITAIS
+      { lat: 25.76, lon: -80.19, name: 'Flórida (Miami)', state: 'FL' },
+      { lat: 28.53, lon: -81.37, name: 'Orlando', state: 'FL' },
+      { lat: 40.71, lon: -74.00, name: 'Nova York', state: 'NY' },
+      { lat: 34.05, lon: -118.24, name: 'Califórnia', state: 'CA' },
+      { lat: 37.77, lon: -122.41, name: 'São Francisco', state: 'CA' },
+      { lat: 32.77, lon: -96.79, name: 'Texas', state: 'TX' },
+      { lat: 41.87, lon: -87.62, name: 'Illinois (Chicago)', state: 'IL' },
+      { lat: 33.74, lon: -84.38, name: 'Geórgia (Atlanta)', state: 'GA' },
+      { lat: 47.60, lon: -122.33, name: 'Washington (Seattle)', state: 'WA' },
+
+      // 🇪🇺 EUROPA E AMÉRICA LATINA
+      { lat: 38.72, lon: -9.13, name: 'Lisboa', state: 'PT' },
+      { lat: 41.15, lon: -8.62, name: 'Porto', state: 'PT' },
+      { lat: 40.41, lon: -3.70, name: 'Madrid', state: 'ES' },
+      { lat: 41.38, lon: 2.17, name: 'Barcelona', state: 'ES' },
+      { lat: 48.85, lon: 2.35, name: 'Paris', state: 'FR' },
+      { lat: 51.50, lon: -0.12, name: 'Londres', state: 'UK' },
+      { lat: 50.11, lon: 8.68, name: 'Frankfurt', state: 'DE' },
+      { lat: 41.90, lon: 12.49, name: 'Roma', state: 'IT' },
+      { lat: 45.46, lon: 9.19, name: 'Milão', state: 'IT' },
+      { lat: -34.60, lon: -58.38, name: 'Buenos Aires', state: 'AR' },
+      { lat: 19.43, lon: -99.13, name: 'Cidade do México', state: 'MX' },
+      { lat: 43.65, lon: -79.38, name: 'Toronto', state: 'CA' },
+      { lat: 25.20, lon: 55.27, name: 'Dubai', state: 'UAE' },
+      { lat: 35.67, lon: 139.65, name: 'Tóquio', state: 'JP' }
     ];
 
-    this.nodes = citiesLatLon.map(c => {
-      const phi = (90 - c.lat) * (Math.PI / 180);
-      const theta = (c.lon + 180) * (Math.PI / 180);
-      return {
-        x: -(Math.sin(phi) * Math.cos(theta)),
-        y: Math.cos(phi),
-        z: Math.sin(phi) * Math.sin(theta),
-        name: c.name,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.04 + Math.random() * 0.03,
-        size: 2.2 // Pontinho roxo delicado
-      };
+    // Inicializar propriedades de pulso individual para cada estado
+    this.stateNodes.forEach((node, idx) => {
+      node.phase = idx * 0.35;
+      node.pulseSpeed = 0.045 + (idx % 5) * 0.01;
+      node.size = 2.4; // Bolinha roxa nítida
     });
-
-    // Múltiplos pontos delicados distribuídos pela superfície da Terra
-    for (let i = 0; i < 18; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(Math.random() * 2 - 1);
-      this.nodes.push({
-        x: Math.sin(phi) * Math.cos(theta),
-        y: Math.cos(phi),
-        z: Math.sin(phi) * Math.sin(theta),
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.03 + Math.random() * 0.03,
-        size: 1.6
-      });
-    }
 
     this.init();
   }
@@ -89,11 +104,11 @@ class KryptaGlobe3D {
   resize() {
     if (!this.canvas) return;
     const parent = this.canvas.parentElement;
-    const rect = parent ? parent.getBoundingClientRect() : { width: 800, height: 600 };
+    const rect = parent ? parent.getBoundingClientRect() : { width: 800, height: 620 };
     const dpr = window.devicePixelRatio || 1;
 
     this.width = rect.width || 800;
-    this.height = Math.max(540, rect.height || 600);
+    this.height = Math.max(560, rect.height || 620);
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
     this.canvas.style.width = `${this.width}px`;
@@ -102,8 +117,8 @@ class KryptaGlobe3D {
     this.ctx.resetTransform ? this.ctx.resetTransform() : this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);
 
-    // Raio bem grandão: cerca de 45% da menor dimensão do container
-    this.radius = Math.min(this.width * 0.44, this.height * 0.44, 280);
+    // Raio grandão e majestoso
+    this.radius = Math.min(this.width * 0.44, this.height * 0.44, 285);
   }
 
   setupInteractivity() {
@@ -119,13 +134,12 @@ class KryptaGlobe3D {
       if (!this.isDragging) return;
       const deltaX = x - this.prevMouseX;
       const deltaY = y - this.prevMouseY;
-      this.rotationY += deltaX * 0.006;
+      this.rotationY += deltaX * 0.007;
       this.rotationX -= deltaY * 0.005;
 
-      // Limitar rotação vertical para não inverter
       this.rotationX = Math.max(-0.6, Math.min(0.6, this.rotationX));
-
       this.velocity = deltaX * 0.002;
+
       this.prevMouseX = x;
       this.prevMouseY = y;
     };
@@ -153,9 +167,10 @@ class KryptaGlobe3D {
   animate() {
     if (!this.canvas) return;
 
+    // Rotação contínua e suave do mundo
     if (!this.isDragging) {
       this.rotationY += this.options.autoRotateSpeed + this.velocity;
-      this.velocity *= 0.95; // Inércia suave
+      this.velocity *= 0.95;
     }
 
     this.render();
@@ -169,49 +184,54 @@ class KryptaGlobe3D {
     const cx = width / 2;
     const cy = height / 2;
 
-    // 1. Halo e Brilho de Fundo Gigante Roxo Neon
+    // 1. Halo Roxo de Fundo Gigante
     const outerHalo = ctx.createRadialGradient(cx, cy, radius * 0.4, cx, cy, radius * 1.55);
-    outerHalo.addColorStop(0, 'rgba(176, 38, 255, 0.35)');
-    outerHalo.addColorStop(0.45, 'rgba(147, 51, 234, 0.18)');
-    outerHalo.addColorStop(0.8, 'rgba(76, 29, 149, 0.08)');
+    outerHalo.addColorStop(0, 'rgba(176, 38, 255, 0.38)');
+    outerHalo.addColorStop(0.45, 'rgba(147, 51, 234, 0.20)');
+    outerHalo.addColorStop(0.85, 'rgba(76, 29, 149, 0.08)');
     outerHalo.addColorStop(1, 'rgba(4, 1, 8, 0)');
     ctx.fillStyle = outerHalo;
     ctx.beginPath();
     ctx.arc(cx, cy, radius * 1.55, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Reflexo Espelhado do Pedestal (Base da Imagem Oficial)
+    // 2. Reflexo de Pedestal Espelhado na Base
     ctx.save();
-    ctx.translate(cx, cy + radius * 0.98);
-    const pedestalGlow = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius * 1.15);
-    pedestalGlow.addColorStop(0, 'rgba(217, 70, 239, 0.45)');
-    pedestalGlow.addColorStop(0.5, 'rgba(176, 38, 255, 0.25)');
+    ctx.translate(cx, cy + radius * 0.96);
+    const pedestalGlow = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius * 1.25);
+    pedestalGlow.addColorStop(0, 'rgba(217, 70, 239, 0.5)');
+    pedestalGlow.addColorStop(0.5, 'rgba(176, 38, 255, 0.28)');
     pedestalGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = pedestalGlow;
     ctx.beginPath();
-    ctx.ellipse(0, 0, radius * 1.25, radius * 0.22, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, radius * 1.3, radius * 0.22, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // 3. Renderização Perfeita da Esfera 3D Central
+    // 3. Desenhar a Esfera da Terra com Rotação Texturizada
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.clip();
 
-    // Fundo profundo da Terra
-    ctx.fillStyle = '#06020c';
+    // Fundo espacial profundo
+    ctx.fillStyle = '#06020d';
     ctx.fill();
 
-    // Desenhar Imagem Oficial Perfeitamente Alinhada (Sem ficar torta!)
+    // Textura da Terra rotacionando continuamente com projeção esférica
     if (this.imgLoaded) {
-      // Ajuste de escala proporcional preservando proporção 1:1 sem distorção
-      const imgSize = radius * 2.25;
-      ctx.drawImage(this.globeImg, cx - imgSize / 2, cy - imgSize / 2, imgSize, imgSize);
+      const imgSize = radius * 2.3;
+      // Deslocamento de rotação contínua (offset X)
+      const rotOffset = ((rotationY % (Math.PI * 2)) / (Math.PI * 2)) * imgSize;
+
+      // Desenhar com wrap horizontal contínuo para rotação 3D da foto
+      ctx.drawImage(this.globeImg, cx - imgSize / 2 + rotOffset, cy - imgSize / 2, imgSize, imgSize);
+      ctx.drawImage(this.globeImg, cx - imgSize / 2 + rotOffset - imgSize, cy - imgSize / 2, imgSize, imgSize);
+      ctx.drawImage(this.globeImg, cx - imgSize / 2 + rotOffset + imgSize, cy - imgSize / 2, imgSize, imgSize);
     }
 
-    // Camada Esférica de Sombreado 3D Real (Realce de Luz e Borda)
-    const sphereGradient = ctx.createRadialGradient(
+    // Camada de Sombra Esférica 3D Real (Profundidade e borda iluminada)
+    const sphereShade = ctx.createRadialGradient(
       cx - radius * 0.32,
       cy - radius * 0.32,
       radius * 0.15,
@@ -219,31 +239,31 @@ class KryptaGlobe3D {
       cy,
       radius
     );
-    sphereGradient.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
-    sphereGradient.addColorStop(0.55, 'rgba(176, 38, 255, 0.05)');
-    sphereGradient.addColorStop(0.85, 'rgba(10, 4, 22, 0.35)');
-    sphereGradient.addColorStop(1, 'rgba(4, 1, 10, 0.85)');
-    ctx.fillStyle = sphereGradient;
+    sphereShade.addColorStop(0, 'rgba(255, 255, 255, 0.06)');
+    sphereShade.addColorStop(0.55, 'rgba(176, 38, 255, 0.05)');
+    sphereShade.addColorStop(0.82, 'rgba(12, 4, 25, 0.40)');
+    sphereShade.addColorStop(1, 'rgba(4, 1, 10, 0.88)');
+    ctx.fillStyle = sphereShade;
     ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
 
     ctx.restore();
 
-    // 4. Borda Luminosa Neon Esférica da Terra
+    // 4. Borda Esférica Neon Roxo Vibrante
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(217, 70, 239, 0.8)';
+    ctx.strokeStyle = 'rgba(217, 70, 239, 0.85)';
     ctx.lineWidth = 2.5;
     ctx.shadowColor = '#b026ff';
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 20;
     ctx.stroke();
     ctx.restore();
 
-    // 5. Múltiplos Grandes Anéis Orbitais Neon em Roxo (Idêntico à Imagem Oficial)
+    // 5. Desenhar os Múltiplos Grandes Anéis Orbitais Neon
     this.drawOfficialOrbitalRings(cx, cy, radius);
 
-    // 6. Desenhar os Pontinhos Roxos Delicados e Arcos de Transações
-    this.drawPurpleNodesAndArcs(cx, cy, radius, rotationX, rotationY);
+    // 6. DESENHAR AS BOLINHAS ROXAS EM CADA ESTADO RODANDO COM O GLOBO
+    this.drawStateNodesRotating(cx, cy, radius, rotationX, rotationY);
   }
 
   drawOfficialOrbitalRings(cx, cy, radius) {
@@ -253,12 +273,12 @@ class KryptaGlobe3D {
     ctx.save();
     ctx.translate(cx, cy);
 
-    // 1. Grande Anel Orbital Superior Inclinado
+    // 1. Grande Anel Orbital Superior
     ctx.save();
     ctx.rotate(-0.38 + Math.sin(time * 0.4) * 0.02);
     ctx.beginPath();
     ctx.ellipse(0, 0, radius * 1.38, radius * 0.38, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(176, 38, 255, 0.6)';
+    ctx.strokeStyle = 'rgba(176, 38, 255, 0.65)';
     ctx.lineWidth = 2.5;
     ctx.shadowColor = '#d946ef';
     ctx.shadowBlur = 22;
@@ -309,68 +329,89 @@ class KryptaGlobe3D {
     ctx.restore();
   }
 
-  drawPurpleNodesAndArcs(cx, cy, radius, rotationX, rotationY) {
+  // DESENHAR AS BOLINHAS ROXAS EM CADA ESTADO SEGUINDO A ROTAÇÃO
+  drawStateNodesRotating(cx, cy, radius, rotationX, rotationY) {
     const { ctx } = this;
-    const cosY = Math.cos(rotationY);
-    const sinY = Math.sin(rotationY);
     const cosX = Math.cos(rotationX);
     const sinX = Math.sin(rotationX);
 
-    const projectedNodes = [];
+    const visiblePoints = [];
 
-    // Calcular posições 3D de cada nó
-    for (const node of this.nodes) {
-      node.phase += node.speed;
-      const pulse = Math.sin(node.phase);
-      const alpha = 0.55 + pulse * 0.42;
+    for (const node of this.stateNodes) {
+      // Pulso contínuo individual
+      node.phase += node.pulseSpeed;
+      const pulseWave = (Math.sin(node.phase) + 1) / 2; // de 0 a 1 suave
+      const alpha = 0.5 + pulseWave * 0.5;
 
-      // Rotação Y (horizontal) e X (inclinação)
-      const x1 = node.x * cosY - node.z * sinY;
-      const z1 = node.z * cosY + node.x * sinY;
-      const y2 = node.y * cosX - z1 * sinX;
-      const z2 = z1 * cosX + node.y * sinX;
+      // Calcular ângulo 3D com rotação contínua Y
+      const phi = (90 - node.lat) * (Math.PI / 180);
+      const theta = (node.lon + 180) * (Math.PI / 180) + rotationY;
 
-      // Desenhar apenas os que estão virados para a frente do globo
-      if (z2 > -0.15) {
-        const px = cx + x1 * (radius * 0.96);
-        const py = cy + y2 * (radius * 0.96);
+      // Posição na esfera unitária com rotação
+      const x = -(Math.sin(phi) * Math.cos(theta));
+      const y = Math.cos(phi);
+      const z = Math.sin(phi) * Math.sin(theta);
 
-        projectedNodes.push({ px, py, alpha, z: z2, node });
+      // Inclinação vertical X
+      const y2 = y * cosX - z * sinX;
+      const z2 = z * cosX + y * sinX;
 
-        // Halo roxo neon oscilante delicado
+      // Se z2 > 0, o estado está na face frontal voltada para o usuário!
+      if (z2 > -0.05) {
+        const px = cx + x * (radius * 0.97);
+        const py = cy + y2 * (radius * 0.97);
+
+        visiblePoints.push({ px, py, node, alpha, z: z2 });
+
+        // 1. Halo expansivo pulsante roxo neon em volta do estado
+        const haloRadius = node.size * (2.8 + pulseWave * 2.2);
         ctx.beginPath();
-        ctx.arc(px, py, node.size * 3.2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(176, 38, 255, ${0.28 * alpha})`;
+        ctx.arc(px, py, haloRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(176, 38, 255, ${0.22 * alpha})`;
         ctx.fill();
 
-        // Ponto roxo central vibrante
+        // 2. Anel de onda expansiva
         ctx.beginPath();
-        ctx.arc(px, py, node.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(236, 72, 153, ${alpha})`;
+        ctx.arc(px, py, haloRadius * 1.25, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(217, 70, 239, ${0.35 * (1 - pulseWave)})`;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // 3. Ponto central roxo neon de alta intensidade no estado
+        ctx.beginPath();
+        ctx.arc(px, py, node.size + pulseWave * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = pulseWave > 0.85 ? '#ffffff' : `rgba(240, 171, 252, ${alpha})`;
         ctx.shadowColor = '#b026ff';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 12;
         ctx.fill();
         ctx.shadowBlur = 0;
+
+        // 4. Sigla do estado sutil ao lado do ponto (ex: SP, RJ, MG, etc.)
+        if (node.state && z2 > 0.35) {
+          ctx.font = '600 9px monospace';
+          ctx.fillStyle = `rgba(233, 213, 255, ${0.75 * alpha})`;
+          ctx.fillText(node.state, px + 5, py - 4);
+        }
       }
     }
 
-    // Desenhar linhas de arcos conectando cidades próximas (fluxo de pagamentos)
-    if (projectedNodes.length >= 2) {
-      ctx.lineWidth = 1;
-      for (let i = 0; i < projectedNodes.length - 1; i += 2) {
-        const p1 = projectedNodes[i];
-        const p2 = projectedNodes[i + 1];
+    // Arcos de conexão neon roxos entre estados conectados (rotas financeiras)
+    if (visiblePoints.length >= 2) {
+      ctx.lineWidth = 1.1;
+      for (let i = 0; i < visiblePoints.length - 1; i += 3) {
+        const p1 = visiblePoints[i];
+        const p2 = visiblePoints[i + 1];
         if (!p1 || !p2) continue;
 
         const dist = Math.hypot(p2.px - p1.px, p2.py - p1.py);
-        if (dist < radius * 0.8) {
+        if (dist < radius * 0.65) {
           const midX = (p1.px + p2.px) / 2;
-          const midY = (p1.py + p2.py) / 2 - dist * 0.15; // Curvatura para fora
+          const midY = (p1.py + p2.py) / 2 - dist * 0.18;
 
           ctx.beginPath();
           ctx.moveTo(p1.px, p1.py);
           ctx.quadraticCurveTo(midX, midY, p2.px, p2.py);
-          ctx.strokeStyle = 'rgba(192, 132, 252, 0.25)';
+          ctx.strokeStyle = 'rgba(192, 132, 252, 0.28)';
           ctx.stroke();
         }
       }
