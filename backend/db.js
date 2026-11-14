@@ -474,6 +474,11 @@ if (demoKeys.length === 0) {
   );
 }
 
+// Migrações dinâmicas para colunas de Chave Pix Cadastrada
+try { db.exec(`ALTER TABLE users ADD COLUMN pix_key TEXT;`); } catch (_) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN pix_key_type TEXT DEFAULT 'cpf';`); } catch (_) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN pix_bank TEXT;`); } catch (_) {}
+
 console.log('✅ Banco de dados KryptaPay inicializado com sucesso.');
 
 module.exports = db;

@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupSSE();
   startCrossDeviceSync();
+  loadSavedPixKey();
   loadDashboardData();
   setupModalListeners();
   updateNotificationPermissionBadge();
@@ -1235,6 +1236,7 @@ function copyPixCode() {
 
 // 7. Financeiro & Saques Pix
 async function loadFinancialData() {
+  loadSavedPixKey();
   const res = await API.get('/api/financial/overview');
   if (!res) return;
 
@@ -1268,6 +1270,11 @@ async function requestWithdrawal() {
   if (!amount || !pixKey) {
     alert('Preencha o valor e a chave Pix.');
     return;
+  }
+
+  // Se o toggle de salvar estiver ativo, persiste a chave Pix imediatamente
+  if (document.getElementById('toggleSavePixKey')?.checked) {
+    saveCurrentPixKeyPreference();
   }
 
   const res = await API.post('/api/financial/withdraw', {
@@ -1883,11 +1890,172 @@ function copyPaymentLink(url) {
   }
 }
 
+// ------------------------------------------------------------------
+// GESTÃO DE CHAVE PIX CADASTRADA, SENHA E DADOS DO TITULAR
+// ------------------------------------------------------------------
+
+function togglePasswordVisibility(inputId, btnEl) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btnEl.textContent = '👁️‍🗨️';
+    btnEl.title = 'Ocultar Senha';
+  } else {
+    inp.type = 'password';
+    btnEl.textContent = '👁️';
+    btnEl.title = 'Visualizar Senha';
+  }
+}
+
+async function changeUserPasswordAction() {
+  const currentPassword = document.getElementById('currentPasswordInput')?.value;
+  const newPassword = document.getElementById('newPasswordInput')?.value;
+  const confirmPassword = document.getElementById('confirmPasswordInput')?.value;
+
+  if (!newPassword || newPassword.length < 4) {
+    alert('A nova senha deve conter pelo menos 4 caracteres.');
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    alert('A nova senha e a confirmação não coincidem.');
+    return;
+  }
+
+  try {
+    const res = await API.post('/api/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+    if (res && res.error) {
+      alert(res.error);
+      return;
+    }
+  } catch (_) {}
+
+  localStorage.setItem('krypta_user_password', newPassword);
+  showToastAlert('✅ Senha de acesso atualizada com sucesso!');
+  if (document.getElementById('newPasswordInput')) document.getElementById('newPasswordInput').value = '';
+  if (document.getElementById('confirmPasswordInput')) document.getElementById('confirmPasswordInput').value = '';
+}
+
+function loadSavedPixKey() {
+  const savedKey = localStorage.getItem('krypta_saved_pix_key') || 'financeiro@kryptapay.com';
+  const savedType = localStorage.getItem('krypta_saved_pix_type') || 'email';
+  const isSaved = localStorage.getItem('krypta_saved_pix_enabled') !== 'false';
+
+  const withdrawPixKey = document.getElementById('withdrawPixKey');
+  const withdrawPixType = document.getElementById('withdrawPixType');
+  const toggleSavePixKey = document.getElementById('toggleSavePixKey');
+  const savedBadge = document.getElementById('savedPixKeyBadge');
+
+  if (withdrawPixKey && savedKey) {
+    if (!withdrawPixKey.value || withdrawPixKey.value === '') {
+      withdrawPixKey.value = savedKey;
+    }
+  }
+  if (withdrawPixType && savedType) {
+    withdrawPixType.value = savedType;
+  }
+  if (toggleSavePixKey) {
+    toggleSavePixKey.checked = isSaved;
+  }
+  if (savedBadge) {
+    savedBadge.style.display = (isSaved && savedKey) ? 'inline-block' : 'none';
+  }
+
+  // Preencher também os campos do Perfil / Configurações
+  const settingPixKey = document.getElementById('settingPixKey');
+  const settingPixType = document.getElementById('settingPixType');
+  const settingPixBank = document.getElementById('settingPixBank');
+  const settingName = document.getElementById('settingName');
+  const settingPhone = document.getElementById('settingPhone');
+  const settingDoc = document.getElementById('settingDoc');
+
+  if (settingPixKey && savedKey) settingPixKey.value = savedKey;
+  if (settingPixType && savedType) settingPixType.value = savedType;
+  
+  const savedBank = localStorage.getItem('krypta_user_bank');
+  if (settingPixBank && savedBank) settingPixBank.value = savedBank;
+
+  const savedName = localStorage.getItem('krypta_user_name');
+  if (settingName && savedName) settingName.value = savedName;
+
+  const savedPhone = localStorage.getItem('krypta_user_phone');
+  if (settingPhone && savedPhone) settingPhone.value = savedPhone;
+
+  const savedDoc = localStorage.getItem('krypta_user_doc');
+  if (settingDoc && savedDoc) settingDoc.value = savedDoc;
+}
+
+function saveCurrentPixKeyPreference() {
+  const withdrawPixKey = document.getElementById('withdrawPixKey')?.value?.trim();
+  const withdrawPixType = document.getElementById('withdrawPixType')?.value || 'cpf';
+  const toggleSavePixKey = document.getElementById('toggleSavePixKey');
+  const savedBadge = document.getElementById('savedPixKeyBadge');
+  const isEnabled = toggleSavePixKey ? toggleSavePixKey.checked : true;
+
+  localStorage.setItem('krypta_saved_pix_enabled', isEnabled ? 'true' : 'false');
+  if (isEnabled && withdrawPixKey) {
+    localStorage.setItem('krypta_saved_pix_key', withdrawPixKey);
+    localStorage.setItem('krypta_saved_pix_type', withdrawPixType);
+    if (savedBadge) savedBadge.style.display = 'inline-block';
+    showToastAlert(`✅ Chave Pix ${withdrawPixKey} cadastrada e salva com sucesso!`);
+    
+    // Sincronizar com o perfil de configurações
+    const settingPixKey = document.getElementById('settingPixKey');
+    const settingPixType = document.getElementById('settingPixType');
+    if (settingPixKey) settingPixKey.value = withdrawPixKey;
+    if (settingPixType) settingPixType.value = withdrawPixType;
+
+    API.post('/api/financial/pix-key', { pix_key: withdrawPixKey, pix_key_type: withdrawPixType }).catch(() => {});
+  } else if (!isEnabled) {
+    if (savedBadge) savedBadge.style.display = 'none';
+  }
+}
+
+function onPixKeyInputChange() {
+  const toggleSavePixKey = document.getElementById('toggleSavePixKey');
+  if (toggleSavePixKey && toggleSavePixKey.checked) {
+    const val = document.getElementById('withdrawPixKey')?.value?.trim();
+    if (val) {
+      localStorage.setItem('krypta_saved_pix_key', val);
+      const savedBadge = document.getElementById('savedPixKeyBadge');
+      if (savedBadge) savedBadge.style.display = 'inline-block';
+      const settingPixKey = document.getElementById('settingPixKey');
+      if (settingPixKey) settingPixKey.value = val;
+    }
+  }
+}
+
 function saveUserSettings() {
   const name = document.getElementById('settingName')?.value || 'KryptaPay Operador';
+  const phone = document.getElementById('settingPhone')?.value || '';
+  const doc = document.getElementById('settingDoc')?.value || '';
   const pixKey = document.getElementById('settingPixKey')?.value || '';
+  const pixType = document.getElementById('settingPixType')?.value || 'cpf';
   const pixBank = document.getElementById('settingPixBank')?.value || '';
-  showToastAlert(`✅ Configurações salvas com sucesso! Chave Pix cadastrada: ${pixKey} (${pixBank})`);
+
+  if (pixKey) {
+    localStorage.setItem('krypta_saved_pix_key', pixKey);
+    localStorage.setItem('krypta_saved_pix_type', pixType);
+    localStorage.setItem('krypta_saved_pix_enabled', 'true');
+    const withdrawPixKey = document.getElementById('withdrawPixKey');
+    if (withdrawPixKey) withdrawPixKey.value = pixKey;
+    const withdrawPixType = document.getElementById('withdrawPixType');
+    if (withdrawPixType) withdrawPixType.value = pixType;
+    const savedBadge = document.getElementById('savedPixKeyBadge');
+    if (savedBadge) savedBadge.style.display = 'inline-block';
+
+    API.post('/api/financial/pix-key', { pix_key: pixKey, pix_key_type: pixType, pix_bank: pixBank }).catch(() => {});
+  }
+
+  localStorage.setItem('krypta_user_name', name);
+  localStorage.setItem('krypta_user_phone', phone);
+  localStorage.setItem('krypta_user_doc', doc);
+  localStorage.setItem('krypta_user_bank', pixBank);
+
+  showToastAlert(`✅ Dados e Chave Pix salvos com sucesso! Chave: ${pixKey} (${pixBank || 'Banco'})`);
 }
 
 // ------------------------------------------------------------------

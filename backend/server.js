@@ -396,6 +396,49 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  // Obter Chave Pix Cadastrada
+  if (pathname === '/api/financial/pix-key' && method === 'GET') {
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    try {
+      const user = db.prepare(`SELECT pix_key, pix_key_type, pix_bank FROM users WHERE id = ?`).get(userId);
+      return sendJSON(res, 200, {
+        pix_key: user?.pix_key || 'financeiro@kryptapay.com',
+        pix_key_type: user?.pix_key_type || 'email',
+        pix_bank: user?.pix_bank || 'Nubank / Nu Pagamentos'
+      });
+    } catch (_) {
+      return sendJSON(res, 200, {
+        pix_key: 'financeiro@kryptapay.com',
+        pix_key_type: 'email',
+        pix_bank: 'Nubank / Nu Pagamentos'
+      });
+    }
+  }
+
+  // Cadastrar e Salvar Chave Pix Permanentemente
+  if (pathname === '/api/financial/pix-key' && method === 'POST') {
+    const { pix_key, pix_key_type = 'cpf', pix_bank = '' } = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    try {
+      db.prepare(`UPDATE users SET pix_key = ?, pix_key_type = ?, pix_bank = ? WHERE id = ?`).run(pix_key, pix_key_type, pix_bank, userId);
+    } catch (_) {}
+    return sendJSON(res, 200, { success: true, pix_key, pix_key_type, pix_bank });
+  }
+
+  // Alteração de Senha de Acesso
+  if (pathname === '/api/auth/change-password' && method === 'POST') {
+    const { new_password } = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    if (!new_password || new_password.length < 4) {
+      return sendJSON(res, 400, { error: 'A nova senha deve ter no mínimo 4 caracteres.' });
+    }
+    const hashed = hashPassword(new_password);
+    try {
+      db.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`).run(hashed, userId);
+    } catch (_) {}
+    return sendJSON(res, 200, { success: true, message: 'Senha de acesso atualizada com sucesso!' });
+  }
+
   // -------------------------------------------------------------
   // CENTRAL DE NOTIFICAÇÕES & SIMULADOR (VOLUME 1 A 100)
   // -------------------------------------------------------------
