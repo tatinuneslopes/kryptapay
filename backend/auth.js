@@ -81,14 +81,14 @@ function seedUsers() {
       `).run('usr_larissa_fundadora', 'larissa@kryptapay.com', larissaPassHash, 'Larissa - Sócia Fundadora KryptaPay', 'admin', 280000.00, 18000.00, 5000.00);
     } catch (_) {}
 
-    // 3. Usuário Vendedor Padrão (Demo / Operador Digital)
+    // 3. Usuário Vendedor Padrão (Demo / Operador Digital) — Começa Rigorosamente em R$ 0,00
     const userId = 'usr_merchant_demo';
     const userPassHash = hashPassword('12345678');
     try {
       db.prepare(`
         INSERT OR IGNORE INTO users (id, email, password_hash, full_name, role, balance_available, balance_pending, balance_retained)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(userId, 'demo@cryptapay.com', userPassHash, 'Operador Digital KryptaPay', 'merchant', 18450.80, 2430.00, 950.00);
+      `).run(userId, 'demo@cryptapay.com', userPassHash, 'Operador Digital KryptaPay', 'merchant', 0.00, 0.00, 0.00);
     } catch (_) {}
 
     // Cadastrar Adquirentes Padrão no Smart Routing

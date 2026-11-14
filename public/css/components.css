@@ -923,3 +923,127 @@
 .tilt-card-3d:active {
   cursor: grabbing;
 }
+
+/* ======================================================== */
+/* ESTILOS DE TOAST FLUTUANTE CENTRALIZADO NO MOBILE        */
+/* ======================================================== */
+@media (max-width: 600px) {
+  .toast-container {
+    top: 12px !important;
+    left: 12px !important;
+    right: 12px !important;
+    align-items: center !important;
+  }
+  .krypta-toast {
+    width: 100% !important;
+    max-width: 390px !important;
+    padding: 12px 14px !important;
+    animation: toastMobileSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+}
+
+@keyframes toastMobileSlideDown {
+  from {
+    transform: translateY(-40px) scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ======================================================== */
+/* BARRA DE NAVEGAÇÃO INFERIOR MOBILE (ESTILO BLACKPAY)     */
+/* ======================================================== */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 62px;
+    background: rgba(12, 5, 25, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1.5px solid rgba(176, 38, 255, 0.35);
+    z-index: 900;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 0.25rem;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(176, 38, 255, 0.15);
+  }
+
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 3px;
+    touch-action: manipulation;
+  }
+
+  .mobile-nav-btn.active, .mobile-nav-btn:hover {
+    color: #ffffff;
+  }
+
+  .mobile-nav-btn.active .mobile-nav-icon {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px #c084fc);
+  }
+
+  .mobile-nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: transform 0.2s ease;
+  }
+
+  /* Botão Pix central em destaque com neon pulsante */
+  .mobile-nav-btn-highlight {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #9333ea, #b026ff);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    width: 52px;
+    height: 52px;
+    margin-top: -24px;
+    box-shadow: 0 0 25px rgba(176, 38, 255, 0.9), 0 6px 16px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+    font-size: 0.62rem;
+    font-weight: 800;
+    gap: 1px;
+    touch-action: manipulation;
+    transition: transform 0.2s ease;
+  }
+
+  .mobile-nav-btn-highlight:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-nav-btn-highlight .mobile-nav-icon-pix {
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  .content-body {
+    padding-bottom: 84px !important;
+  }
+}

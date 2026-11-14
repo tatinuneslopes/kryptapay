@@ -15,6 +15,7 @@ const {
   pauseSimulation,
   cancelSimulation,
   getTestDashboardMetrics,
+  triggerSingleTestNotification,
   sseClients
 } = require('./services/simulationQueue');
 
@@ -424,6 +425,31 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/simulation/metrics' && method === 'GET') {
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
     return sendJSON(res, 200, getTestDashboardMetrics(userId));
+  }
+
+  // -------------------------------------------------------------
+  // NOTIFICAÇÕES & DISPARO DE TESTE ÚNICO (ESTILO BLACKPAY / FLEVOPAY)
+  // -------------------------------------------------------------
+  if (pathname === '/api/notifications' && method === 'GET') {
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    try {
+      const rows = db.prepare(`
+        SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50
+      `).all(userId);
+      return sendJSON(res, 200, { success: true, notifications: rows });
+    } catch (e) {
+      return sendJSON(res, 200, { success: true, notifications: [] });
+    }
+  }
+
+  if (pathname === '/api/notifications/test-single' && method === 'POST') {
+    const body = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const notif = triggerSingleTestNotification({
+      userId,
+      amount: parseFloat(body.amount) || null
+    });
+    return sendJSON(res, 200, { success: true, notification: notif });
   }
 
   // -------------------------------------------------------------

@@ -40,7 +40,7 @@ if (!db) {
     users: [
       { id: 'usr_admin_krypta', email: 'admin@kryptapay.com', password_hash: '$argon2id$resilient$auto_pass', full_name: 'Administrador Master KryptaPay', role: 'admin', balance_available: 350000.0, balance_pending: 25000.0, balance_retained: 10000.0 },
       { id: 'usr_larissa_fundadora', email: 'larissa@kryptapay.com', password_hash: '$argon2id$resilient$auto_pass', full_name: 'Larissa - Sócia Fundadora KryptaPay', role: 'admin', balance_available: 280000.0, balance_pending: 18000.0, balance_retained: 5000.0 },
-      { id: 'usr_merchant_demo', email: 'demo@cryptapay.com', password_hash: '$argon2id$resilient$auto_pass', full_name: 'Operador Digital KryptaPay', role: 'merchant', balance_available: 18450.8, balance_pending: 2430.0, balance_retained: 950.0 }
+      { id: 'usr_merchant_demo', email: 'demo@cryptapay.com', password_hash: '$argon2id$resilient$auto_pass', full_name: 'Operador Digital KryptaPay', role: 'merchant', balance_available: 0.0, balance_pending: 0.0, balance_retained: 0.0 }
     ],
     system_rates: [{ id: 'default', pix_percent: 1.49, pix_fixed: 0.0, pix_withdrawal_fee: 1.99, card_national_percent: 4.49, card_national_fixed: 0.39, card_international_percent: 5.99, card_international_fixed: 0.39, installment_rate_per_month: 1.99, currency_exchange_spread_percent: 2.50, processor_cost_pix_percent: 0.70, processor_cost_card_percent: 2.50, processor_cost_card_fixed: 0.20, processor_cost_withdrawal: 0.80 }]
   };
@@ -56,8 +56,8 @@ if (!db) {
             password_hash: '$argon2id$resilient$auto_pass',
             full_name: email.includes('admin') ? 'Administrador Master KryptaPay' : (email.includes('larissa') ? 'Larissa - Sócia Fundadora' : 'Operador KryptaPay'),
             role: email.includes('admin') || email.includes('larissa') ? 'admin' : 'merchant',
-            balance_available: 50000.0,
-            balance_pending: 5000.0,
+            balance_available: 0.0,
+            balance_pending: 0.0,
             balance_retained: 0.0
           };
         }

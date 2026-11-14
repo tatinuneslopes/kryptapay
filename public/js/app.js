@@ -75,6 +75,11 @@ function switchTab(tabId) {
   const activeLink = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
   if (activeLink) activeLink.classList.add('active');
 
+  // Atualizar botões da barra inferior mobile
+  document.querySelectorAll('.mobile-nav-btn, .mobile-nav-btn-highlight').forEach(b => b.classList.remove('active'));
+  const activeBottomBtn = document.querySelector(`[data-bottom-tab="${tabId}"]`);
+  if (activeBottomBtn) activeBottomBtn.classList.add('active');
+
   const titleEl = document.getElementById('headerPageTitle');
   if (titleEl && activeLink) {
     const label = activeLink.querySelector('.nav-label');
@@ -91,13 +96,13 @@ function switchTab(tabId) {
   else if (tabId === 'sales' || tabId === 'transactions') loadTransactionsData();
   else if (tabId === 'financial') loadFinancialData();
   else if (tabId === 'global') loadGlobalData();
-  else if (tabId === 'integrations') loadApiKeysData();
+  else if (tabId === 'api') loadApiKeysData();
   else if (tabId === 'webhooks') loadWebhooksData();
+  else if (tabId === 'notifications') loadNotificationsData();
   else if (tabId === 'admin') loadAdminData();
   else if (tabId === 'acquirers') loadAcquirersData();
   else if (tabId === 'products') loadProductsData();
   else if (tabId === 'rewards') loadRewardsData();
-  else if (tabId === 'test-dashboard') loadTestDashboardData();
 
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.classList.remove('mobile-open');
@@ -210,6 +215,226 @@ function showToastAlert(msg) {
   setTimeout(() => toast.remove(), 4000);
 }
 
+// ========================================================
+// CENTRAL DE NOTIFICAÇÕES: DISPARO DE TESTES & FILAS
+// ========================================================
+async function triggerSingleTestNotification(customAmount) {
+  const prefSound = document.getElementById('prefSoundToggle') ? document.getElementById('prefSoundToggle').checked : true;
+  const prefVibrate = document.getElementById('prefVibrateToggle') ? document.getElementById('prefVibrateToggle').checked : true;
+
+  if (prefSound) {
+    NotificationAudio.playCashSound();
+  }
+  if (prefVibrate && navigator.vibrate) {
+    navigator.vibrate([150, 80, 200]);
+  }
+
+  const selectVal = document.getElementById('notifTestAmount') ? document.getElementById('notifTestAmount').value : 'random';
+  let amount = 197.00;
+  if (customAmount) {
+    amount = customAmount;
+  } else if (selectVal !== 'random') {
+    amount = parseFloat(selectVal) || 197.00;
+  } else {
+    const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
+    amount = list[Math.floor(Math.random() * list.length)];
+  }
+
+  const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
+
+  const notifObj = {
+    id: 'test_' + Date.now(),
+    brand: 'KRYPTAPAY',
+    icon: '/icons/logo.png',
+    title: '🎉 Venda aprovada!',
+    amount: `R$ ${formattedAmount}`,
+    rawAmount: amount,
+    orderId: orderId,
+    status: 'approved',
+    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  };
+
+  // Exibir Toast flutuante no topo
+  showFloatingToast(notifObj);
+
+  // Notificação de Sistema no Mobile / Desktop
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification('🎉 Venda aprovada! from KryptaPay', {
+        body: `Valor: R$ ${formattedAmount} • Pedido ${orderId}`,
+        icon: '/icons/logo.png',
+        badge: '/icons/logo.png'
+      });
+    } catch (e) {}
+  }
+
+  // Preencher no histórico da tela de Notificações
+  if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
+  AppState.notificationsHistory.unshift(notifObj);
+  renderNotificationsList();
+
+  // Registrar no backend
+  API.post('/api/notifications/test-single', { amount }).catch(() => {});
+}
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    alert('Seu navegador não suporta notificações de sistema.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  const btn = document.getElementById('btnRequestNotifPermission');
+  if (perm === 'granted') {
+    if (btn) btn.innerHTML = '<span>✅</span> <span>Avisos Ativados no Celular</span>';
+    showToastAlert('Notificações no celular e computador ativadas com sucesso!');
+  } else {
+    alert('Permissão de notificações não concedida nas configurações do navegador.');
+  }
+}
+
+let notifSeqTimer = null;
+let notifSeqCurrent = 0;
+let notifSeqTotal = 0;
+
+function startNotificationSequence() {
+  const countSelect = document.getElementById('notifTestCount');
+  const intervalSelect = document.getElementById('notifTestInterval');
+  const count = parseInt(countSelect ? countSelect.value : 5, 10);
+  const intervalSec = parseInt(intervalSelect ? intervalSelect.value : 3, 10);
+
+  notifSeqTotal = count;
+  notifSeqCurrent = 0;
+
+  const btnStart = document.getElementById('btnStartNotifSeq');
+  const btnStop = document.getElementById('btnStopNotifSeq');
+  if (btnStart) btnStart.disabled = true;
+  if (btnStop) btnStop.disabled = false;
+
+  const statusLabel = document.getElementById('notifSeqStatusLabel');
+  const countLabel = document.getElementById('notifSeqCountLabel');
+  const pBar = document.getElementById('notifSeqProgressBar');
+
+  if (statusLabel) statusLabel.textContent = `Disparando sequência... Intervalo: ${intervalSec}s`;
+  if (countLabel) countLabel.textContent = `0 / ${notifSeqTotal}`;
+  if (pBar) pBar.style.width = '0%';
+
+  triggerSingleTestNotification();
+  notifSeqCurrent++;
+  if (countLabel) countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
+  if (pBar) pBar.style.width = `${Math.round((notifSeqCurrent / notifSeqTotal) * 100)}%`;
+
+  if (notifSeqCurrent >= notifSeqTotal) {
+    stopNotificationSequence();
+    return;
+  }
+
+  notifSeqTimer = setInterval(() => {
+    if (notifSeqCurrent >= notifSeqTotal) {
+      stopNotificationSequence();
+      return;
+    }
+    triggerSingleTestNotification();
+    notifSeqCurrent++;
+    if (countLabel) countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
+    if (pBar) pBar.style.width = `${Math.round((notifSeqCurrent / notifSeqTotal) * 100)}%`;
+
+    if (notifSeqCurrent >= notifSeqTotal) {
+      stopNotificationSequence();
+    }
+  }, intervalSec * 1000);
+}
+
+function stopNotificationSequence() {
+  if (notifSeqTimer) {
+    clearInterval(notifSeqTimer);
+    notifSeqTimer = null;
+  }
+  const btnStart = document.getElementById('btnStartNotifSeq');
+  const btnStop = document.getElementById('btnStopNotifSeq');
+  if (btnStart) btnStart.disabled = false;
+  if (btnStop) btnStop.disabled = true;
+
+  const statusLabel = document.getElementById('notifSeqStatusLabel');
+  if (statusLabel) statusLabel.textContent = notifSeqCurrent >= notifSeqTotal ? 'Sequência de testes finalizada!' : 'Sequência interrompida.';
+}
+
+async function loadNotificationsData() {
+  const container = document.getElementById('notificationsHistoryList');
+  if (!container) return;
+
+  if (AppState.notificationsHistory && AppState.notificationsHistory.length > 0) {
+    renderNotificationsList();
+    return;
+  }
+
+  const res = await API.get('/api/notifications');
+  if (res && res.notifications && res.notifications.length > 0) {
+    AppState.notificationsHistory = res.notifications.map(n => ({
+      id: n.id,
+      brand: 'KRYPTAPAY',
+      icon: '/icons/logo.png',
+      title: n.title,
+      amount: n.amount ? `R$ ${n.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 197,00',
+      orderId: n.order_id || '#10293',
+      status: n.category === 'saque' ? 'completed' : 'approved',
+      timestamp: new Date(n.created_at || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    }));
+  }
+  renderNotificationsList();
+}
+
+function renderNotificationsList() {
+  const container = document.getElementById('notificationsHistoryList');
+  if (!container) return;
+
+  if (!AppState.notificationsHistory || AppState.notificationsHistory.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 2.5rem 1rem; text-align:center; color:var(--text-muted); font-size:0.88rem;">
+        <span style="font-size:2rem; display:block; margin-bottom:0.5rem;">🔔</span>
+        Nenhuma notificação registrada ainda.<br>
+        Clique no botão roxo <strong>"Enviar Teste de Venda"</strong> acima para ouvir o toque e ver o aviso pingar!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = AppState.notificationsHistory.slice(0, 30).map(n => `
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:0.9rem 1.15rem; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+      <div style="display:flex; align-items:center; gap:0.85rem;">
+        <img src="/icons/logo.png" style="width:38px; height:38px; border-radius:8px; border:1px solid rgba(176,38,255,0.4);" alt="Logo">
+        <div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <strong style="color:#fff; font-size:0.92rem;">${n.title || 'Venda aprovada!'}</strong>
+            <span style="font-size:0.75rem; color:var(--text-dim);">${n.timestamp || 'Agora'}</span>
+          </div>
+          <div style="font-size:0.78rem; color:var(--text-muted);">Pedido: <span style="color:#c084fc;">${n.orderId || '#10001'}</span> • Pix Dinâmico Instantâneo</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:1rem; font-weight:800; color:var(--status-success);">${n.amount}</span>
+        <div><span class="badge-status badge-approved" style="font-size:0.68rem; padding:0.15rem 0.45rem;">Aprovada</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function clearNotificationHistory() {
+  AppState.notificationsHistory = [];
+  renderNotificationsList();
+  showToastAlert('Histórico de notificações limpo.');
+}
+
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.classList.toggle('mobile-open');
+}
+
+function openIntegrationModal(platform) {
+  showToastAlert(`Integração com ${platform}: Utilize suas chaves de API para conectar.`);
+  switchTab('api');
+}
+
 // 4. Carregamento dos Dados da Dashboard Real (10 Indicadores)
 async function loadDashboardData() {
   const res = await API.get('/api/dashboard/metrics');
@@ -239,8 +464,8 @@ function renderChart(chartData) {
 
   ctx.clearRect(0, 0, w, h);
 
-  const points = chartData.data || [12000, 18000, 24000, 31000, 28000, 42000, 39000];
-  const max = Math.max(...points) * 1.15;
+  const points = (chartData && chartData.data && chartData.data.length) ? chartData.data : [0, 0, 0, 0, 0, 0, 0];
+  const max = (Math.max(...points, 100)) * 1.15;
   const stepX = (w - 60) / (points.length - 1);
 
   const grad = ctx.createLinearGradient(0, 0, 0, h);

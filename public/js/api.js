@@ -26,20 +26,20 @@ const API = {
     if (endpoint.includes('/metrics')) {
       return {
         indicators: {
-          faturamento_total: 148950.00,
-          saldo_disponivel: 32450.80,
-          saldo_pendente: 4230.00,
-          saldo_retencao: 1250.00,
-          vendas_aprovadas: 412,
-          vendas_pendentes: 8,
-          vendas_recusadas: 3,
-          taxa_aprovacao: '98.8%',
-          ticket_medio: '169.90',
+          faturamento_total: 0.00,
+          saldo_disponivel: 0.00,
+          saldo_pendente: 0.00,
+          saldo_retencao: 0.00,
+          vendas_aprovadas: 0,
+          vendas_pendentes: 0,
+          vendas_recusadas: 0,
+          taxa_aprovacao: '100%',
+          ticket_medio: '0.00',
           total_reembolsos: 0.00
         },
         chart: {
           labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
-          data: [18450, 24900, 31100, 42200, 38900, 56300, 51500]
+          data: [0, 0, 0, 0, 0, 0, 0]
         }
       };
     }
@@ -81,48 +81,57 @@ const API = {
   }
 };
 
-// Sintetizador de Som de Notificação Realista (Web Audio API - Zero arquivos externos)
+// Sintetizador de Som de Notificação Realista (Web Audio API - Toque Oficial KryptaPay)
 class NotificationAudio {
-  static playCashSound() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+  static _ctx = null;
 
-      // Oscilador 1: Tom agudo de sino/moeda
+  static async playCashSound() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!this._ctx) {
+        this._ctx = new AudioCtx();
+      }
+      if (this._ctx.state === 'suspended') {
+        await this._ctx.resume();
+      }
+      const ctx = this._ctx;
+      const now = ctx.currentTime;
+
+      // Bell 1: Tom cristalino metálico agudo (C6 -> C7)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(987.77, ctx.currentTime); // B5
-      osc1.frequency.exponentialRampToValueAtTime(1318.51, ctx.currentTime + 0.08); // E6
-      gain1.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc1.frequency.setValueAtTime(1046.50, now);
+      osc1.frequency.exponentialRampToValueAtTime(2093.00, now + 0.08);
+      gain1.gain.setValueAtTime(0.45, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
 
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
-      osc1.start();
-      osc1.stop(ctx.currentTime + 0.35);
+      osc1.start(now);
+      osc1.stop(now + 0.42);
 
-      // Oscilador 2: Ressonância cristalina
-      setTimeout(() => {
-        try {
-          const osc2 = ctx.createOscillator();
-          const gain2 = ctx.createGain();
-          osc2.type = 'triangle';
-          osc2.frequency.setValueAtTime(1567.98, ctx.currentTime); // G6
-          osc2.frequency.exponentialRampToValueAtTime(1975.53, ctx.currentTime + 0.06); // B6
-          gain2.gain.setValueAtTime(0.25, ctx.currentTime);
-          gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      // Bell 2: Harmônico clássico de caixa registradora (E6 -> E7)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(1318.51, now + 0.06);
+      osc2.frequency.exponentialRampToValueAtTime(2637.02, now + 0.15);
+      gain2.gain.setValueAtTime(0.35, now + 0.06);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
 
-          osc2.connect(gain2);
-          gain2.connect(ctx.destination);
-          osc2.start();
-          osc2.stop(ctx.currentTime + 0.45);
-        } catch (e) {}
-      }, 70);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.06);
+      osc2.stop(now + 0.58);
 
+      // Vibração no celular
+      if (navigator.vibrate) {
+        navigator.vibrate([120, 60, 120]);
+      }
     } catch (e) {
-      console.log('Audio disabled or blocked by browser autoplay policy.');
+      console.warn('Audio play error:', e);
     }
   }
 }

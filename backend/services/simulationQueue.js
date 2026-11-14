@@ -179,10 +179,54 @@ function getTestDashboardMetrics(userId) {
   };
 }
 
+function triggerSingleTestNotification({ userId, amount }) {
+  const chosenAmount = amount || SIMULATED_AMOUNTS[Math.floor(Math.random() * SIMULATED_AMOUNTS.length)];
+  const orderNumber = 10000 + Math.floor(Math.random() * 90000);
+  const orderId = `#${orderNumber}`;
+  const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const title = '🎉 Venda aprovada!';
+  const body = `Venda aprovada!\nValor: R$ ${formattedAmount}\nPedido: ${orderId}`;
+  const notifId = crypto.randomUUID();
+
+  try {
+    db.prepare(`
+      INSERT INTO notifications (id, user_id, title, body, category, order_id, amount, is_simulation)
+      VALUES (?, ?, ?, ?, 'venda_aprovada', ?, ?, 1)
+    `).run(notifId, userId, title, body, orderId, chosenAmount);
+  } catch (e) {
+    console.warn('Erro ao salvar notificação única:', e);
+  }
+
+  const notificationData = {
+    id: notifId,
+    brand: 'KRYPTAPAY',
+    icon: '/icons/logo.png',
+    title,
+    body,
+    amount: `R$ ${formattedAmount}`,
+    rawAmount: chosenAmount,
+    orderId,
+    category: 'venda_aprovada',
+    status: 'approved',
+    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  };
+
+  broadcastToClients({
+    type: 'notification',
+    sentCount: 1,
+    totalCount: 1,
+    notification: notificationData
+  });
+
+  return notificationData;
+}
+
 module.exports = {
   startSimulation,
   pauseSimulation,
   cancelSimulation,
   getTestDashboardMetrics,
+  triggerSingleTestNotification,
+  broadcastToClients,
   sseClients
 };
