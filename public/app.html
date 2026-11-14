@@ -69,7 +69,12 @@
         <div class="nav-section-title">Principal</div>
         <a class="nav-item active" data-tab="dashboard">
           <span class="nav-icon">📊</span>
-          <span class="nav-label" data-i18n="dashboard">Dashboard</span>
+          <span class="nav-label" data-i18n="dashboard">Dashboard Principal</span>
+        </a>
+        <a class="nav-item" data-tab="test-dashboard" style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius:10px;">
+          <span class="nav-icon">🧪</span>
+          <span class="nav-label">Dashboard Teste</span>
+          <span class="nav-badge" style="background:#a855f7; color:#fff;">Simulação</span>
         </a>
         <a class="nav-item" data-tab="quick-pay">
           <span class="nav-icon">⚡</span>
@@ -431,6 +436,145 @@
           </div>
         </div>
 
+        <!-- ========================================================= -->
+        <!-- MÓDULO: DASHBOARD DE TESTES (SIMULAÇÃO AO VIVO NO CELULAR) -->
+        <!-- ========================================================= -->
+        <div id="pane-test-dashboard" class="view-pane" style="display:none;">
+          <!-- Topo com Filtros e Ações de Teste -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap;">
+                <span class="badge-status badge-approved" style="background:rgba(168,85,247,0.25); color:#c084fc; border:1px solid rgba(168,85,247,0.5);">🧪 Ambiente de Testes & Simulação</span>
+                <span class="badge-status" style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3);">📲 Vinculado ao Push do Celular</span>
+              </div>
+              <h3 style="font-size: 1.55rem; font-weight: 800; color: #fff;">Dashboard Teste</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); max-width:720px;">
+                Conforme as notificações de teste pingam no seu celular, o faturamento, saldo disponível e vendas aumentam automaticamente em tempo real nesta tela.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
+              <button onclick="switchTab('notifications')" class="btn-primary" style="padding:0.65rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px;">
+                🔔 Disparar Notificações
+              </button>
+              <button onclick="resetTestDashboard()" class="btn-secondary" style="padding:0.65rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px; color:#f87171; border-color:rgba(239,68,68,0.4);">
+                🔄 Zerar Saldo de Teste
+              </button>
+            </div>
+          </div>
+
+          <!-- CARDS DE INDICADORES DA DASHBOARD TESTE (EXATAMENTE OS PEDIDOS PELO CLIENTE) -->
+          <div class="kpi-grid">
+            <!-- 1. Faturamento Total -->
+            <div class="glass-card kpi-card" style="--card-accent: #a855f7;">
+              <div class="kpi-header">
+                <span class="kpi-title">1. Faturamento Total</span>
+                <span class="kpi-icon">💰</span>
+              </div>
+              <div id="test-metric-faturamento" class="kpi-value" style="color:#ffffff;">R$ 0,00</div>
+              <div class="kpi-footer"><span class="kpi-trend-up">▲ 100%</span> Faturamento acumulado no teste</div>
+            </div>
+
+            <!-- 2. Saldo Disponível -->
+            <div class="glass-card kpi-card" style="--card-accent: #10b981;">
+              <div class="kpi-header">
+                <span class="kpi-title">2. Saldo Disponível</span>
+                <span class="kpi-icon">⚡</span>
+              </div>
+              <div id="test-metric-disponivel" class="kpi-value" style="color:var(--status-success);">R$ 0,00</div>
+              <div class="kpi-footer">Líquido de vendas aprovadas</div>
+            </div>
+
+            <!-- 3. Saldo Pendente -->
+            <div class="glass-card kpi-card" style="--card-accent: #f59e0b;">
+              <div class="kpi-header">
+                <span class="kpi-title">3. Saldo Pendente</span>
+                <span class="kpi-icon">⏳</span>
+              </div>
+              <div id="test-metric-pendente" class="kpi-value" style="color:var(--status-warning);">R$ 0,00</div>
+              <div class="kpi-footer">Pix gerados aguardando pagamento</div>
+            </div>
+
+            <!-- 4. Saldo em Retenção -->
+            <div class="glass-card kpi-card" style="--card-accent: #8b5cf6;">
+              <div class="kpi-header">
+                <span class="kpi-title">4. Saldo em Retenção</span>
+                <span class="kpi-icon">🔒</span>
+              </div>
+              <div id="test-metric-retencao" class="kpi-value" style="color:#c084fc;">R$ 0,00</div>
+              <div class="kpi-footer">5% reserva antifraude</div>
+            </div>
+
+            <!-- 5. Vendas Aprovadas -->
+            <div class="glass-card kpi-card" style="--card-accent: #10b981;">
+              <div class="kpi-header">
+                <span class="kpi-title">5. Vendas Aprovadas</span>
+                <span class="kpi-icon">✅</span>
+              </div>
+              <div id="test-metric-aprovadas" class="kpi-value" style="color:var(--status-success);">0</div>
+              <div class="kpi-footer">Notificações pingadas no celular</div>
+            </div>
+
+            <!-- 6. Vendas Pendentes -->
+            <div class="glass-card kpi-card" style="--card-accent: #f59e0b;">
+              <div class="kpi-header">
+                <span class="kpi-title">6. Vendas Pendentes</span>
+                <span class="kpi-icon">🔄</span>
+              </div>
+              <div id="test-metric-pendentes" class="kpi-value" style="color:var(--status-warning);">0</div>
+              <div class="kpi-footer">Pix aguardando compensação</div>
+            </div>
+
+            <!-- 7. Taxa de Aprovação / Conversão -->
+            <div class="glass-card kpi-card" style="--card-accent: #06b6d4;">
+              <div class="kpi-header">
+                <span class="kpi-title">7. Taxa de Aprovação</span>
+                <span class="kpi-icon">📈</span>
+              </div>
+              <div id="test-metric-taxa" class="kpi-value" style="color:#38bdf8;">0%</div>
+              <div class="kpi-footer">Conversão de vendas no teste</div>
+            </div>
+
+            <!-- 8. Ticket Médio -->
+            <div class="glass-card kpi-card" style="--card-accent: #ec4899;">
+              <div class="kpi-header">
+                <span class="kpi-title">8. Ticket Médio</span>
+                <span class="kpi-icon">🏷️</span>
+              </div>
+              <div id="test-metric-ticket" class="kpi-value" style="color:#f472b6;">R$ 0,00</div>
+              <div class="kpi-footer">Média por venda aprovada</div>
+            </div>
+          </div>
+
+          <!-- Tabela de Notificações / Vendas de Teste que Pingaram -->
+          <div class="glass-card" style="padding: 1.75rem; margin-top: 1.75rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+              <h4 style="font-size: 1.25rem; font-weight:800; color:#fff;">Extrato de Vendas Pingadas no Celular (Ao Vivo)</h4>
+              <span id="test-sales-live-badge" class="badge-status badge-approved" style="font-size:0.75rem;">🟢 Aguardando Notificações</span>
+            </div>
+            <div class="table-responsive">
+              <table class="crypta-table">
+                <thead>
+                  <tr>
+                    <th>Pedido</th>
+                    <th>Valor</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Dispositivo</th>
+                    <th>Horário</th>
+                  </tr>
+                </thead>
+                <tbody id="testSalesTableBody">
+                  <tr>
+                    <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                      Nenhuma notificação pingada ainda. Vá em <strong>Notificações</strong>, configure a quantidade e inicie os disparos para ver o faturamento subir ao vivo!
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- ========================================== -->
         <!-- MÓDULO 2: PAGAMENTO RÁPIDO (PIX DINÂMICO) -->
         <!-- ========================================== -->
@@ -476,15 +620,31 @@
 
               <!-- Área de Resultado do Pix Gerado -->
               <div id="pixResultArea" style="display:none; margin-top: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem; text-align: center;">
-                <span class="badge-status badge-pending" style="margin-bottom: 1rem;">Aguardando Pagamento</span>
-                <div id="pixAmountLabel" style="font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 1rem;">R$ 0,00</div>
+                <div style="margin-bottom: 1rem;">
+                  <span id="pixStatusBadge" class="badge-status badge-pending" style="font-size:0.92rem; padding:0.4rem 1rem;">⏳ Aguardando Pagamento do Cliente</span>
+                </div>
+                <div id="pixAmountLabel" style="font-size: 2.2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">R$ 0,00</div>
+                <div id="pixPayerLabel" style="font-size: 0.9rem; color: #c084fc; font-weight: 600; margin-bottom: 1.25rem;">Pagador: Cliente</div>
                 
-                <div id="pixQrContainer" style="width: 200px; height: 200px; margin: 0 auto 1.5rem; border-radius: 12px; overflow: hidden; border: 2px solid var(--border-card);"></div>
+                <div id="pixQrContainer" style="width: 210px; height: 210px; margin: 0 auto 1.5rem; border-radius: 16px; overflow: hidden; border: 2.5px solid rgba(168,85,247,0.5); background:#fff; padding:8px; box-shadow:0 0 25px rgba(168,85,247,0.35);"></div>
 
-                <label style="font-size: 0.8rem; color: var(--text-muted);">Código Pix Copia e Cola:</label>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                  <input id="pixCopyCode" type="text" readonly class="glass-card" style="flex:1; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: var(--purple-400); background: var(--bg-surface);">
-                  <button onclick="copyPixCode()" class="btn-primary" style="padding: 0.6rem 1rem;">Copiar</button>
+                <label style="font-size: 0.82rem; color: var(--text-muted); font-weight:600;">Código Pix Copia e Cola:</label>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                  <input id="pixCopyCode" type="text" readonly class="glass-card" style="flex:1; padding: 0.75rem 0.85rem; font-size: 0.82rem; color: var(--purple-400); background: var(--bg-surface); border-radius:10px;">
+                  <button onclick="copyPixCode()" class="btn-primary" style="padding: 0.75rem 1.25rem; font-weight:700; border-radius:10px;">📋 Copiar</button>
+                </div>
+
+                <div style="background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25); border-radius: 14px; padding: 1.25rem; text-align: left; margin-bottom: 1.25rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <strong style="color:#fff; font-size:0.92rem;">📲 Notificação no Celular</strong>
+                    <span id="pixNotifTimerBadge" style="font-size:0.78rem; color:#4ade80;">Pendente enviado</span>
+                  </div>
+                  <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.75rem;">
+                    Assim que o pagador efetuar a transferência Pix, o dinheiro cai na conta e o seu celular apita a notificação de venda aprovada com som de caixa registradora.
+                  </p>
+                  <button id="btnSimulatePixPaid" onclick="simulateQuickPixPaid()" class="btn-primary" style="width:100%; justify-content:center; padding:0.85rem; font-weight:800; border-radius:10px; box-shadow:0 0 20px rgba(176,38,255,0.5);">
+                    ⚡ Simular Pagamento do Pagador (Receber Venda Agora)
+                  </button>
                 </div>
               </div>
             </div>
@@ -1797,12 +1957,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.4"></script>
-  <script src="/js/i18n.js?v=2026.4"></script>
-  <script src="/js/globe3d.js?v=2026.4"></script>
-  <script src="/js/particles.js?v=2026.4"></script>
-  <script src="/js/card3d.js?v=2026.4"></script>
-  <script src="/js/pwa.js?v=2026.4"></script>
-  <script src="/js/app.js?v=2026.4"></script>
+  <script src="/js/api.js?v=2026.5"></script>
+  <script src="/js/i18n.js?v=2026.5"></script>
+  <script src="/js/globe3d.js?v=2026.5"></script>
+  <script src="/js/particles.js?v=2026.5"></script>
+  <script src="/js/card3d.js?v=2026.5"></script>
+  <script src="/js/pwa.js?v=2026.5"></script>
+  <script src="/js/app.js?v=2026.5"></script>
 </body>
 </html>

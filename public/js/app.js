@@ -94,6 +94,7 @@ function switchTab(tabId) {
   }
 
   if (tabId === 'dashboard') loadDashboardData();
+  else if (tabId === 'test-dashboard') updateTestDashboardUI();
   else if (tabId === 'sales' || tabId === 'transactions') loadTransactionsData();
   else if (tabId === 'financial') loadFinancialData();
   else if (tabId === 'global') loadGlobalData();
@@ -135,30 +136,24 @@ function setupSSE() {
   };
 }
 
-// Manipular Notificação Recebida com Foto da Logomarca Oficial
+// Manipular Notificação Recebida via SSE
 function handleIncomingNotification(data) {
   const notif = data.notification;
+  if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
   AppState.notificationsHistory.unshift(notif);
 
-  // Som de venda
-  NotificationAudio.playCashSound();
-
-  // Sino
+  // Sino da barra superior
   const bellBadge = document.getElementById('notifBellBadge');
   if (bellBadge) bellBadge.style.display = 'block';
 
-  // Exibir Toast com a Logomarca Oficial da KryptaPay
-  showFloatingToast(notif);
-
-  // Barra de progresso da simulação
+  // Barra de progresso da simulação na aba notificações
   if (data.sentCount && data.totalCount) {
     const percent = Math.round((data.sentCount / data.totalCount) * 100);
     updateSimProgress(percent, `Disparando ${data.sentCount} de ${data.totalCount}`);
   }
 
-  if (AppState.currentTab === 'test-dashboard') {
-    loadTestDashboardData();
-  }
+  // Atualizar a Dashboard Teste em tempo real com os valores da simulação
+  addTestSale(notif);
 }
 
 // Toast Flutuante com a Logomarca Oficial
@@ -295,12 +290,8 @@ async function sendNativePhoneNotification(notifObj) {
 
 // Disparo Único com Alternância (Aprovada ou Pendente)
 async function triggerSingleTestNotification(customAmount, isPending = false) {
-  const prefSound = document.getElementById('prefSoundToggle') ? document.getElementById('prefSoundToggle').checked : true;
   const prefVibrate = document.getElementById('prefVibrateToggle') ? document.getElementById('prefVibrateToggle').checked : true;
 
-  if (prefSound) {
-    NotificationAudio.playCashSound();
-  }
   if (prefVibrate && navigator.vibrate) {
     navigator.vibrate([250, 100, 250]);
   }
@@ -340,13 +331,13 @@ async function triggerSingleTestNotification(customAmount, isPending = false) {
   // 1. DISPARAR NOTIFICAÇÃO NATIVA DIRETO NA BARRA DO CELULAR
   await sendNativePhoneNotification(notifObj);
 
-  // 2. Exibir banner flutuante interno
-  showFloatingToast(notifObj);
-
-  // 3. Preencher no histórico
+  // 2. Preencher no histórico da aba Notificações
   if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
   AppState.notificationsHistory.unshift(notifObj);
   renderNotificationsList();
+
+  // 3. Atualizar a Dashboard Teste em tempo real
+  addTestSale(notifObj);
 
   // 4. Registrar no backend
   API.post('/api/notifications/test-single', { amount, status: notifObj.status }).catch(() => {});
@@ -657,30 +648,161 @@ async function loadTransactionsData() {
   if (transTbody) transTbody.innerHTML = html;
 }
 
+let currentQuickPix = null;
+let quickPixAutoTimer = null;
+
 // 6. Pagamento Rápido Pix Dinâmico
 async function generateQuickPix() {
-  const amount = document.getElementById('quickPixAmount').value;
-  const name = document.getElementById('quickPixName').value;
-  const phone = document.getElementById('quickPixPhone').value;
+  const amountInput = document.getElementById('quickPixAmount');
+  const nameInput = document.getElementById('quickPixName');
+  const phoneInput = document.getElementById('quickPixPhone');
 
-  if (!amount || parseFloat(amount) <= 0) {
-    alert('Informe um valor válido para a cobrança Pix.');
+  const amount = amountInput ? parseFloat(amountInput.value) : 0;
+  const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Cliente Cobrança';
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+
+  if (!amount || isNaN(amount) || amount <= 0) {
+    alert('Informe um valor válido para a cobrança Pix (ex: 400).');
     return;
   }
 
   const res = await API.post('/api/payments/quick-pix', {
-    amount: parseFloat(amount),
+    amount: amount,
     customer_name: name,
     customer_phone: phone
   });
 
-  if (res.success) {
+  if (res && res.success) {
+    const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    currentQuickPix = {
+      txId: res.transaction_id,
+      orderId: res.order_id || ('#' + (10000 + Math.floor(Math.random() * 90000))),
+      amount: amount,
+      formattedAmount: formattedAmount,
+      name: name,
+      phone: phone,
+      paid: false
+    };
+
     document.getElementById('pixResultArea').style.display = 'block';
     document.getElementById('pixQrContainer').innerHTML = res.qr_code_svg;
     document.getElementById('pixCopyCode').value = res.copy_paste;
-    document.getElementById('pixAmountLabel').textContent = `R$ ${parseFloat(amount).toFixed(2).replace('.', ',')}`;
-    showToastAlert('Cobrança Pix gerada com sucesso!');
+    document.getElementById('pixAmountLabel').textContent = `R$ ${formattedAmount}`;
+    const payerEl = document.getElementById('pixPayerLabel');
+    if (payerEl) payerEl.textContent = `Pagador: ${name} ${phone ? '• ' + phone : ''}`;
+
+    const statusBadge = document.getElementById('pixStatusBadge');
+    if (statusBadge) {
+      statusBadge.className = 'badge-status badge-pending';
+      statusBadge.textContent = '⏳ Aguardando Pagamento do Cliente';
+    }
+
+    const timerBadge = document.getElementById('pixNotifTimerBadge');
+    if (timerBadge) timerBadge.textContent = '⏳ Notificação de Pix Gerado enviada!';
+
+    const btnSimulate = document.getElementById('btnSimulatePixPaid');
+    if (btnSimulate) {
+      btnSimulate.disabled = false;
+      btnSimulate.innerHTML = '⚡ Simular Pagamento do Pagador (Receber Venda Agora)';
+    }
+
+    // 1. PINGAR NOTIFICAÇÃO NATIVA DE VENDA PENDENTE / PIX GERADO NO CELULAR DO CLIENTE
+    sendNativePhoneNotification({
+      title: '⏳ Pix Gerado! - KryptaPay',
+      nativeBody: `Cobrança de R$ ${formattedAmount} enviada para ${name} aguardando pagamento.`,
+      tag: 'kryptapay-pix-pending-' + Date.now()
+    });
+
+    showToastAlert(`⚡ Cobrança Pix de R$ ${formattedAmount} gerada com sucesso! Notificação enviada.`);
+
+    // Iniciar contagem regressiva automática (7 segundos) para simular o pagamento do pagador se não clicado
+    if (quickPixAutoTimer) clearTimeout(quickPixAutoTimer);
+    let secondsLeft = 7;
+    const updateCountdown = () => {
+      if (!currentQuickPix || currentQuickPix.paid) return;
+      if (timerBadge) timerBadge.textContent = `Aguardando transferência Pix (${secondsLeft}s)...`;
+      if (secondsLeft <= 0) {
+        simulateQuickPixPaid();
+      } else {
+        secondsLeft--;
+        quickPixAutoTimer = setTimeout(updateCountdown, 1000);
+      }
+    };
+    quickPixAutoTimer = setTimeout(updateCountdown, 1000);
   }
+}
+
+async function simulateQuickPixPaid() {
+  if (quickPixAutoTimer) {
+    clearTimeout(quickPixAutoTimer);
+    quickPixAutoTimer = null;
+  }
+  if (!currentQuickPix || currentQuickPix.paid) return;
+  currentQuickPix.paid = true;
+
+  const { amount, formattedAmount, name, orderId } = currentQuickPix;
+
+  // 1. DISPARAR NOTIFICAÇÃO NATIVA DE VENDA APROVADA DIRETO NA BARRA DO CELULAR
+  sendNativePhoneNotification({
+    title: '🎉 Venda aprovada! - KryptaPay',
+    nativeBody: `R$ ${formattedAmount} recebido via Pix de ${name}!\nPedido ${orderId} aprovado.`,
+    tag: 'kryptapay-sale-approved-' + Date.now()
+  });
+
+  // 2. Atualizar UI da Cobrança Pix
+  const statusBadge = document.getElementById('pixStatusBadge');
+  if (statusBadge) {
+    statusBadge.className = 'badge-status badge-approved';
+    statusBadge.innerHTML = '✅ Venda Aprovada! Pix Pago com Sucesso!';
+  }
+
+  const timerBadge = document.getElementById('pixNotifTimerBadge');
+  if (timerBadge) {
+    timerBadge.textContent = '🎉 Venda Aprovada & Notificada no Celular!';
+    timerBadge.style.color = '#4ade80';
+  }
+
+  const btnSimulate = document.getElementById('btnSimulatePixPaid');
+  if (btnSimulate) {
+    btnSimulate.disabled = true;
+    btnSimulate.innerHTML = '✅ Pagamento Confirmado e Saldo Liberado';
+  }
+
+  // 3. Atualizar Dashboard Real com o faturamento
+  const faturamentoEl = document.getElementById('metric-faturamento');
+  const disponivelEl = document.getElementById('metric-disponivel');
+  const aprovadasEl = document.getElementById('metric-aprovadas');
+
+  const curFat = parseFloat(localStorage.getItem('krypta_real_fat') || '0') + amount;
+  const curDisp = parseFloat(localStorage.getItem('krypta_real_disp') || '0') + (amount * 0.98);
+  const curAprov = parseInt(localStorage.getItem('krypta_real_aprov') || '0', 10) + 1;
+
+  localStorage.setItem('krypta_real_fat', curFat);
+  localStorage.setItem('krypta_real_disp', curDisp);
+  localStorage.setItem('krypta_real_aprov', curAprov);
+
+  if (faturamentoEl) faturamentoEl.textContent = `R$ ${curFat.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (disponivelEl) disponivelEl.textContent = `R$ ${curDisp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (aprovadasEl) aprovadasEl.textContent = curAprov;
+
+  // 4. Inserir venda no topo das tabelas de vendas e transações
+  const salesTbody = document.getElementById('salesTableBody');
+  const transTbody = document.getElementById('transactionsTableBody');
+  const rowHtml = `
+    <tr>
+      <td style="font-weight:700; color:var(--purple-400);">${orderId}</td>
+      <td>${name}</td>
+      <td style="font-weight:700;">R$ ${formattedAmount}</td>
+      <td style="color:var(--status-success);">R$ ${(amount * 0.98).toFixed(2).replace('.', ',')}</td>
+      <td><span class="badge-status badge-approved">Aprovada</span></td>
+      <td>PIX</td>
+      <td style="font-size:0.8rem; color:var(--text-dim);">${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</td>
+    </tr>
+  `;
+  if (salesTbody) salesTbody.insertAdjacentHTML('afterbegin', rowHtml);
+  if (transTbody) transTbody.insertAdjacentHTML('afterbegin', rowHtml);
+
+  showToastAlert(`🎉 Venda Pix de R$ ${formattedAmount} aprovada com sucesso! Saldo adicionado à Dashboard.`);
 }
 
 function copyPixCode() {
@@ -1345,4 +1467,130 @@ function saveUserSettings() {
   const pixKey = document.getElementById('settingPixKey')?.value || '';
   const pixBank = document.getElementById('settingPixBank')?.value || '';
   showToastAlert(`✅ Configurações salvas com sucesso! Chave Pix cadastrada: ${pixKey} (${pixBank})`);
+}
+
+// ------------------------------------------------------------------
+// ESTADO E FUNÇÕES DA DASHBOARD DE TESTES (SIMULAÇÃO AO VIVO NO CELULAR)
+// ------------------------------------------------------------------
+const TestDashboardState = {
+  faturamentoTotal: parseFloat(localStorage.getItem('krypta_test_faturamento')) || 0,
+  saldoDisponivel: parseFloat(localStorage.getItem('krypta_test_disponivel')) || 0,
+  saldoPendente: parseFloat(localStorage.getItem('krypta_test_pendente')) || 0,
+  saldoRetencao: parseFloat(localStorage.getItem('krypta_test_retencao')) || 0,
+  vendasAprovadas: parseInt(localStorage.getItem('krypta_test_aprovadas'), 10) || 0,
+  vendasPendentes: parseInt(localStorage.getItem('krypta_test_pendentes'), 10) || 0,
+  recentSales: JSON.parse(localStorage.getItem('krypta_test_recent_sales') || '[]')
+};
+
+function saveTestDashboardState() {
+  localStorage.setItem('krypta_test_faturamento', TestDashboardState.faturamentoTotal);
+  localStorage.setItem('krypta_test_disponivel', TestDashboardState.saldoDisponivel);
+  localStorage.setItem('krypta_test_pendente', TestDashboardState.saldoPendente);
+  localStorage.setItem('krypta_test_retencao', TestDashboardState.saldoRetencao);
+  localStorage.setItem('krypta_test_aprovadas', TestDashboardState.vendasAprovadas);
+  localStorage.setItem('krypta_test_pendentes', TestDashboardState.vendasPendentes);
+  localStorage.setItem('krypta_test_recent_sales', JSON.stringify(TestDashboardState.recentSales.slice(0, 50)));
+}
+
+function resetTestDashboard() {
+  TestDashboardState.faturamentoTotal = 0;
+  TestDashboardState.saldoDisponivel = 0;
+  TestDashboardState.saldoPendente = 0;
+  TestDashboardState.saldoRetencao = 0;
+  TestDashboardState.vendasAprovadas = 0;
+  TestDashboardState.vendasPendentes = 0;
+  TestDashboardState.recentSales = [];
+  saveTestDashboardState();
+  updateTestDashboardUI();
+  showToastAlert('🔄 Dashboard de Testes zerada com sucesso! Faturamento: R$ 0,00');
+}
+
+function addTestSale(notif) {
+  const rawAmt = typeof notif.rawAmount === 'number' ? notif.rawAmount : (parseFloat(String(notif.amount || '').replace(/[^0-9,.-]/g, '').replace(',', '.')) || 97.00);
+  const isApproved = notif.status === 'approved' || (notif.title && notif.title.includes('aprovada'));
+
+  if (isApproved) {
+    TestDashboardState.vendasAprovadas++;
+    TestDashboardState.faturamentoTotal += rawAmt;
+    TestDashboardState.saldoDisponivel += (rawAmt * 0.95);
+    TestDashboardState.saldoRetencao += (rawAmt * 0.05);
+  } else {
+    TestDashboardState.vendasPendentes++;
+    TestDashboardState.saldoPendente += rawAmt;
+  }
+
+  TestDashboardState.recentSales.unshift({
+    orderId: notif.orderId || ('#' + (10000 + Math.floor(Math.random() * 90000))),
+    amount: rawAmt,
+    isApproved: isApproved,
+    status: isApproved ? 'Aprovada' : 'Pendente (Pix)',
+    device: /iphone|ipad/i.test(navigator.userAgent) ? 'iPhone Push' : (/android/i.test(navigator.userAgent) ? 'Android Push' : 'Celular Push'),
+    time: notif.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  });
+
+  saveTestDashboardState();
+  updateTestDashboardUI();
+}
+
+function updateTestDashboardUI() {
+  const faturamentoEl = document.getElementById('test-metric-faturamento');
+  const disponivelEl = document.getElementById('test-metric-disponivel');
+  const pendenteEl = document.getElementById('test-metric-pendente');
+  const retencaoEl = document.getElementById('test-metric-retencao');
+  const aprovadasEl = document.getElementById('test-metric-aprovadas');
+  const pendentesEl = document.getElementById('test-metric-pendentes');
+  const taxaEl = document.getElementById('test-metric-taxa');
+  const ticketEl = document.getElementById('test-metric-ticket');
+  const tableBody = document.getElementById('testSalesTableBody');
+  const liveBadge = document.getElementById('test-sales-live-badge');
+
+  if (faturamentoEl) faturamentoEl.textContent = `R$ ${TestDashboardState.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (disponivelEl) disponivelEl.textContent = `R$ ${TestDashboardState.saldoDisponivel.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (pendenteEl) pendenteEl.textContent = `R$ ${TestDashboardState.saldoPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (retencaoEl) retencaoEl.textContent = `R$ ${TestDashboardState.saldoRetencao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (aprovadasEl) aprovadasEl.textContent = TestDashboardState.vendasAprovadas;
+  if (pendentesEl) pendentesEl.textContent = TestDashboardState.vendasPendentes;
+
+  const totalVendas = TestDashboardState.vendasAprovadas + TestDashboardState.vendasPendentes;
+  const taxaCalc = totalVendas > 0 ? ((TestDashboardState.vendasAprovadas / totalVendas) * 100).toFixed(1) + '%' : '0%';
+  if (taxaEl) taxaEl.textContent = taxaCalc;
+
+  const ticketCalc = TestDashboardState.vendasAprovadas > 0 ? (TestDashboardState.faturamentoTotal / TestDashboardState.vendasAprovadas) : 0;
+  if (ticketEl) ticketEl.textContent = `R$ ${ticketCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  if (liveBadge) {
+    if (totalVendas > 0) {
+      liveBadge.innerHTML = `🟢 ${totalVendas} Notificações Processadas no Celular`;
+      liveBadge.className = 'badge-status badge-approved';
+    } else {
+      liveBadge.innerHTML = '⚪ Aguardando Disparo de Notificações';
+      liveBadge.className = 'badge-status badge-pending';
+    }
+  }
+
+  if (tableBody) {
+    if (!TestDashboardState.recentSales || TestDashboardState.recentSales.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+            Nenhuma notificação pingada ainda. Vá em <strong>Notificações</strong>, configure a quantidade e inicie os disparos para ver o faturamento subir ao vivo!
+          </td>
+        </tr>
+      `;
+    } else {
+      tableBody.innerHTML = TestDashboardState.recentSales.slice(0, 30).map(s => {
+        const badgeClass = s.isApproved ? 'badge-approved' : 'badge-pending';
+        return `
+          <tr>
+            <td style="font-weight:700; color:var(--purple-400);">${s.orderId}</td>
+            <td style="font-weight:700; color:${s.isApproved ? '#4ade80' : '#fbbf24'};">R$ ${s.amount.toFixed(2).replace('.', ',')}</td>
+            <td>Pix Instantâneo</td>
+            <td><span class="badge-status ${badgeClass}">${s.status}</span></td>
+            <td><span style="font-size:0.8rem; color:#c084fc;">📲 ${s.device}</span></td>
+            <td style="font-size:0.82rem; color:var(--text-dim);">${s.time}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
 }
