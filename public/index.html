@@ -14,9 +14,17 @@
   <link rel="icon" type="image/png" href="/icons/logo.png">
   <link rel="apple-touch-icon" href="/icons/logo.png">
 
-  <!-- Script Ultra-Rápido: Bloqueio Total de Duplo Toque para Zoom e Pinça no iPhone e Android -->
+  <!-- Script Ultra-Rápido: Detecção Mobile e Bloqueio Total de Duplo Toque para Zoom no iPhone e Android -->
   <script>
     (function() {
+      // 1. Detecção e aplicação imediata de layout mobile em iPhone, iPad ou Android
+      const isMobileDevice = /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent) || 
+                             (window.screen && Math.min(window.screen.width, window.screen.height) <= 850);
+      if (isMobileDevice) {
+        document.documentElement.classList.add('mobile-viewport-enforced');
+      }
+
+      // 2. Bloqueio Total de Duplo Toque para Zoom e Pinça no Safari e Chrome
       let lastTap = 0;
       document.addEventListener('touchend', function(e) {
         const now = Date.now();
@@ -33,8 +41,8 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css">
-  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.2.2">
+  <link rel="stylesheet" href="/css/components.css?v=2026.2.2">
 
   <style>
     :root {
@@ -50,30 +58,45 @@
       -webkit-backdrop-filter: blur(24px);
       background: rgba(8, 3, 16, 0.9);
       border-bottom: 1.5px solid rgba(176, 38, 255, 0.35);
-      padding: 1.1rem 2.5rem;
+      padding: 0.75rem 1.25rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(176, 38, 255, 0.15);
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
-    .landing-nav {
-      display: flex;
-      gap: 2.2rem;
-      list-style: none;
+    /* Navegação do Menu: Oculta por padrão no Mobile/Tablet para não espremer a tela */
+    .landing-nav, .header-desktop-only {
+      display: none !important;
     }
 
-    .landing-nav a {
-      color: #d4d4d8;
-      text-decoration: none;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.25s ease;
-    }
-
-    .landing-nav a:hover {
-      color: #ffffff;
-      text-shadow: 0 0 10px #c084fc;
+    @media (min-width: 1025px) {
+      .landing-header {
+        padding: 1.1rem 2.5rem;
+      }
+      .header-desktop-only {
+        display: inline-flex !important;
+      }
+      .landing-nav {
+        display: flex !important;
+        gap: 2rem;
+        list-style: none;
+        align-items: center;
+      }
+      .landing-nav a {
+        color: #d4d4d8;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: all 0.25s ease;
+      }
+      .landing-nav a:hover {
+        color: #ffffff;
+        text-shadow: 0 0 10px #c084fc;
+      }
     }
 
     .hero-center-section {
@@ -154,6 +177,18 @@
       background: linear-gradient(135deg, #9333ea, #b026ff);
       color: #ffffff;
       box-shadow: 0 4px 15px rgba(176, 38, 255, 0.45);
+    }
+
+    .auth-row-2col {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    @media (min-width: 1025px) {
+      .auth-row-2col {
+        flex-direction: row;
+        gap: 0.75rem;
+      }
     }
 
     .auth-input-group {
@@ -282,8 +317,8 @@
       touch-action: pan-y !important;
     }
 
-    /* Celulares e Tablets (Mobile até 768px) */
-    @media (max-width: 768px) {
+    /* Celulares e Tablets (Mobile e Telas até 1024px e modo celular forçado) */
+    @media (max-width: 1024px) {
       .landing-header {
         padding: 0.75rem 1rem;
       }
@@ -367,6 +402,13 @@
       }
     }
 
+    /* Regras Imperativas para Celulares iPhone/Android mesmo com modo Desktop acionado */
+    .mobile-viewport-enforced .landing-nav { display: none !important; }
+    .mobile-viewport-enforced .hero-headline { font-size: 1.65rem !important; line-height: 1.35 !important; }
+    .mobile-viewport-enforced .auth-row-2col { flex-direction: column !important; gap: 0 !important; }
+    .mobile-viewport-enforced .landing-header { padding: 0.75rem 1rem !important; }
+    .mobile-viewport-enforced .auth-center-card { width: 100% !important; max-width: 100% !important; }
+
     @media (max-width: 480px) {
       .auth-center-card {
         padding: 1.15rem 0.75rem;
@@ -402,9 +444,9 @@
       <li><a href="#pwa">App Mobile</a></li>
     </ul>
 
-    <div style="display:flex; align-items:center; gap:1rem;">
-      <button id="themeToggleBtn" class="btn-icon" title="Alternar Tema Claro/Escuro">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div style="display:flex; align-items:center; gap:0.65rem; flex-shrink:0;">
+      <button id="themeToggleBtn" class="btn-icon" title="Alternar Tema Claro/Escuro" style="width:38px; height:38px; flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
           <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
@@ -412,8 +454,11 @@
           <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
       </button>
-      <button onclick="document.getElementById('pwaModal').classList.add('active')" class="btn-secondary" style="padding:0.55rem 1rem; font-size:0.85rem;">
-        📱 App Mobile
+      <a href="#auth-box" class="btn-primary" style="padding:0.45rem 0.85rem; font-size:0.82rem; font-weight:700; text-decoration:none; border-radius:8px; white-space:nowrap;">
+        Entrar
+      </a>
+      <button onclick="document.getElementById('pwaModal').classList.add('active')" class="btn-secondary header-desktop-only" style="padding:0.45rem 0.85rem; font-size:0.82rem; white-space:nowrap;">
+        📱 App
       </button>
     </div>
   </header>
@@ -562,7 +607,7 @@
           <input type="email" id="regEmail" required placeholder="seuemail@exemplo.com" class="auth-input">
         </div>
 
-        <div class="auth-row-2col" style="display:flex; gap:0.75rem;">
+        <div class="auth-row-2col">
           <div class="auth-input-group" style="flex:1;">
             <label class="auth-label">Telefone / WhatsApp</label>
             <input type="tel" id="regPhone" required placeholder="(11) 99999-9999" class="auth-input">
@@ -821,12 +866,12 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="/js/api.js"></script>
-  <script src="/js/globe3d.js"></script>
-  <script src="/js/particles.js"></script>
-  <script src="/js/coverflow.js"></script>
-  <script src="/js/card3d.js"></script>
-  <script src="/js/pwa.js"></script>
+  <script src="/js/api.js?v=2026.2.2"></script>
+  <script src="/js/globe3d.js?v=2026.2.2"></script>
+  <script src="/js/particles.js?v=2026.2.2"></script>
+  <script src="/js/coverflow.js?v=2026.2.2"></script>
+  <script src="/js/card3d.js?v=2026.2.2"></script>
+  <script src="/js/pwa.js?v=2026.2.2"></script>
   <script>
     function switchAuthTab(tab) {
       const regBtn = document.getElementById('tabRegisterBtn');

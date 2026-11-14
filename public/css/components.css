@@ -811,8 +811,8 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-/* Mobile & Tablet Responsividade */
-@media (max-width: 900px) {
+/* Mobile & Tablet Responsividade (Até 1024px e Forçado em Celulares) */
+@media (max-width: 1024px) {
   #mobileMenuBtn {
     display: inline-flex !important;
   }
@@ -843,6 +843,11 @@
   .coverflow-item.next-1 { transform: translateX(90px) scale(0.82) !important; }
   .coverflow-item.prev-2, .coverflow-item.next-2 { display: none !important; }
 }
+
+.mobile-viewport-enforced #mobileMenuBtn { display: inline-flex !important; }
+.mobile-viewport-enforced .sidebar { transform: translateX(-100%); }
+.mobile-viewport-enforced .sidebar.mobile-open { transform: translateX(0); }
+.mobile-viewport-enforced .main-wrapper { margin-left: 0 !important; }
 
 /* Celulares (Smartphones iPhone e Android até 600px) */
 @media (max-width: 600px) {
