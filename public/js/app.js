@@ -417,8 +417,8 @@ async function triggerSingleTestNotification(customAmount, isPending = false) {
   const orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
 
   const isApproved = !isPending;
-  const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
-  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Aguardando Pagamento do Cliente';
+  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
+  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
 
   const notifId = 'krypta_sale_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
   processedNotifIds.add(notifId);
@@ -842,7 +842,7 @@ function checkActiveSimulationSession() {
         const amount = generateTestSaleAmount();
         recordTestSaleIntoDashboard({
           id: 'pay_sim_' + Math.random().toString(36).substr(2, 9),
-          title: isPending ? 'Pix Gerado — Aguardando' : 'Venda Aprovada!',
+          title: isPending ? 'VENDA PENDENTE — Aguardando' : 'VENDA APROVADA!',
           amount: amount,
           status: isPending ? 'pending' : 'approved',
           timestamp: new Date(s.lastTickTime + (i + 1) * intervalMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -1120,7 +1120,7 @@ async function generateQuickPix() {
     }
 
     const timerBadge = document.getElementById('pixNotifTimerBadge');
-    if (timerBadge) timerBadge.textContent = '⏳ Notificação de Pix Gerado enviada!';
+    if (timerBadge) timerBadge.textContent = '⏳ Notificação de Venda Pendente enviada!';
 
     const btnSimulate = document.getElementById('btnSimulatePixPaid');
     if (btnSimulate) {
@@ -1128,10 +1128,10 @@ async function generateQuickPix() {
       btnSimulate.innerHTML = '⚡ Simular Pagamento do Pagador (Receber Venda Agora)';
     }
 
-    // 1. PINGAR NOTIFICAÇÃO NATIVA DE VENDA PENDENTE / PIX GERADO NO CELULAR DO CLIENTE
+    // 1. PINGAR NOTIFICAÇÃO NATIVA DE VENDA PENDENTE NO CELULAR DO CLIENTE
     sendNativePhoneNotification({
-      title: '⏳ Pix Gerado! - KryptaPay',
-      nativeBody: `Cobrança de R$ ${formattedAmount} enviada para ${name} aguardando pagamento.`,
+      title: '⏳ VENDA PENDENTE! - KryptaPay',
+      nativeBody: `Cobrança de R$ ${formattedAmount} enviada para ${name} • Venda Pendente.`,
       tag: 'kryptapay-pix-pending-' + Date.now()
     });
 

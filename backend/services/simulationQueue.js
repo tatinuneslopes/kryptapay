@@ -185,11 +185,11 @@ function triggerSingleTestNotification({ userId, amount, status = 'approved' }) 
   const orderId = `#${orderNumber}`;
   const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const isApproved = status === 'approved';
-  const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
+  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
   const category = isApproved ? 'venda_aprovada' : 'venda_pendente';
   const body = isApproved
-    ? `Venda aprovada!\nValor: R$ ${formattedAmount}\nPedido: ${orderId} • Pix Instantâneo`
-    : `Pix Gerado!\nValor: R$ ${formattedAmount}\nPedido: ${orderId} • Aguardando Pagamento`;
+    ? `VENDA APROVADA!\nValor: R$ ${formattedAmount}\nPedido: ${orderId} • Pix Instantâneo`
+    : `VENDA PENDENTE!\nValor: R$ ${formattedAmount}\nPedido: ${orderId} • Aguardando Pagamento`;
   const notifId = crypto.randomUUID();
 
   try {

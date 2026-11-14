@@ -534,8 +534,8 @@ function saveSyncStream(stream) {
     const isApproved = body.status !== 'pending';
     const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const orderNumber = body.orderId || `#${10000 + Math.floor(Math.random() * 90000)}`;
-    const title = isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ Pix Gerado! - KryptaPay';
-    const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Aguardando Pagamento do Cliente';
+    const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
+    const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
     const nativeBody = `Valor: R$ ${formattedAmount} • Pedido ${orderNumber}\n${subtitle}`;
 
     const notif = {
@@ -934,7 +934,7 @@ function saveSyncStream(stream) {
         id: txId,
         order_id: orderId,
         amount: rawAmount,
-        title: 'Pix Gerado — Aguardando Pagamento',
+        title: 'VENDA PENDENTE — Aguardando Pagamento',
         body: `Cobrança de R$ ${rawAmount.toFixed(2)} emitida para ${customer.name || 'Cliente'}.`
       };
       for (const client of sseClients) {
