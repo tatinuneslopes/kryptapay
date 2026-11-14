@@ -524,16 +524,16 @@ function tickServerRunner() {
   const seqId = lastSeq + 1;
 
   const tickIndex = globalRunnerState.currentTicks;
-  const isPending = (tickIndex % 2 !== 0);
-  const isApproved = !isPending;
+  const isPending = false;
+  const isApproved = true;
 
   const amounts = [24.90, 47.00, 67.00, 97.00, 147.00, 197.00, 297.00, 497.00];
   const chosenAmount = amounts[Math.floor(Math.random() * amounts.length)];
   const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const orderNumber = `#${10000 + Math.floor(Math.random() * 90000)}`;
 
-  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
-  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
+  const title = '🎉 VENDA APROVADA! - KryptaPay';
+  const subtitle = 'Pix Instantâneo Aprovado';
   const nativeBody = `Valor: R$ ${formattedAmount} • Pedido ${orderNumber}\n${subtitle}`;
 
   const notif = {
@@ -547,7 +547,7 @@ function tickServerRunner() {
     amount: `R$ ${formattedAmount}`,
     rawAmount: chosenAmount,
     orderId: orderNumber,
-    status: isApproved ? 'approved' : 'pending',
+    status: 'approved',
     subtitle,
     nativeBody,
     timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -558,9 +558,15 @@ function tickServerRunner() {
   saveSyncStream(stream);
 
   // Broadcast para todos os clientes conectados via SSE
-  const ssePayload = `data: ${JSON.stringify({ type: 'sync_notification', notification: notif })}\n\n`;
+  const ssePayload1 = `data: ${JSON.stringify({ type: 'notification', notification: notif })}\n\n`;
+  const ssePayload2 = `data: ${JSON.stringify({ type: 'sync_notification', notification: notif })}\n\n`;
   for (const client of sseClients) {
-    try { client.write(ssePayload); } catch (_) { sseClients.delete(client); }
+    try {
+      client.write(ssePayload1);
+      client.write(ssePayload2);
+    } catch (_) {
+      sseClients.delete(client);
+    }
   }
 
   // Registrar no banco de dados SQLite
@@ -726,6 +732,46 @@ function stopServerRunner() {
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
     const rows = db.prepare(`SELECT * FROM products WHERE user_id = ? ORDER BY created_at DESC`).all(userId);
     return sendJSON(res, 200, { products: rows });
+  }
+
+  if (pathname === '/api/products' && method === 'POST') {
+    const body = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const name = (body.name || '').trim();
+    let price = parseFloat(body.price);
+    if (!price && body.price) {
+      price = parseFloat(String(body.price).replace(/[R$\s]/g, '').replace(',', '.'));
+    }
+    if (!name || isNaN(price) || price <= 0) {
+      return sendJSON(res, 400, { success: false, error: 'Nome e preço válido são obrigatórios.' });
+    }
+    const productId = 'prod_' + Math.random().toString(36).substr(2, 9);
+    const description = (body.description || '').trim();
+    const productType = body.product_type || 'digital';
+    const category = body.category || 'infoproduto';
+
+    try {
+      db.prepare(`
+        INSERT INTO products (id, user_id, name, description, price, category, product_type, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+      `).run(productId, userId, name, description, price, category, productType);
+    } catch (e) {
+      console.warn('Erro ao inserir produto no SQLite:', e);
+    }
+
+    return sendJSON(res, 201, {
+      success: true,
+      product: {
+        id: productId,
+        user_id: userId,
+        name,
+        description,
+        price,
+        category,
+        product_type: productType,
+        status: 'active'
+      }
+    });
   }
 
   if (pathname === '/api/rewards' && method === 'GET') {

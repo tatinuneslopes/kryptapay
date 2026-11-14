@@ -51,7 +51,7 @@
   <!-- Cache-Buster & Auto-Update Controller para Safari iOS e Chrome PWA -->
   <script>
     (function() {
-      const CURRENT_BUILD = '2026.15';
+      const CURRENT_BUILD = '2026.16';
       const storedBuild = localStorage.getItem('kryptapay_build_version');
       if (storedBuild && storedBuild !== CURRENT_BUILD) {
         localStorage.setItem('kryptapay_build_version', CURRENT_BUILD);
@@ -68,8 +68,8 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.15">
-  <link rel="stylesheet" href="/css/components.css?v=2026.15">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.16">
+  <link rel="stylesheet" href="/css/components.css?v=2026.16">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -474,12 +474,9 @@
                 Acompanhamento dinâmico de faturamento, saldo disponível e vendas conforme as notificações são disparadas.
               </p>
             </div>
-            <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
-              <button onclick="switchTab('notifications')" class="btn-primary" style="padding:0.65rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px;">
-                🔔 Disparar Notificações
-              </button>
-              <button onclick="resetTestDashboard()" class="btn-secondary" style="padding:0.65rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px; color:#f87171; border-color:rgba(239,68,68,0.4);">
-                🔄 Zerar Saldo
+            <div>
+              <button onclick="resetTestDashboard()" class="btn-secondary" style="padding:0.55rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px; color:#f87171; border-color:rgba(239,68,68,0.45); background:rgba(239,68,68,0.1); cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;" title="Zerar métricas">
+                <span>🔄</span> <span>Zerar</span>
               </button>
             </div>
           </div>
@@ -864,7 +861,9 @@
         <div id="pane-products" class="view-pane" style="display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <h3 style="font-size: 1.3rem; font-weight:700; color:#fff;">Catálogo de Produtos</h3>
-            <button class="btn-primary">+ Novo Produto</button>
+            <button onclick="openCreateProductModal()" class="btn-primary" style="padding:0.65rem 1.3rem; font-weight:700; border-radius:10px; display:inline-flex; align-items:center; gap:0.4rem;">
+              <span>+ Criar Produto</span>
+            </button>
           </div>
           <div id="productsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
             <!-- Carregado via JS -->
@@ -2174,6 +2173,63 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
           </div>
         </div>
 
+        <!-- ========================================== -->
+        <!-- MODAL DE CRIAÇÃO DE PRODUTO -->
+        <!-- ========================================== -->
+        <div id="modalCreateProduct" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(8px);">
+          <div class="glass-card glow-border" style="max-width:540px; width:100%; padding:2rem; background:var(--bg-surface); position:relative; border-radius:16px;">
+            <button onclick="closeCreateProductModal()" style="position:absolute; right:1.25rem; top:1.25rem; background:transparent; border:none; color:#fff; font-size:1.6rem; cursor:pointer; line-height:1;">&times;</button>
+            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem;">
+              <span style="font-size:1.8rem;">📦</span>
+              <div>
+                <h3 style="font-size:1.35rem; font-weight:800; color:#fff; margin:0;">Criar Novo Produto</h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:0.15rem 0 0;">Cadastre seu infoproduto, serviço ou produto físico na KryptaPay.</p>
+              </div>
+            </div>
+
+            <form id="createProductForm" onsubmit="handleCreateProductSubmit(event)">
+              <div style="display:flex; flex-direction:column; gap:1.15rem;">
+                <div>
+                  <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Nome do Produto *</label>
+                  <input type="text" id="newProdName" required placeholder="Ex: Método Escala 10X, Mentoria Black, E-book..." class="glass-card" style="width:100%; padding:0.75rem 0.95rem; color:#fff; background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,0.3); border-radius:10px; font-size:0.92rem;">
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                  <div>
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Preço de Venda (R$) *</label>
+                    <input type="text" id="newProdPrice" required placeholder="Ex: 97,00" class="glass-card" style="width:100%; padding:0.75rem 0.95rem; color:#fff; background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,0.3); border-radius:10px; font-size:0.92rem;">
+                  </div>
+                  <div>
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Tipo de Produto</label>
+                    <select id="newProdType" class="glass-card" style="width:100%; padding:0.75rem 0.95rem; color:#fff; background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,0.3); border-radius:10px; font-size:0.92rem;">
+                      <option value="digital">💻 Infoproduto / Digital</option>
+                      <option value="curso">🎓 Curso / Mentoria</option>
+                      <option value="servico">⚡ Serviço / Consultoria</option>
+                      <option value="fisico">📦 Produto Físico</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Descrição Breve</label>
+                  <textarea id="newProdDesc" rows="3" placeholder="Descreva os benefícios e o que seu cliente receberá..." class="glass-card" style="width:100%; padding:0.75rem 0.95rem; color:#fff; background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,0.3); border-radius:10px; font-size:0.9rem; resize:vertical; font-family:inherit;"></textarea>
+                </div>
+
+                <div id="createProdErrorArea" style="display:none; color:#f87171; font-size:0.85rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); padding:0.6rem 0.8rem; border-radius:8px;"></div>
+
+                <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:0.5rem;">
+                  <button type="button" onclick="closeCreateProductModal()" class="btn-secondary" style="padding:0.75rem 1.4rem; font-weight:600; border-radius:10px;">
+                    Cancelar
+                  </button>
+                  <button type="submit" id="btnSubmitCreateProd" class="btn-primary" style="padding:0.75rem 1.6rem; font-weight:700; border-radius:10px; display:inline-flex; align-items:center; gap:0.4rem;">
+                    <span>💾 Salvar Produto</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
         <!-- Barra de Navegação Inferior para Celular (Mobile Bottom Nav estilo BlackPay / FlevoPay) -->
         <nav class="mobile-bottom-nav">
           <button class="mobile-nav-btn active" data-bottom-tab="dashboard" onclick="switchTab('dashboard')">
@@ -2212,12 +2268,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.15"></script>
-  <script src="/js/i18n.js?v=2026.15"></script>
-  <script src="/js/globe3d.js?v=2026.15"></script>
-  <script src="/js/particles.js?v=2026.15"></script>
-  <script src="/js/card3d.js?v=2026.15"></script>
-  <script src="/js/pwa.js?v=2026.15"></script>
-  <script src="/js/app.js?v=2026.15"></script>
+  <script src="/js/api.js?v=2026.16"></script>
+  <script src="/js/i18n.js?v=2026.16"></script>
+  <script src="/js/globe3d.js?v=2026.16"></script>
+  <script src="/js/particles.js?v=2026.16"></script>
+  <script src="/js/card3d.js?v=2026.16"></script>
+  <script src="/js/pwa.js?v=2026.16"></script>
+  <script src="/js/app.js?v=2026.16"></script>
 </body>
 </html>

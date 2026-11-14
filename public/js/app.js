@@ -24,9 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
   startCrossDeviceSync();
   loadSavedPixKey();
   loadDashboardData();
+  updateTestDashboardUI();
   setupModalListeners();
   updateNotificationPermissionBadge();
   checkActiveSimulationSession();
+
+  // Pré-habilitar áudio em segundo plano no primeiro toque em celular iOS/Android
+  const armAudio = () => {
+    if (!BackgroundNotificationEngine._audioEl) {
+      try {
+        BackgroundNotificationEngine._audioEl = new Audio('/audio/silence.wav');
+        BackgroundNotificationEngine._audioEl.loop = true;
+        BackgroundNotificationEngine._audioEl.volume = 0.05;
+        BackgroundNotificationEngine._audioEl.setAttribute('playsinline', 'true');
+        BackgroundNotificationEngine._audioEl.setAttribute('webkit-playsinline', 'true');
+        BackgroundNotificationEngine._audioEl.load();
+      } catch (_) {}
+    }
+  };
+  document.addEventListener('touchstart', armAudio, { once: true, passive: true });
+  document.addEventListener('click', armAudio, { once: true, passive: true });
 
   // Inicializar o Globo 3D da Dashboard
   setTimeout(() => {
@@ -162,30 +179,44 @@ function switchTab(tabId) {
   if (sidebar) sidebar.classList.remove('mobile-open');
 }
 
-// 3. SSE: Escuta de Notificações em Tempo Real
+// 3. SSE: Escuta de Notificações em Tempo Real (Auto-Reconectável)
+let simulationEvtSource = null;
 function setupSSE() {
-  const evtSource = new EventSource('/api/simulation/events');
-
-  evtSource.onmessage = (event) => {
+  function connectSSE() {
     try {
-      const data = JSON.parse(event.data);
-      if (data.type === 'notification') {
-        handleIncomingNotification(data);
-      } else if (data.type === 'charge') {
-        // Notificação de venda via API oficial ou Pix em tempo real
-        handleChargeNotification(data);
-      } else if (data.type === 'withdrawal') {
-        showToastAlert(`💸 ${data.title}: ${data.body}`);
-        if (AppState.currentTab === 'financial') loadFinancialData();
-        if (AppState.currentTab === 'dashboard') loadDashboardData();
-      } else if (data.type === 'simulation_completed') {
-        showToastAlert('Simulação de notificações KryptaPay concluída com sucesso!');
-        updateSimProgress(100, 'Concluída');
+      if (simulationEvtSource) {
+        try { simulationEvtSource.close(); } catch (_) {}
       }
-    } catch (e) {
-      console.error('Erro SSE:', e);
+      simulationEvtSource = new EventSource('/api/simulation/events');
+
+      simulationEvtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'notification' || data.type === 'sync_notification') {
+            handleIncomingNotification(data);
+          } else if (data.type === 'charge') {
+            handleChargeNotification(data);
+          } else if (data.type === 'withdrawal') {
+            if (AppState.currentTab === 'financial') loadFinancialData();
+            if (AppState.currentTab === 'dashboard') loadDashboardData();
+          } else if (data.type === 'simulation_completed') {
+            updateSimProgress(100, 'Concluída');
+          }
+        } catch (e) {
+          console.error('Erro SSE:', e);
+        }
+      };
+
+      simulationEvtSource.onerror = () => {
+        try { simulationEvtSource.close(); } catch (_) {}
+        setTimeout(connectSSE, 3000);
+      };
+    } catch (_) {
+      setTimeout(connectSSE, 5000);
     }
-  };
+  }
+
+  connectSSE();
 }
 
 // ========================================================
@@ -193,12 +224,40 @@ function setupSSE() {
 // ========================================================
 let isSyncInProgress = false;
 
+async function checkServerSimulationStatus() {
+  try {
+    const res = await API.get('/api/notifications/sequence/status');
+    if (res && res.state && res.state.active) {
+      // Disparos ativos iniciados em outro dispositivo (notebook/PC)
+      if (!BackgroundNotificationEngine._isActive) {
+        BackgroundNotificationEngine.start(() => {
+          fetchCrossDeviceSync();
+        }, () => Math.max(1000, (res.state.intervalSeconds || 5) * 1000));
+      }
+      requestSimulationWakeLock();
+      const statusLabel = document.getElementById('notifSeqStatusLabel');
+      if (statusLabel) {
+        statusLabel.textContent = `📲 Sincronizado com Notebook (Disparos Ativos)`;
+      }
+    }
+  } catch (_) {}
+}
+
 async function fetchCrossDeviceSync() {
   if (isSyncInProgress) return;
   isSyncInProgress = true;
   try {
     const res = await API.get(`/api/notifications/sync?since=${lastSeenSyncSeqId}`);
     if (res && res.notifications && res.notifications.length > 0) {
+      if (lastSeenSyncSeqId === 0) {
+        // Na primeira sincronização, define o cursor para o último ID existente para não repetir o passado
+        lastSeenSyncSeqId = res.latestSeqId || 0;
+        for (const n of res.notifications) {
+          processedNotifIds.add(n.id);
+        }
+        return;
+      }
+
       for (const n of res.notifications) {
         if (n.seqId) lastSeenSyncSeqId = Math.max(lastSeenSyncSeqId, n.seqId);
         if (processedNotifIds.has(n.id)) continue;
@@ -206,17 +265,9 @@ async function fetchCrossDeviceSync() {
 
         // Se veio de OUTRO dispositivo (ex: disparado no Notebook e recebido no Celular):
         if (n.deviceId !== myDeviceId) {
-          // 1. Tocar som de venda oficial no celular
-          NotificationAudio.playCashSound();
-          // 2. Vibrar celular
           if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
-          // 3. Disparar notificação PUSH nativa na barra do celular
           await sendNativePhoneNotification(n);
-          // 4. Exibir aviso flutuante
-          showFloatingToast(n);
-          // 5. Adicionar faturamento à Dashboard Teste
           addTestSale(n);
-          // 6. Atualizar histórico
           if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
           AppState.notificationsHistory.unshift(n);
           renderNotificationsList();
@@ -234,7 +285,9 @@ async function fetchCrossDeviceSync() {
 
 function startCrossDeviceSync() {
   fetchCrossDeviceSync();
-  setInterval(fetchCrossDeviceSync, 1500);
+  setInterval(fetchCrossDeviceSync, 1200);
+  checkServerSimulationStatus();
+  setInterval(checkServerSimulationStatus, 4000);
 }
 
 // Manipular Notificação Recebida via SSE (Instantâneo)
@@ -245,12 +298,11 @@ function handleIncomingNotification(data) {
   processedNotifIds.add(notif.id);
   if (notif.seqId) lastSeenSyncSeqId = Math.max(lastSeenSyncSeqId, notif.seqId);
 
-  // Se veio de outro dispositivo
+  // Se veio de outro dispositivo (ex: notebook) ou do servidor:
   if (notif.deviceId !== myDeviceId) {
-    NotificationAudio.playCashSound();
     if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
     sendNativePhoneNotification(notif);
-    showFloatingToast(notif);
+    addTestSale(notif);
   }
 
   if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
@@ -263,6 +315,8 @@ function handleIncomingNotification(data) {
   if (data.sentCount && data.totalCount) {
     const percent = Math.round((data.sentCount / data.totalCount) * 100);
     updateSimProgress(percent, `Disparando ${data.sentCount} de ${data.totalCount}`);
+  }
+}
   }
 
   addTestSale(notif);
@@ -718,9 +772,8 @@ function handleSeqTick() {
 
   BackgroundNotificationEngine.markTick();
 
-  // Alterna: venda pendente (índices ímpares) e venda aprovada (índices pares)
-  const isPending = (notifSeqCurrent % 2 !== 0);
-  triggerSingleTestNotification(null, isPending);
+  // Todas as vendas de teste da sequência contínua são 100% aprovadas (saldo liberado)
+  triggerSingleTestNotification(null, false);
   notifSeqCurrent++;
 
   // Atualizar sessão persistente
@@ -1417,25 +1470,140 @@ async function loadRewardsData() {
   }
 }
 
-// 12. Produtos
-async function loadProductsData() {
-  const res = await API.get('/api/products');
-  const list = document.getElementById('productsGrid');
-  if (!list || !res.products) return;
+// 12. Produtos & Criação de Novos Produtos
+function openCreateProductModal() {
+  const modal = document.getElementById('modalCreateProduct');
+  if (modal) {
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('newProdName')?.focus(), 100);
+  }
+}
 
-  list.innerHTML = res.products.map(p => `
+function closeCreateProductModal() {
+  const modal = document.getElementById('modalCreateProduct');
+  if (modal) modal.style.display = 'none';
+  const errArea = document.getElementById('createProdErrorArea');
+  if (errArea) errArea.style.display = 'none';
+}
+
+async function handleCreateProductSubmit(e) {
+  if (e) e.preventDefault();
+  const nameInput = document.getElementById('newProdName');
+  const priceInput = document.getElementById('newProdPrice');
+  const typeInput = document.getElementById('newProdType');
+  const descInput = document.getElementById('newProdDesc');
+  const errArea = document.getElementById('createProdErrorArea');
+  const btn = document.getElementById('btnSubmitCreateProd');
+
+  const name = nameInput ? nameInput.value.trim() : '';
+  let rawPrice = priceInput ? priceInput.value.trim() : '';
+  rawPrice = rawPrice.replace(/[R$\s]/g, '');
+  if (rawPrice.includes(',') && rawPrice.includes('.')) {
+    rawPrice = rawPrice.replace(/\./g, '').replace(',', '.');
+  } else if (rawPrice.includes(',')) {
+    rawPrice = rawPrice.replace(',', '.');
+  }
+  const price = parseFloat(rawPrice);
+
+  if (!name) {
+    if (errArea) { errArea.textContent = 'Por favor, informe o nome do produto.'; errArea.style.display = 'block'; }
+    return;
+  }
+  if (isNaN(price) || price <= 0) {
+    if (errArea) { errArea.textContent = 'Informe um valor de preço válido (ex: 97,00).'; errArea.style.display = 'block'; }
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = 'Salvando...';
+  }
+
+  try {
+    const prodPayload = {
+      name: name,
+      price: price,
+      product_type: typeInput ? typeInput.value : 'digital',
+      description: descInput ? descInput.value.trim() : ''
+    };
+
+    let createdId = 'prod_' + Date.now().toString(36);
+    try {
+      const res = await API.post('/api/products', prodPayload);
+      if (res && res.product && res.product.id) createdId = res.product.id;
+    } catch (_) {}
+
+    // Persistência local garantida
+    const localProds = JSON.parse(localStorage.getItem('krypta_user_products') || '[]');
+    localProds.unshift({ id: createdId, ...prodPayload });
+    localStorage.setItem('krypta_user_products', JSON.stringify(localProds));
+
+    closeCreateProductModal();
+    if (nameInput) nameInput.value = '';
+    if (priceInput) priceInput.value = '';
+    if (descInput) descInput.value = '';
+    await loadProductsData();
+  } catch (err) {
+    if (errArea) {
+      errArea.textContent = 'Erro ao salvar produto. Tente novamente.';
+      errArea.style.display = 'block';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>💾 Salvar Produto</span>';
+    }
+  }
+}
+
+async function loadProductsData() {
+  let products = [];
+  try {
+    const res = await API.get('/api/products');
+    if (res && Array.isArray(res.products)) {
+      products = res.products;
+    }
+  } catch (_) {}
+
+  // Fallback e unificação com produtos locais
+  const localProducts = JSON.parse(localStorage.getItem('krypta_user_products') || '[]');
+  const allProducts = [...products];
+  for (const lp of localProducts) {
+    if (!allProducts.some(p => p.id === lp.id)) {
+      allProducts.push(lp);
+    }
+  }
+
+  const list = document.getElementById('productsGrid');
+  if (!list) return;
+
+  if (allProducts.length === 0) {
+    list.innerHTML = `
+      <div class="glass-card" style="grid-column: 1 / -1; padding: 3rem 1.5rem; text-align:center;">
+        <span style="font-size:3rem; display:block; margin-bottom:0.75rem;">📦</span>
+        <h4 style="font-size:1.25rem; font-weight:800; color:#fff; margin-bottom:0.5rem;">Nenhum produto cadastrado ainda</h4>
+        <p style="color:var(--text-muted); font-size:0.9rem; max-width:460px; margin:0 auto 1.5rem;">Cadastre seu primeiro produto para começar a gerar checkouts e links de pagamento.</p>
+        <button onclick="openCreateProductModal()" class="btn-primary" style="padding:0.75rem 1.6rem; font-weight:700; border-radius:10px; display:inline-flex; align-items:center; gap:0.4rem;">
+          + Criar Primeiro Produto
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = allProducts.map(p => `
     <div class="glass-card" style="padding: 1.5rem; display:flex; flex-direction:column; justify-content:space-between;">
       <div>
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
-          <span class="badge-status badge-approved" style="text-transform:uppercase;">${p.product_type}</span>
-          <span style="font-size: 1.35rem; font-weight:800; color:#fff;">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
+          <span class="badge-status badge-approved" style="text-transform:uppercase;">${p.product_type || 'Digital'}</span>
+          <span style="font-size: 1.35rem; font-weight:800; color:#fff;">R$ ${Number(p.price).toFixed(2).replace('.', ',')}</span>
         </div>
         <h4 style="font-size:1.1rem; font-weight:700; color:#fff; margin-bottom:0.4rem;">${p.name}</h4>
         <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;">${p.description || 'Sem descrição cadastrada.'}</p>
       </div>
       <div style="margin-top:1.5rem; display:flex; gap:0.5rem;">
-        <button class="btn-primary" style="flex:1; justify-content:center; padding:0.5rem;">Criar Checkout</button>
-        <button class="btn-secondary" style="padding:0.5rem 0.8rem;">Editar</button>
+        <button class="btn-primary" style="flex:1; justify-content:center; padding:0.5rem;" onclick="switchTab('checkout')">Criar Checkout</button>
+        <button class="btn-secondary" style="padding:0.5rem 0.8rem;" onclick="switchTab('links')">Meus Links</button>
       </div>
     </div>
   `).join('');
@@ -2023,17 +2191,27 @@ function saveUserSettings() {
 }
 
 // ------------------------------------------------------------------
-// ESTADO E FUNÇÕES DA DASHBOARD DE TESTES (SIMULAÇÃO AO VIVO NO CELULAR)
+// ESTADO E FUNÇÕES DA DASHBOARD 2 (SIMULAÇÃO AO VIVO NO CELULAR)
 // ------------------------------------------------------------------
 const TestDashboardState = {
   faturamentoTotal: parseFloat(localStorage.getItem('krypta_test_faturamento')) || 0,
   saldoDisponivel: parseFloat(localStorage.getItem('krypta_test_disponivel')) || 0,
-  saldoPendente: parseFloat(localStorage.getItem('krypta_test_pendente')) || 0,
+  saldoPendente: 0, // Sempre 0 conforme determinação (todas as vendas são aprovadas)
   saldoRetencao: parseFloat(localStorage.getItem('krypta_test_retencao')) || 0,
   vendasAprovadas: parseInt(localStorage.getItem('krypta_test_aprovadas'), 10) || 0,
-  vendasPendentes: parseInt(localStorage.getItem('krypta_test_pendentes'), 10) || 0,
+  vendasPendentes: 0, // 0 pendentes
   recentSales: JSON.parse(localStorage.getItem('krypta_test_recent_sales') || '[]')
 };
+
+// Auto-correção: zerar qualquer saldo pendente residual acumulado anteriormente
+localStorage.setItem('krypta_test_pendente', '0');
+localStorage.setItem('krypta_test_pendentes', '0');
+if (Array.isArray(TestDashboardState.recentSales)) {
+  TestDashboardState.recentSales.forEach(s => {
+    s.isApproved = true;
+    s.status = 'Aprovada';
+  });
+}
 
 function saveTestDashboardState() {
   localStorage.setItem('krypta_test_faturamento', TestDashboardState.faturamentoTotal);
@@ -2055,12 +2233,11 @@ function resetTestDashboard() {
   TestDashboardState.recentSales = [];
   saveTestDashboardState();
   updateTestDashboardUI();
-  showToastAlert('🔄 Dashboard de Testes zerada com sucesso! Faturamento: R$ 0,00');
 }
 
 function addTestSale(notif) {
   const rawAmt = typeof notif.rawAmount === 'number' ? notif.rawAmount : (parseFloat(String(notif.amount || '').replace(/[^0-9,.-]/g, '').replace(',', '.')) || 97.00);
-  const isApproved = notif.status === 'approved' || (notif.title && notif.title.includes('aprovada'));
+  const isApproved = notif.status !== 'pending';
 
   if (isApproved) {
     TestDashboardState.vendasAprovadas++;

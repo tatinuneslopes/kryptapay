@@ -64,11 +64,11 @@ function startSimulation({ userId, count, speed, intervalSeconds = 5, adSpend = 
       return;
     }
 
-    // Alternar estritamente: 0 = Pendente, 1 = Aprovada, 2 = Pendente, 3 = Aprovada...
-    const isApproved = (sent % 2 !== 0);
-    const category = isApproved ? 'venda_aprovada' : 'venda_pendente';
-    const title = isApproved ? 'Venda aprovada!' : 'Venda pendente';
-    const status = isApproved ? 'approved' : 'pending';
+    // Todas as vendas de teste da simulação são aprovadas (100% de conversão e saldo liberado)
+    const isApproved = true;
+    const category = 'venda_aprovada';
+    const title = '🎉 VENDA APROVADA! - KryptaPay';
+    const status = 'approved';
 
     // Escolher valor realista aleatório
     const randomAmount = SIMULATED_AMOUNTS[Math.floor(Math.random() * SIMULATED_AMOUNTS.length)];

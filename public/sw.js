@@ -1,5 +1,5 @@
 // KryptaPay Service Worker - PWA & Push Notifications com Logomarca Oficial
-const CACHE_NAME = 'kryptapay-v2026.15';
+const CACHE_NAME = 'kryptapay-v2026.16';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -105,7 +105,7 @@ self.addEventListener('push', (event) => {
     image: data.image || null,
     vibrate: [250, 100, 250],
     data: data.url || '/app.html',
-    tag: 'kryptapay-sale',
+    tag: data.tag || ('kryptapay-sale-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6)),
     renotify: true,
     actions: [
       { action: 'open', title: 'Ver Pedido' }
