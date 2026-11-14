@@ -17,7 +17,7 @@ const myDeviceId = localStorage.getItem('krypta_device_id') || (() => {
 const processedNotifIds = new Set();
 let lastSeenSyncSeqId = 0;
 
-document.addEventListener('DOMContentLoaded', () => {
+function startApp() {
   initTheme();
   setupNavigation();
   setupSSE();
@@ -46,17 +46,30 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', armAudio, { once: true, passive: true });
 
   // Inicializar o Globo 3D da Dashboard
-  setTimeout(() => {
+  function initDashboardGlobe() {
     if (window.KryptaGlobe3D && document.getElementById('dashboardGlobeCanvas')) {
-      new KryptaGlobe3D('dashboardGlobeCanvas', {
-        radius: 160,
-        dotCount: 400,
-        activeBuyers: 60,
-        autoRotateSpeed: 0.008
-      });
+      try {
+        new KryptaGlobe3D('dashboardGlobeCanvas', {
+          radius: 170,
+          dotCount: 400,
+          activeBuyers: 60,
+          autoRotateSpeed: 0.008
+        });
+      } catch (err) {
+        console.error('Erro ao iniciar Globo 3D na Dashboard:', err);
+      }
     }
-  }, 200);
-});
+  }
+
+  initDashboardGlobe();
+  setTimeout(initDashboardGlobe, 200);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
@@ -92,16 +105,14 @@ function setupNavigation() {
   const collapseBtn = document.getElementById('sidebarCollapseBtn');
   if (collapseBtn) {
     collapseBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      closeMobileSidebar();
+      toggleSidebarMenu(e);
     });
   }
 
   const mobileToggle = document.getElementById('mobileMenuBtn');
   if (mobileToggle) {
     mobileToggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleMobileSidebar(e);
+      toggleSidebarMenu(e);
     });
   }
 }
@@ -178,6 +189,18 @@ function switchTab(tabId) {
   else if (tabId === 'acquirers') loadAcquirersData();
   else if (tabId === 'products') loadProductsData();
   else if (tabId === 'rewards') loadRewardsData();
+  else if (tabId === 'dashboard') {
+    setTimeout(() => {
+      if (window.KryptaGlobe3D && document.getElementById('dashboardGlobeCanvas')) {
+        try {
+          new KryptaGlobe3D('dashboardGlobeCanvas', {
+            radius: 170,
+            autoRotateSpeed: 0.008
+          });
+        } catch (_) {}
+      }
+    }, 80);
+  }
 
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.classList.remove('mobile-open');
@@ -1002,14 +1025,18 @@ function clearNotificationHistory() {
   showToastAlert('Histórico de notificações limpo.');
 }
 
-function toggleMobileSidebar(e) {
+function toggleSidebarMenu(e) {
   if (e) {
     if (typeof e.preventDefault === 'function') e.preventDefault();
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
   }
   const sidebar = document.querySelector('.sidebar');
   const backdrop = document.getElementById('sidebarBackdrop');
-  if (sidebar) {
+  if (!sidebar) return;
+
+  const isMobile = window.innerWidth <= 1024 || document.documentElement.classList.contains('mobile-viewport-enforced');
+
+  if (isMobile) {
     const isOpen = sidebar.classList.toggle('mobile-open');
     if (backdrop) backdrop.style.display = isOpen ? 'block' : 'none';
     if (isOpen) {
@@ -1017,9 +1044,17 @@ function toggleMobileSidebar(e) {
     } else {
       document.body.style.overflow = '';
     }
+  } else {
+    // No Computador (Desktop): alterna entre recolhido e expandido
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    const mainWrapper = document.querySelector('.main-wrapper');
+    if (mainWrapper) {
+      mainWrapper.style.marginLeft = isCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)';
+    }
   }
 }
-window.toggleMobileSidebar = toggleMobileSidebar;
+window.toggleSidebarMenu = toggleSidebarMenu;
+window.toggleMobileSidebar = toggleSidebarMenu;
 
 function closeMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');

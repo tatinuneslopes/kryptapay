@@ -50,8 +50,8 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.17">
-  <link rel="stylesheet" href="/css/components.css?v=2026.17">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.18">
+  <link rel="stylesheet" href="/css/components.css?v=2026.18">
 
   <style>
     :root {
@@ -892,12 +892,12 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="/js/api.js?v=2026.2.3"></script>
-  <script src="/js/globe3d.js?v=2026.2.3"></script>
-  <script src="/js/particles.js?v=2026.2.3"></script>
-  <script src="/js/coverflow.js?v=2026.2.3"></script>
-  <script src="/js/card3d.js?v=2026.2.3"></script>
-  <script src="/js/pwa.js?v=2026.2.3"></script>
+  <script src="/js/api.js?v=2026.18"></script>
+  <script src="/js/globe3d.js?v=2026.18"></script>
+  <script src="/js/particles.js?v=2026.18"></script>
+  <script src="/js/coverflow.js?v=2026.18"></script>
+  <script src="/js/card3d.js?v=2026.18"></script>
+  <script src="/js/pwa.js?v=2026.18"></script>
   <script>
     function switchAuthTab(tab) {
       const regBtn = document.getElementById('tabRegisterBtn');
@@ -997,20 +997,33 @@
       window.location.href = '/app.html';
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initLanding() {
       // Iniciar Coverflow Slider 3D
       if (window.KryptaCoverflow) {
-        new KryptaCoverflow('coverflowWrapper');
+        try { new KryptaCoverflow('coverflowWrapper'); } catch (e) { console.error(e); }
       }
 
-      // Iniciar Globo 3D Roxo Oficial Gigante
-      if (window.KryptaGlobe3D && document.getElementById('landingGlobeCanvas')) {
-        new KryptaGlobe3D('landingGlobeCanvas', {
-          radius: 260,
-          autoRotateSpeed: 0.007
-        });
+      // Iniciar Globo 3D Roxo Oficial Gigante (Garante inicialização com retry se necessário)
+      function startGlobe() {
+        if (window.KryptaGlobe3D && document.getElementById('landingGlobeCanvas')) {
+          try {
+            new KryptaGlobe3D('landingGlobeCanvas', {
+              radius: 260,
+              autoRotateSpeed: 0.007
+            });
+          } catch (e) { console.error('Erro ao iniciar Globo 3D:', e); }
+        }
       }
-    });
+
+      startGlobe();
+      setTimeout(startGlobe, 150);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initLanding);
+    } else {
+      initLanding();
+    }
 
     const themeBtn = document.getElementById('themeToggleBtn');
     let currentTheme = localStorage.getItem('kryptapay_theme') || 'dark';
@@ -1023,7 +1036,7 @@
     });
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=2026.17')
+      navigator.serviceWorker.register('/sw.js?v=2026.18')
         .then(reg => {
           try { reg.update(); } catch (_) {}
         })

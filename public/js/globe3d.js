@@ -19,11 +19,39 @@ class KryptaGlobe3D {
 
     // Carregar imagem oficial do mapa mundi
     this.globeImg = new Image();
-    this.globeImg.src = '/assets/globo-oficial.jpg';
     this.imgLoaded = false;
     this.globeImg.onload = () => {
       this.imgLoaded = true;
     };
+    this.globeImg.src = '/assets/globo-oficial.jpg';
+    if (this.globeImg.complete && this.globeImg.naturalWidth > 0) {
+      this.imgLoaded = true;
+    }
+
+    // Gerar malha procedural de coordenadas dos continentes da Terra (América do Sul, América do Norte, Europa, África, Ásia, Oceania)
+    this.continentDots = [];
+    const continents = [
+      { minLat: -55, maxLat: 12, minLon: -80, maxLon: -35, count: 180 }, // América do Sul (Brasil)
+      { minLat: 15, maxLat: 68, minLon: -160, maxLon: -55, count: 220 }, // América do Norte
+      { minLat: 36, maxLat: 70, minLon: -10, maxLon: 45, count: 160 },   // Europa
+      { minLat: -34, maxLat: 36, minLon: -17, maxLon: 51, count: 200 },  // África
+      { minLat: 5, maxLat: 72, minLon: 45, maxLon: 145, count: 280 },   // Ásia
+      { minLat: -42, maxLat: -12, minLon: 114, maxLon: 154, count: 100 } // Oceania
+    ];
+
+    continents.forEach(c => {
+      for (let i = 0; i < c.count; i++) {
+        const lat = c.minLat + Math.random() * (c.maxLat - c.minLat);
+        const lon = c.minLon + Math.random() * (c.maxLon - c.minLon);
+        const phi = (90 - lat) * (Math.PI / 180);
+        const theta = (lon + 180) * (Math.PI / 180);
+        this.continentDots.push({
+          x: -(Math.sin(phi) * Math.cos(theta)),
+          y: Math.cos(phi),
+          z: Math.sin(phi) * Math.sin(theta)
+        });
+      }
+    });
 
     // TODOS OS ESTADOS DO BRASIL + PRINCIPAIS ESTADOS DOS EUA E EUROPA
     this.stateNodes = [
@@ -105,19 +133,29 @@ class KryptaGlobe3D {
     if (!this.canvas) return;
     const parent = this.canvas.parentElement;
     const clientW = Math.min(window.innerWidth || 800, parent ? parent.clientWidth : 800);
-    const rect = parent ? parent.getBoundingClientRect() : { width: clientW, height: 600 };
+    const rect = parent ? parent.getBoundingClientRect() : { width: clientW, height: 500 };
     const dpr = window.devicePixelRatio || 1;
 
-    this.width = Math.min(rect.width || clientW, clientW, window.innerWidth || clientW);
+    this.width = Math.min(rect.width || clientW, clientW, window.innerWidth || clientW) || 360;
     const isMobile = this.width < 640;
 
-    // Altura e proporção perfeitas para Computador vs Celular
-    if (isMobile) {
+    // Altura proporcional respeitando o container pai
+    if (rect.height && rect.height > 120) {
+      this.height = rect.height;
+    } else if (isMobile) {
       this.height = Math.min(this.width * 1.05, 410);
-      this.radius = Math.min(this.width * 0.35, 140); // Encaixa com anéis perfeitos no celular
     } else {
-      this.height = Math.max(540, rect.height || 620);
-      this.radius = Math.min(this.width * 0.44, this.height * 0.44, 280); // Grandão no Computador
+      this.height = 540;
+    }
+
+    // Raio do globo proporcional respeitando as opções e dimensões
+    if (this.options && this.options.radius) {
+      const maxRadius = Math.min(this.width * 0.44, this.height * 0.44);
+      this.radius = Math.min(this.options.radius, maxRadius);
+    } else if (isMobile) {
+      this.radius = Math.min(this.width * 0.35, 140);
+    } else {
+      this.radius = Math.min(this.width * 0.44, this.height * 0.44, 270);
     }
 
     this.canvas.width = this.width * dpr;
@@ -217,29 +255,72 @@ class KryptaGlobe3D {
     ctx.fill();
     ctx.restore();
 
-    // 3. Desenhar a Esfera da Terra com Rotação Texturizada
+    // 3. Desenhar a Esfera da Terra com Rotação Texturizada e Projeção Esférica
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.clip();
 
-    // Fundo espacial profundo
-    ctx.fillStyle = '#06020d';
+    // Fundo azul/violeta cósmico profundo
+    const spaceGrad = ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius);
+    spaceGrad.addColorStop(0, '#100624');
+    spaceGrad.addColorStop(0.7, '#070212');
+    spaceGrad.addColorStop(1, '#020005');
+    ctx.fillStyle = spaceGrad;
     ctx.fill();
 
-    // Textura da Terra rotacionando continuamente com projeção esférica
-    if (this.imgLoaded) {
-      const imgSize = radius * 2.3;
-      // Deslocamento de rotação contínua (offset X)
-      const rotOffset = ((rotationY % (Math.PI * 2)) / (Math.PI * 2)) * imgSize;
+    // 3.1. Grade 3D de Meridianos e Paralelos (Latitude & Longitude)
+    const cosY = Math.cos(rotationY);
+    const sinY = Math.sin(rotationY);
+    const cosX = Math.cos(rotationX);
+    const sinX = Math.sin(rotationX);
 
-      // Desenhar com wrap horizontal contínuo para rotação 3D da foto
+    // Paralelos de Latitude
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.22)';
+    [-60, -30, 0, 30, 60].forEach(lat => {
+      const phi = (90 - lat) * (Math.PI / 180);
+      const ringRadius = Math.sin(phi) * radius;
+      const ringY = Math.cos(phi) * radius;
+      const y2 = ringY * cosX;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + y2, ringRadius, ringRadius * 0.28, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // 3.2. Malha de Continentes 3D (visível sempre rotacionando a 60fps)
+    if (this.continentDots && this.continentDots.length) {
+      for (const dot of this.continentDots) {
+        const x1 = dot.x * cosY - dot.z * sinY;
+        const z1 = dot.z * cosY + dot.x * sinY;
+        const y2 = dot.y * cosX - z1 * sinX;
+        const z2 = z1 * cosX + dot.y * sinX;
+
+        if (z2 > -0.15) {
+          const px = cx + x1 * radius;
+          const py = cy + y2 * radius;
+          const alpha = Math.max(0.15, (z2 + 0.2) * 0.85);
+          ctx.beginPath();
+          ctx.arc(px, py, 1.4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(192, 132, 252, ${alpha * 0.75})`;
+          ctx.fill();
+        }
+      }
+    }
+
+    // 3.3. Textura da Terra (quando a foto oficial estiver disponível)
+    if (this.imgLoaded) {
+      ctx.save();
+      ctx.globalAlpha = 0.58;
+      const imgSize = radius * 2.3;
+      const rotOffset = ((rotationY % (Math.PI * 2)) / (Math.PI * 2)) * imgSize;
       ctx.drawImage(this.globeImg, cx - imgSize / 2 + rotOffset, cy - imgSize / 2, imgSize, imgSize);
       ctx.drawImage(this.globeImg, cx - imgSize / 2 + rotOffset - imgSize, cy - imgSize / 2, imgSize, imgSize);
       ctx.drawImage(this.globeImg, cx - imgSize / 2 + rotOffset + imgSize, cy - imgSize / 2, imgSize, imgSize);
+      ctx.restore();
     }
 
-    // Camada de Sombra Esférica 3D Real (Profundidade e borda iluminada)
+    // 3.4. Camada de Sombra Esférica 3D Real (Profundidade e borda iluminada)
     const sphereShade = ctx.createRadialGradient(
       cx - radius * 0.32,
       cy - radius * 0.32,
@@ -248,9 +329,9 @@ class KryptaGlobe3D {
       cy,
       radius
     );
-    sphereShade.addColorStop(0, 'rgba(255, 255, 255, 0.06)');
-    sphereShade.addColorStop(0.55, 'rgba(176, 38, 255, 0.05)');
-    sphereShade.addColorStop(0.82, 'rgba(12, 4, 25, 0.40)');
+    sphereShade.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    sphereShade.addColorStop(0.55, 'rgba(176, 38, 255, 0.04)');
+    sphereShade.addColorStop(0.82, 'rgba(12, 4, 25, 0.38)');
     sphereShade.addColorStop(1, 'rgba(4, 1, 10, 0.88)');
     ctx.fillStyle = sphereShade;
     ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
