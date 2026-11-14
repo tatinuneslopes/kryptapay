@@ -540,11 +540,12 @@ class BackgroundNotificationEngine {
 
     try {
       if (!this._audioEl) {
-        // Áudio PCM WAV silencioso padrão de 1 segundo em loop
-        const silentBase64 = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAP//AAD//w==';
-        this._audioEl = new Audio(silentBase64);
+        // Áudio WAV silencioso real servido via HTTP/HTTPS para conformidade total de segundo plano no iOS e Android
+        this._audioEl = new Audio('/audio/silence.wav');
         this._audioEl.loop = true;
-        this._audioEl.volume = 0.01;
+        this._audioEl.volume = 0.05;
+        this._audioEl.setAttribute('playsinline', 'true');
+        this._audioEl.setAttribute('webkit-playsinline', 'true');
       }
 
       // O evento 'timeupdate' continua disparando ininterruptamente no iOS e Android
@@ -708,6 +709,14 @@ async function startNotificationSequence() {
   };
   localStorage.setItem('kryptapay_sim_session', JSON.stringify(sessionData));
 
+  // Notificar o Servidor Cloud para executar o Runner 24/7 continuamente em segundo plano
+  API.post('/api/notifications/sequence/start', {
+    interval_seconds: intervalSec,
+    total_ticks: notifSeqTotal === Infinity ? -1 : notifSeqTotal,
+    duration_label: durConfig.label,
+    amount_type: document.getElementById('notifTestAmount')?.value || 'random'
+  }).catch(() => {});
+
   // Iniciar Motor de Segundo Plano (Audio Keep-Alive) para tela bloqueada / fora do app
   BackgroundNotificationEngine.start(() => {
     handleSeqTick();
@@ -800,6 +809,7 @@ function updateNotifSeqProgressUI(customStatus) {
 
 // Parar disparos
 function stopNotificationSequence(completed = false) {
+  API.post('/api/notifications/sequence/stop', {}).catch(() => {});
   BackgroundNotificationEngine.stop();
   if (simTimerWorker) {
     try { simTimerWorker.postMessage({ action: 'stop' }); } catch (_) {}
@@ -826,6 +836,16 @@ function stopNotificationSequence(completed = false) {
 
 // Recuperar sessão e repor vendas perdidas caso o aparelho tenha dormido à noite
 function checkActiveSimulationSession() {
+  API.get('/api/notifications/sequence/status').then(res => {
+    if (res && res.state && res.state.active) {
+      const btnStart = document.getElementById('btnStartNotifSeq');
+      const btnStop = document.getElementById('btnStopNotifSeq');
+      if (btnStart) btnStart.disabled = true;
+      if (btnStop) btnStop.disabled = false;
+      updateNotifSeqProgressUI(`🚀 Disparos 24/7 Ativos (${res.state.durationLabel || 'Contínuo'}) • Intervalo: ${res.state.intervalSeconds}s`);
+    }
+  }).catch(() => {});
+
   try {
     const raw = localStorage.getItem('kryptapay_sim_session');
     if (!raw) return;

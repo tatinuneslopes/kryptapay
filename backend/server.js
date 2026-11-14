@@ -495,6 +495,144 @@ function saveSyncStream(stream) {
   } catch (_) {}
 }
 
+// ========================================================
+// RUNNER GLOBAL DE NOTIFICAÇÕES EM SEGUNDO PLANO (BACKEND 24/7)
+// Permite que disparos continuem rodando por 24h, 2 dias ou dias seguidos
+// mesmo se o usuário fechar o navegador, bloquear a tela ou mudar de app.
+// ========================================================
+let globalRunnerTimer = null;
+let globalRunnerState = {
+  active: false,
+  userId: 'usr_merchant_demo',
+  intervalSeconds: 5,
+  totalTicks: -1,
+  currentTicks: 0,
+  startTime: 0,
+  durationLabel: '2 Dias',
+  amountType: 'random'
+};
+
+function tickServerRunner() {
+  if (!globalRunnerState.active) return;
+  if (globalRunnerState.totalTicks !== -1 && globalRunnerState.currentTicks >= globalRunnerState.totalTicks) {
+    stopServerRunner();
+    return;
+  }
+
+  const stream = getSyncStream();
+  const lastSeq = stream.length > 0 ? stream[stream.length - 1].seqId : 0;
+  const seqId = lastSeq + 1;
+
+  const tickIndex = globalRunnerState.currentTicks;
+  const isPending = (tickIndex % 2 !== 0);
+  const isApproved = !isPending;
+
+  const amounts = [24.90, 47.00, 67.00, 97.00, 147.00, 197.00, 297.00, 497.00];
+  const chosenAmount = amounts[Math.floor(Math.random() * amounts.length)];
+  const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const orderNumber = `#${10000 + Math.floor(Math.random() * 90000)}`;
+
+  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
+  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
+  const nativeBody = `Valor: R$ ${formattedAmount} • Pedido ${orderNumber}\n${subtitle}`;
+
+  const notif = {
+    id: 'krypta_sale_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    seqId,
+    deviceId: 'server_runner',
+    userId: globalRunnerState.userId,
+    brand: 'KRYPTAPAY',
+    icon: '/icons/logo.png',
+    title,
+    amount: `R$ ${formattedAmount}`,
+    rawAmount: chosenAmount,
+    orderId: orderNumber,
+    status: isApproved ? 'approved' : 'pending',
+    subtitle,
+    nativeBody,
+    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  };
+
+  stream.push(notif);
+  if (stream.length > 300) stream.splice(0, stream.length - 300);
+  saveSyncStream(stream);
+
+  // Broadcast para todos os clientes conectados via SSE
+  const ssePayload = `data: ${JSON.stringify({ type: 'sync_notification', notification: notif })}\n\n`;
+  for (const client of sseClients) {
+    try { client.write(ssePayload); } catch (_) { sseClients.delete(client); }
+  }
+
+  // Registrar no banco de dados SQLite
+  try {
+    db.prepare(`
+      INSERT INTO transactions (id, order_id, user_id, amount, net_amount, fee, payment_method, status, customer_name, is_simulation)
+      VALUES (?, ?, ?, ?, ?, ?, 'pix', ?, ?, 1)
+    `).run(
+      notif.id,
+      orderNumber,
+      globalRunnerState.userId,
+      chosenAmount,
+      chosenAmount * 0.98,
+      chosenAmount * 0.02,
+      isApproved ? 'approved' : 'pending',
+      'Cliente VIP #' + Math.floor(Math.random() * 9000 + 1000)
+    );
+  } catch (_) {}
+
+  globalRunnerState.currentTicks++;
+}
+
+function startServerRunner(params) {
+  stopServerRunner();
+  globalRunnerState = {
+    active: true,
+    userId: params.userId || 'usr_merchant_demo',
+    intervalSeconds: Math.max(parseInt(params.intervalSeconds, 10) || 5, 1),
+    totalTicks: params.totalTicks !== undefined ? params.totalTicks : -1,
+    currentTicks: 0,
+    startTime: Date.now(),
+    durationLabel: params.durationLabel || 'Contínuo',
+    amountType: params.amountType || 'random'
+  };
+
+  tickServerRunner();
+
+  const intervalMs = globalRunnerState.intervalSeconds * 1000;
+  globalRunnerTimer = setInterval(tickServerRunner, intervalMs);
+}
+
+function stopServerRunner() {
+  if (globalRunnerTimer) {
+    clearInterval(globalRunnerTimer);
+    globalRunnerTimer = null;
+  }
+  globalRunnerState.active = false;
+}
+
+  // Endpoints do Runner de Notificações em Segundo Plano 24/7
+  if (pathname === '/api/notifications/sequence/start' && method === 'POST') {
+    const body = await parseBody(req);
+    const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    startServerRunner({
+      userId,
+      intervalSeconds: body.interval_seconds,
+      totalTicks: body.total_ticks,
+      durationLabel: body.duration_label,
+      amountType: body.amount_type
+    });
+    return sendJSON(res, 200, { success: true, message: 'Runner 24/7 de notificações iniciado com sucesso no servidor!', state: globalRunnerState });
+  }
+
+  if (pathname === '/api/notifications/sequence/stop' && method === 'POST') {
+    stopServerRunner();
+    return sendJSON(res, 200, { success: true, message: 'Runner de notificações parado.' });
+  }
+
+  if (pathname === '/api/notifications/sequence/status' && method === 'GET') {
+    return sendJSON(res, 200, { success: true, state: globalRunnerState });
+  }
+
   // -------------------------------------------------------------
   // NOTIFICAÇÕES & DISPARO MULTI-DISPOSITIVOS (COMPUTADOR <-> CELULAR)
   // -------------------------------------------------------------
