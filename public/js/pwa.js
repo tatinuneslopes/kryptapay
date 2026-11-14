@@ -1,6 +1,57 @@
 // CryptaPay PWA Handler (iOS Safari & Android Chrome)
 let deferredPrompt = null;
 
+// ========================================================
+// CONTROLE RESPONSIVO MOBILE RIGOROSO (SAFARI & ANDROID)
+// ========================================================
+
+// 1. DESATIVAR DUPLO TOQUE QUE DÁ ZOOM NA TELA
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (event) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault(); // Impede o Safari de dar zoom ao dar dois cliques rápidos
+  }
+  lastTouchEnd = now;
+}, { passive: false });
+
+// 2. IMPEDIR QUE O SITE ENCOLHA AO ARRASTAR O DEDO EM PINÇA (ZOOM OUT < 1.0)
+document.addEventListener('gesturestart', (e) => {
+  if (e.scale < 1.0) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+document.addEventListener('gesturechange', (e) => {
+  if (e.scale < 1.0) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// 3. Suporte a touchmove para bloquear encolhimento abaixo de 100% de largura
+let initialDistance = 0;
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    initialDistance = Math.hypot(
+      e.touches[0].pageX - e.touches[1].pageX,
+      e.touches[0].pageY - e.touches[1].pageY
+    );
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2 && initialDistance > 0) {
+    const currentDistance = Math.hypot(
+      e.touches[0].pageX - e.touches[1].pageX,
+      e.touches[0].pageY - e.touches[1].pageY
+    );
+    // Se estiver tentando diminuir/encolher (pinça para dentro)
+    if (currentDistance < initialDistance && window.visualViewport && window.visualViewport.scale <= 1.0) {
+      e.preventDefault();
+    }
+  }
+}, { passive: false });
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;

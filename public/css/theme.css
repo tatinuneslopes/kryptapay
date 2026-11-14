@@ -73,17 +73,25 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  touch-action: manipulation; /* Desativa duplo clique para zoom e remove delay no mobile */
 }
 
-body {
+html, body {
   font-family: var(--font-family);
   background-color: var(--bg-base);
   color: var(--text-main);
   min-height: 100vh;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
