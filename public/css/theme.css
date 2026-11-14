@@ -36,7 +36,7 @@
   --shadow-card: 0 15px 35px -5px rgba(0, 0, 0, 0.8), 0 0 25px rgba(176, 38, 255, 0.2);
   --shadow-elevated: 0 25px 60px -10px rgba(0, 0, 0, 0.9), 0 0 40px rgba(176, 38, 255, 0.45);
 
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -73,7 +73,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  touch-action: manipulation; /* Desativa duplo clique para zoom e remove delay no mobile */
+  touch-action: manipulation !important; /* Desativa duplo clique para zoom no Safari e Android */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -81,18 +82,28 @@ html, body {
   background-color: var(--bg-base);
   color: var(--text-main);
   min-height: 100vh;
-  width: 100%;
-  min-width: 100%;
-  max-width: 100%;
-  line-height: 1.5;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  line-height: 1.55;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
   position: relative;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  touch-action: manipulation;
+  touch-action: pan-y !important;
+  overscroll-behavior-x: none;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Proteção absoluta contra qualquer tela preta ou transbordamento lateral */
+section, header, footer, main, .app-container, .main-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
 }
 
 /* Fundo Iluminado com Seda Roxa e Brilho Neon */
@@ -110,7 +121,7 @@ html, body {
 /* Tipografia Oficial da Marca KRYPTAPAY */
 .brand-title-styled {
   font-weight: 900;
-  letter-spacing: -0.5px;
+  letter-spacing: 0.5px !important;
   display: inline-flex;
   align-items: center;
 }

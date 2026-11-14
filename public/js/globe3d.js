@@ -104,16 +104,17 @@ class KryptaGlobe3D {
   resize() {
     if (!this.canvas) return;
     const parent = this.canvas.parentElement;
-    const rect = parent ? parent.getBoundingClientRect() : { width: 800, height: 600 };
+    const clientW = Math.min(window.innerWidth || 800, parent ? parent.clientWidth : 800);
+    const rect = parent ? parent.getBoundingClientRect() : { width: clientW, height: 600 };
     const dpr = window.devicePixelRatio || 1;
 
-    this.width = rect.width || window.innerWidth || 800;
+    this.width = Math.min(rect.width || clientW, clientW, window.innerWidth || clientW);
     const isMobile = this.width < 640;
 
     // Altura e proporção perfeitas para Computador vs Celular
     if (isMobile) {
-      this.height = Math.min(this.width * 1.05, 430);
-      this.radius = Math.min(this.width * 0.35, 142); // Encaixa com anéis perfeitos no celular
+      this.height = Math.min(this.width * 1.05, 410);
+      this.radius = Math.min(this.width * 0.35, 140); // Encaixa com anéis perfeitos no celular
     } else {
       this.height = Math.max(540, rect.height || 620);
       this.radius = Math.min(this.width * 0.44, this.height * 0.44, 280); // Grandão no Computador
@@ -123,6 +124,7 @@ class KryptaGlobe3D {
     this.canvas.height = this.height * dpr;
     this.canvas.style.width = `${this.width}px`;
     this.canvas.style.height = `${this.height}px`;
+    this.canvas.style.maxWidth = '100%';
 
     this.ctx.resetTransform ? this.ctx.resetTransform() : this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);

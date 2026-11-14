@@ -15,17 +15,21 @@ document.addEventListener('touchend', (event) => {
   lastTouchEnd = now;
 }, { passive: false });
 
-// 2. IMPEDIR QUE O SITE ENCOLHA AO ARRASTAR O DEDO EM PINÇA (ZOOM OUT < 1.0)
+// 2. IMPEDIR QUE O SITE ENCOLHA OU EXPANDA AO ARRASTAR O DEDO EM PINÇA
 document.addEventListener('gesturestart', (e) => {
-  if (e.scale < 1.0) {
-    e.preventDefault();
-  }
+  e.preventDefault();
 }, { passive: false });
 
 document.addEventListener('gesturechange', (e) => {
-  if (e.scale < 1.0) {
-    e.preventDefault();
-  }
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('gestureend', (e) => {
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('dblclick', (e) => {
+  e.preventDefault();
 }, { passive: false });
 
 // 3. Suporte a touchmove para bloquear encolhimento abaixo de 100% de largura

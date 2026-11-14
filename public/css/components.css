@@ -43,7 +43,7 @@
   color: var(--text-main);
   font-weight: 800;
   font-size: 1.25rem;
-  letter-spacing: -0.5px;
+  letter-spacing: 0.5px;
 }
 
 .brand-icon-img {
@@ -339,16 +339,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  overflow: hidden !important;
 }
 
 .coverflow-carousel-wrapper {
   position: relative;
   width: 100%;
+  max-width: 100%;
   height: 480px;
   display: flex;
   align-items: center;
   justify-content: center;
   transform-style: preserve-3d;
+  overflow: hidden !important;
 }
 
 .coverflow-item {
@@ -519,7 +522,7 @@
 .kpi-value {
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: normal;
   color: var(--text-main);
   margin-bottom: 0.25rem;
 }
@@ -828,44 +831,61 @@
   .content-body {
     padding: 1rem;
   }
-  .coverflow-item.prev-1 { transform: translateX(-140px) scale(0.85); }
-  .coverflow-item.next-1 { transform: translateX(140px) scale(0.85); }
-  .coverflow-item.prev-2, .coverflow-item.next-2 { display: none; }
+  .coverflow-stage-3d {
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+  .coverflow-carousel-wrapper {
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+  .coverflow-item.prev-1 { transform: translateX(-90px) scale(0.82) !important; }
+  .coverflow-item.next-1 { transform: translateX(90px) scale(0.82) !important; }
+  .coverflow-item.prev-2, .coverflow-item.next-2 { display: none !important; }
 }
 
 /* Celulares (Smartphones iPhone e Android até 600px) */
 @media (max-width: 600px) {
   .coverflow-stage-3d {
     height: 420px !important;
+    min-height: 420px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  .coverflow-carousel-wrapper {
+    height: 380px !important;
+    width: 100% !important;
+    max-width: 100% !important;
     overflow: hidden !important;
   }
   .coverflow-item {
-    width: 255px !important;
-    height: 385px !important;
-    padding: 0.85rem !important;
+    width: 240px !important;
+    height: 370px !important;
+    padding: 0.75rem !important;
     border-radius: 16px !important;
   }
   .coverflow-img {
-    height: 235px !important;
-    margin-bottom: 0.6rem !important;
+    height: 220px !important;
+    margin-bottom: 0.5rem !important;
   }
   .coverflow-item.active {
-    transform: translateX(0) scale(1.02) !important;
+    transform: translateX(0) scale(1.0) !important;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(176, 38, 255, 0.5) !important;
   }
   .coverflow-item.prev-1 {
-    transform: translateX(-85px) scale(0.78) rotateY(15deg) !important;
-    opacity: 0.35 !important;
+    transform: translateX(-60px) scale(0.75) rotateY(12deg) !important;
+    opacity: 0.3 !important;
   }
   .coverflow-item.next-1 {
-    transform: translateX(85px) scale(0.78) rotateY(-15deg) !important;
-    opacity: 0.35 !important;
+    transform: translateX(60px) scale(0.75) rotateY(-12deg) !important;
+    opacity: 0.3 !important;
   }
   .coverflow-item.prev-2, .coverflow-item.next-2 {
     display: none !important;
   }
   .coverflow-nav-controls {
-    margin-top: 1rem !important;
+    margin-top: 0.75rem !important;
     gap: 1.25rem !important;
   }
   .btn-coverflow-arrow {
