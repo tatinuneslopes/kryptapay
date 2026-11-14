@@ -12,15 +12,16 @@
   --border-card-hover: rgba(217, 70, 239, 0.6);
   --border-glow: rgba(176, 38, 255, 0.8);
 
-  /* Roxo Neon Oficial das Placas */
-  --purple-neon: #b026ff;
-  --purple-vivid: #9d00ff;
-  --purple-400: #c084fc;
-  --purple-500: #a855f7;
-  --purple-600: #9333ea;
-  --purple-700: #7e22ce;
-  --purple-glow: rgba(176, 38, 255, 0.45);
-  --purple-glow-intense: 0 0 30px rgba(176, 38, 255, 0.65), 0 0 60px rgba(157, 0, 255, 0.35);
+  /* Roxo Neon Oficial das Placas (Vibrante, Brilhoso, Elétrico e Chamativo) */
+  --purple-neon: #c026ff;
+  --purple-vivid: #a824f8;
+  --purple-electric: #d946ef;
+  --purple-400: #d946ef;
+  --purple-500: #c026ff;
+  --purple-600: #a824f8;
+  --purple-700: #9333ea;
+  --purple-glow: rgba(192, 38, 255, 0.6);
+  --purple-glow-intense: 0 0 25px rgba(192, 38, 255, 0.85), 0 0 55px rgba(168, 36, 248, 0.55);
 
   --text-main: #ffffff;
   --text-muted: #a1a1aa;
@@ -126,21 +127,21 @@ section, header, footer, main, .app-container, .main-wrapper {
   align-items: center;
 }
 
-.brand-k-purple {
-  color: var(--purple-neon);
-  text-shadow: 0 0 15px var(--purple-neon), 0 0 30px rgba(176, 38, 255, 0.6);
-  font-weight: 900;
-}
-
 .brand-krypta-white {
   color: #ffffff;
-  font-weight: 800;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
 }
 
 .brand-pay-purple {
-  color: var(--purple-400);
-  text-shadow: 0 0 12px rgba(192, 132, 252, 0.5);
+  color: #c026ff;
   font-weight: 900;
+  text-shadow: 
+    0 0 8px #f0abfc,
+    0 0 18px #c026ff,
+    0 0 32px #a824f8,
+    0 0 48px rgba(192, 38, 255, 0.95);
+  filter: drop-shadow(0 0 10px rgba(192, 38, 255, 0.85));
 }
 
 /* Utilitários Glassmorphism */
