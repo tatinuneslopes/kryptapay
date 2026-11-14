@@ -600,7 +600,8 @@
           Veja a malha operacional da KryptaPay processando pagamentos pelo Brasil e pelo mundo. Gire a esfera 3D livremente:
         </p>
 
-        <div style="width:100%; max-width:750px; height:450px; margin:0 auto; position:relative;">
+        <!-- GLOBO 3D ROXO GIGANTE E MAJESTOSO -->
+        <div style="width:100%; max-width:960px; height:620px; margin:0 auto; position:relative; display:flex; justify-content:center; align-items:center;">
           <canvas id="landingGlobeCanvas" style="width:100%; height:100%; cursor:grab;"></canvas>
         </div>
       </div>
@@ -760,12 +761,10 @@
         new KryptaCoverflow('coverflowWrapper');
       }
 
-      // Iniciar Globo 3D Roxo
+      // Iniciar Globo 3D Roxo Oficial Gigante
       if (window.KryptaGlobe3D && document.getElementById('landingGlobeCanvas')) {
         new KryptaGlobe3D('landingGlobeCanvas', {
-          radius: 180,
-          dotCount: 450,
-          activeBuyers: 60,
+          radius: 260,
           autoRotateSpeed: 0.007
         });
       }
