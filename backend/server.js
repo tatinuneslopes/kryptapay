@@ -588,7 +588,7 @@ function startServerRunner(params) {
   globalRunnerState = {
     active: true,
     userId: params.userId || 'usr_merchant_demo',
-    intervalSeconds: Math.max(parseInt(params.intervalSeconds, 10) || 5, 1),
+    intervalSeconds: Math.max(parseFloat(params.intervalSeconds) || 5, 0.5),
     totalTicks: params.totalTicks !== undefined ? params.totalTicks : -1,
     currentTicks: 0,
     startTime: Date.now(),

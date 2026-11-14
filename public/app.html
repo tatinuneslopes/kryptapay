@@ -48,8 +48,28 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.10">
-  <link rel="stylesheet" href="/css/components.css?v=2026.10">
+  <!-- Cache-Buster & Auto-Update Controller para Safari iOS e Chrome PWA -->
+  <script>
+    (function() {
+      const CURRENT_BUILD = '2026.15';
+      const storedBuild = localStorage.getItem('kryptapay_build_version');
+      if (storedBuild && storedBuild !== CURRENT_BUILD) {
+        localStorage.setItem('kryptapay_build_version', CURRENT_BUILD);
+        if ('caches' in window) {
+          caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
+            window.location.reload(true);
+          });
+        } else {
+          window.location.reload(true);
+        }
+      } else {
+        localStorage.setItem('kryptapay_build_version', CURRENT_BUILD);
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/css/theme.css?v=2026.15">
+  <link rel="stylesheet" href="/css/components.css?v=2026.15">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -76,12 +96,11 @@
         <div class="nav-section-title">Principal</div>
         <a class="nav-item active" data-tab="dashboard">
           <span class="nav-icon">📊</span>
-          <span class="nav-label" data-i18n="dashboard">Dashboard Principal</span>
+          <span class="nav-label">Dashboard 1</span>
         </a>
         <a class="nav-item" data-tab="test-dashboard" style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius:10px;">
-          <span class="nav-icon">🧪</span>
-          <span class="nav-label">Dashboard Teste</span>
-          <span class="nav-badge" style="background:#a855f7; color:#fff;">Simulação</span>
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">Dashboard 2</span>
         </a>
         <a class="nav-item" data-tab="quick-pay">
           <span class="nav-icon">⚡</span>
@@ -183,7 +202,7 @@
           <button id="mobileMenuBtn" class="btn-icon" style="display:none;" title="Menu">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
-          <h2 id="headerPageTitle" style="font-size:1.3rem; font-weight:700; color:#fff;">Dashboard Principal</h2>
+          <h2 id="headerPageTitle" style="font-size:1.3rem; font-weight:700; color:#fff;">Dashboard 1</h2>
         </div>
 
         <div class="header-right">
@@ -444,19 +463,15 @@
         </div>
 
         <!-- ========================================================= -->
-        <!-- MÓDULO: DASHBOARD DE TESTES (SIMULAÇÃO AO VIVO NO CELULAR) -->
+        <!-- MÓDULO: DASHBOARD 2 (ACOMPANHAMENTO DINÂMICO AO VIVO) -->
         <!-- ========================================================= -->
         <div id="pane-test-dashboard" class="view-pane" style="display:none;">
-          <!-- Topo com Filtros e Ações de Teste -->
+          <!-- Topo com Filtros e Ações -->
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
             <div>
-              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap;">
-                <span class="badge-status badge-approved" style="background:rgba(168,85,247,0.25); color:#c084fc; border:1px solid rgba(168,85,247,0.5);">🧪 Ambiente de Testes & Simulação</span>
-                <span class="badge-status" style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3);">📲 Vinculado ao Push do Celular</span>
-              </div>
-              <h3 style="font-size: 1.55rem; font-weight: 800; color: #fff;">Dashboard Teste</h3>
+              <h3 style="font-size: 1.55rem; font-weight: 800; color: #fff;">Dashboard 2</h3>
               <p style="font-size: 0.85rem; color: var(--text-muted); max-width:720px;">
-                Conforme as notificações de teste pingam no seu celular, o faturamento, saldo disponível e vendas aumentam automaticamente em tempo real nesta tela.
+                Acompanhamento dinâmico de faturamento, saldo disponível e vendas conforme as notificações são disparadas.
               </p>
             </div>
             <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
@@ -464,12 +479,12 @@
                 🔔 Disparar Notificações
               </button>
               <button onclick="resetTestDashboard()" class="btn-secondary" style="padding:0.65rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px; color:#f87171; border-color:rgba(239,68,68,0.4);">
-                🔄 Zerar Saldo de Teste
+                🔄 Zerar Saldo
               </button>
             </div>
           </div>
 
-          <!-- CARDS DE INDICADORES DA DASHBOARD TESTE (EXATAMENTE OS PEDIDOS PELO CLIENTE) -->
+          <!-- CARDS DE INDICADORES DA DASHBOARD 2 -->
           <div class="kpi-grid">
             <!-- 1. Faturamento Total -->
             <div class="glass-card kpi-card" style="--card-accent: #a855f7;">
@@ -478,7 +493,7 @@
                 <span class="kpi-icon">💰</span>
               </div>
               <div id="test-metric-faturamento" class="kpi-value" style="color:#ffffff;">R$ 0,00</div>
-              <div class="kpi-footer"><span class="kpi-trend-up">▲ 100%</span> Faturamento acumulado no teste</div>
+              <div class="kpi-footer"><span class="kpi-trend-up">▲ 100%</span> Faturamento acumulado</div>
             </div>
 
             <!-- 2. Saldo Disponível -->
@@ -518,7 +533,7 @@
                 <span class="kpi-icon">✅</span>
               </div>
               <div id="test-metric-aprovadas" class="kpi-value" style="color:var(--status-success);">0</div>
-              <div class="kpi-footer">Notificações pingadas no celular</div>
+              <div class="kpi-footer">Notificações recebidas no celular</div>
             </div>
 
             <!-- 6. Vendas Pendentes -->
@@ -538,7 +553,7 @@
                 <span class="kpi-icon">📈</span>
               </div>
               <div id="test-metric-taxa" class="kpi-value" style="color:#38bdf8;">0%</div>
-              <div class="kpi-footer">Conversão de vendas no teste</div>
+              <div class="kpi-footer">Taxa de conversão em tempo real</div>
             </div>
 
             <!-- 8. Ticket Médio -->
@@ -1126,6 +1141,7 @@
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Intervalo entre Avisos</label>
                 <select id="notifTestInterval" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
                   <optgroup label="⚡ Velocidade Máxima / Instantânea (< 15s)">
+                    <option value="0.5">⚡⚡ A cada 0.5 segundo (Meio Segundo • Hiper Rápido / Rajada Instantânea)</option>
                     <option value="1">⚡ A cada 1 segundo (Instantâneo • Limite Máximo)</option>
                     <option value="2">⚡ A cada 2 segundos (Ultra Rápido)</option>
                     <option value="3">⚡ A cada 3 segundos (Super Rápido)</option>
@@ -2196,12 +2212,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.13"></script>
-  <script src="/js/i18n.js?v=2026.13"></script>
-  <script src="/js/globe3d.js?v=2026.13"></script>
-  <script src="/js/particles.js?v=2026.13"></script>
-  <script src="/js/card3d.js?v=2026.13"></script>
-  <script src="/js/pwa.js?v=2026.13"></script>
-  <script src="/js/app.js?v=2026.13"></script>
+  <script src="/js/api.js?v=2026.15"></script>
+  <script src="/js/i18n.js?v=2026.15"></script>
+  <script src="/js/globe3d.js?v=2026.15"></script>
+  <script src="/js/particles.js?v=2026.15"></script>
+  <script src="/js/card3d.js?v=2026.15"></script>
+  <script src="/js/pwa.js?v=2026.15"></script>
+  <script src="/js/app.js?v=2026.15"></script>
 </body>
 </html>

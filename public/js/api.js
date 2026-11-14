@@ -81,72 +81,14 @@ const API = {
   }
 };
 
-// Sintetizador de Som de Notificação Realista (Toque Oficial Cash Register KryptaPay)
+// Sintetizador de Som de Notificação Realista (Silenciado na web: som nativo é tocado pelo celular do operador)
 class NotificationAudio {
   static _ctx = null;
   static _audioEl = null;
 
   static async playCashSound() {
-    // 1. Tocar arquivo de áudio WAV autêntico de Cash Register
-    try {
-      if (!this._audioEl) {
-        this._audioEl = new Audio('/audio/cash-register.wav');
-        this._audioEl.preload = 'auto';
-      }
-      this._audioEl.currentTime = 0;
-      const p = this._audioEl.play();
-      if (p !== undefined) {
-        p.catch(() => {});
-      }
-    } catch(e) {}
-
-    // 2. Síntese Web Audio API de alta fidelidade como garantia
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      if (!this._ctx) {
-        this._ctx = new AudioCtx();
-      }
-      if (this._ctx.state === 'suspended') {
-        await this._ctx.resume();
-      }
-      const ctx = this._ctx;
-      const now = ctx.currentTime;
-
-      // Bell 1: Tom cristalino metálico agudo de caixa registradora (C6 -> C7)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1046.50, now);
-      osc1.frequency.exponentialRampToValueAtTime(2093.00, now + 0.08);
-      gain1.gain.setValueAtTime(0.45, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
-
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.42);
-
-      // Bell 2: Harmônico clássico de caixa registradora (E6 -> E7)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(1318.51, now + 0.06);
-      osc2.frequency.exponentialRampToValueAtTime(2637.02, now + 0.15);
-      gain2.gain.setValueAtTime(0.35, now + 0.06);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
-
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.06);
-      osc2.stop(now + 0.58);
-
-      // Vibração no celular (dois toques rápidos)
-      if (navigator.vibrate) {
-        navigator.vibrate([150, 70, 150]);
-      }
-    } catch (e) {
-      console.warn('Audio play error:', e);
-    }
+    // Silenciado dentro da aplicação web conforme solicitação:
+    // O celular nativo já possui seu toque oficial configurado pelo usuário.
+    return;
   }
 }

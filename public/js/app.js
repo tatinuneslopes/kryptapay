@@ -101,9 +101,15 @@ function switchTab(tabId) {
   if (activeBottomBtn) activeBottomBtn.classList.add('active');
 
   const titleEl = document.getElementById('headerPageTitle');
-  if (titleEl && activeLink) {
-    const label = activeLink.querySelector('.nav-label');
-    if (label) titleEl.textContent = label.textContent.trim();
+  if (titleEl) {
+    if (activeLink) {
+      const label = activeLink.querySelector('.nav-label');
+      if (label) titleEl.textContent = label.textContent.trim();
+    } else if (tabId === 'dashboard') {
+      titleEl.textContent = 'Dashboard 1';
+    } else if (tabId === 'test-dashboard') {
+      titleEl.textContent = 'Dashboard 2';
+    }
   }
 
   document.querySelectorAll('.view-pane').forEach(pane => pane.style.display = 'none');
@@ -262,59 +268,16 @@ function handleIncomingNotification(data) {
   addTestSale(notif);
 }
 
-// Toast Flutuante com a Logomarca Oficial
+// Toasts visuais internos na tela desativados conforme solicitação expressa:
+// Vendas pingam exclusivamente na barra / tela de bloqueio do celular nativo,
+// sem pop-ups ou poluição visual na dashboard.
 function showFloatingToast(notif) {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-
-  const isApproved = notif.status === 'approved';
-  const toast = document.createElement('div');
-  toast.className = 'krypta-toast';
-
-  toast.innerHTML = `
-    <img src="/icons/logo.png" class="toast-logo-img" alt="KryptaPay">
-    <div class="toast-body-content">
-      <div class="toast-brand-header">
-        <span>KRYPTAPAY</span>
-        <span style="font-size: 0.65rem; color: var(--text-dim);">${notif.timestamp || 'Agora'}</span>
-      </div>
-      <div class="toast-title" style="color: ${isApproved ? '#fff' : '#f59e0b'};">
-        ${isApproved ? '🎉 Venda aprovada!' : '⏳ Venda pendente'}
-      </div>
-      <div class="toast-amount" style="color: ${isApproved ? 'var(--status-success)' : 'var(--status-warning)'};">
-        Valor: ${notif.amount}
-      </div>
-      <div class="toast-meta">
-        <span>Pedido: ${notif.orderId}</span>
-        <span style="color: var(--purple-400); font-weight: 600;">Pix Dinâmico</span>
-      </div>
-    </div>
-  `;
-
-  container.prepend(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(-10px) scale(0.95)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
+  return;
 }
 
 function showToastAlert(msg) {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-  const toast = document.createElement('div');
-  toast.className = 'krypta-toast';
-  toast.innerHTML = `
-    <img src="/icons/logo.png" class="toast-logo-img" alt="KryptaPay">
-    <div class="toast-body-content">
-      <div class="toast-brand-header">KRYPTAPAY SISTEMA</div>
-      <div class="toast-title" style="font-size: 0.88rem; color: #fff;">${msg}</div>
-    </div>
-  `;
-  container.prepend(toast);
-  setTimeout(() => toast.remove(), 4000);
+  console.log('[KryptaPay Status]:', msg);
+  return;
 }
 
 // ========================================================
@@ -346,7 +309,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.9');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.15');
       }
       await navigator.serviceWorker.ready;
 
@@ -356,7 +319,7 @@ async function sendNativePhoneNotification(notifObj) {
           icon: '/icons/logo.png',
           badge: '/icons/logo.png',
           vibrate: [300, 100, 300, 100, 300],
-          tag: 'kryptapay-sale-' + (notifObj.orderId || Date.now()) + '-' + Math.floor(Math.random() * 10000),
+          tag: 'kryptapay-sale-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
           renotify: true,
           silent: false,
           requireInteraction: false,
@@ -685,7 +648,7 @@ async function startNotificationSequence() {
   const countSelect = document.getElementById('notifTestCount');
   const intervalSelect = document.getElementById('notifTestInterval');
   const durConfig = parseNotifDurationValue(countSelect ? countSelect.value : 'dur_2d');
-  const intervalSec = parseInt(intervalSelect ? intervalSelect.value : '120', 10) || 120;
+  const intervalSec = Math.max(0.5, parseFloat(intervalSelect ? intervalSelect.value : '120') || 120);
 
   notifSeqIntervalSec = intervalSec;
   notifSeqIsInfinite = durConfig.infinite;
@@ -718,9 +681,10 @@ async function startNotificationSequence() {
   }).catch(() => {});
 
   // Iniciar Motor de Segundo Plano (Audio Keep-Alive) para tela bloqueada / fora do app
+  const intervalMs = Math.round(intervalSec * 1000);
   BackgroundNotificationEngine.start(() => {
     handleSeqTick();
-  }, () => notifSeqIntervalSec * 1000);
+  }, () => Math.round(notifSeqIntervalSec * 1000));
 
   // Manter a tela acordada / não suspender
   requestSimulationWakeLock();
@@ -738,10 +702,10 @@ async function startNotificationSequence() {
   // Iniciar timer com Web Worker ou setInterval
   initSimulationWorker();
   if (simTimerWorker) {
-    simTimerWorker.postMessage({ action: 'start', intervalMs: intervalSec * 1000 });
+    simTimerWorker.postMessage({ action: 'start', intervalMs: intervalMs });
   } else {
     if (notifSeqTimer) clearInterval(notifSeqTimer);
-    notifSeqTimer = setInterval(handleSeqTick, intervalSec * 1000);
+    notifSeqTimer = setInterval(handleSeqTick, intervalMs);
   }
 }
 
@@ -1103,7 +1067,14 @@ async function generateQuickPix() {
   const nameInput = document.getElementById('quickPixName');
   const phoneInput = document.getElementById('quickPixPhone');
 
-  const amount = amountInput ? parseFloat(amountInput.value) : 0;
+  let rawVal = amountInput ? amountInput.value.trim() : '';
+  rawVal = rawVal.replace(/[R$\s]/g, '');
+  if (rawVal.includes(',') && rawVal.includes('.')) {
+    rawVal = rawVal.replace(/\./g, '').replace(',', '.');
+  } else if (rawVal.includes(',')) {
+    rawVal = rawVal.replace(',', '.');
+  }
+  const amount = parseFloat(rawVal) || 0;
   const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Cliente Cobrança';
   const phone = phoneInput ? phoneInput.value.trim() : '';
 
@@ -1158,8 +1129,6 @@ async function generateQuickPix() {
       nativeBody: `Cobrança de R$ ${formattedAmount} enviada para ${name} • Venda Pendente.`,
       tag: 'kryptapay-pix-pending-' + Date.now()
     });
-
-    showToastAlert(`⚡ Cobrança Pix de R$ ${formattedAmount} gerada com sucesso! Notificação enviada.`);
 
     // Iniciar contagem regressiva automática (7 segundos) para simular o pagamento do pagador se não clicado
     if (quickPixAutoTimer) clearTimeout(quickPixAutoTimer);
@@ -1481,45 +1450,16 @@ function setupModalListeners() {
 }
 
 // ------------------------------------------------------------------
-// NOTIFICAÇÕES DE TRANSAÇÃO REAL (COM FOTO DA LOGOMARCA OFICIAL)
+// NOTIFICAÇÕES DE TRANSAÇÃO REAL (DIRETO NO PUSH NATIVO DO CELULAR)
 // ------------------------------------------------------------------
 function handleChargeNotification(chargeEvent) {
   const isApproved = chargeEvent.event === 'payment.approved';
 
-  // Som de venda
-  NotificationAudio.playCashSound();
-
-  const container = document.getElementById('toastContainer');
-  if (container) {
-    const toast = document.createElement('div');
-    toast.className = 'krypta-toast';
-    toast.innerHTML = `
-      <img src="/icons/logo.png" class="toast-logo-img" alt="KryptaPay">
-      <div class="toast-body-content">
-        <div class="toast-brand-header">
-          <span>KRYPTAPAY GATEWAY</span>
-          <span style="font-size: 0.65rem; color: var(--text-dim);">Agora</span>
-        </div>
-        <div class="toast-title" style="color: ${isApproved ? '#fff' : '#f59e0b'};">
-          ${isApproved ? '🎉 Venda Aprovada!' : '⏳ Venda Pendente (Pix Emitido)'}
-        </div>
-        <div class="toast-amount" style="color: ${isApproved ? 'var(--status-success)' : 'var(--status-warning)'};">
-          R$ ${chargeEvent.amount.toFixed(2).replace('.', ',')}
-        </div>
-        <div class="toast-meta">
-          <span>Pedido: ${chargeEvent.order_id}</span>
-          <span style="color: var(--purple-400); font-weight: 600;">${isApproved ? 'Saldo Creditado' : 'Aguardando Pagamento'}</span>
-        </div>
-      </div>
-    `;
-    container.prepend(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(-10px) scale(0.95)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 5500);
-  }
+  sendNativePhoneNotification({
+    title: isApproved ? '🎉 Venda aprovada! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay',
+    nativeBody: `R$ ${chargeEvent.amount.toFixed(2).replace('.', ',')} • Pedido ${chargeEvent.order_id}\n${isApproved ? 'Pix Confirmado' : 'Aguardando Pagamento'}`,
+    tag: 'kryptapay-charge-' + (chargeEvent.order_id || Date.now())
+  });
 
   // Recarregar métricas da dashboard se estiver visível
   if (AppState.currentTab === 'dashboard') loadDashboardData();
