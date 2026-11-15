@@ -726,10 +726,14 @@ function tickServerRunner() {
     curDashState.faturamentoTotal += chosenAmount;
     curDashState.saldoDisponivel += (chosenAmount * 0.95);
     curDashState.saldoRetencao += (chosenAmount * 0.05);
-    curDashState.vendasAprovadas++;
+    curDashState.vendasAprovadas = (curDashState.vendasAprovadas || 0) + 1;
+    if (curDashState.vendasPendentes > 0) curDashState.vendasPendentes--;
+    if (curDashState.saldoPendente >= chosenAmount) curDashState.saldoPendente -= chosenAmount;
+    else curDashState.saldoPendente = 0;
+  } else {
+    curDashState.saldoPendente = (curDashState.saldoPendente || 0) + chosenAmount;
+    curDashState.vendasPendentes = (curDashState.vendasPendentes || 0) + 1;
   }
-  curDashState.saldoPendente = 0;
-  curDashState.vendasPendentes = 0;
   curDashState.recentSales.unshift({
     orderId: orderNumber,
     amount: chosenAmount,

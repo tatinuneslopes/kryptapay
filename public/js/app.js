@@ -90,6 +90,22 @@ function startApp() {
     } catch (_) {}
   }
 
+  // Pré-habilitar áudio silencioso em segundo plano no primeiro toque em celular iOS/Android
+  const armAudio = () => {
+    if (!BackgroundNotificationEngine._audioEl) {
+      try {
+        BackgroundNotificationEngine._audioEl = new Audio('/audio/silence.wav');
+        BackgroundNotificationEngine._audioEl.loop = true;
+        BackgroundNotificationEngine._audioEl.volume = 0.01;
+        BackgroundNotificationEngine._audioEl.setAttribute('playsinline', 'true');
+        BackgroundNotificationEngine._audioEl.setAttribute('webkit-playsinline', 'true');
+        BackgroundNotificationEngine._audioEl.load();
+      } catch (_) {}
+    }
+  };
+  document.addEventListener('touchstart', armAudio, { once: true, passive: true });
+  document.addEventListener('click', armAudio, { once: true, passive: true });
+
   // Inicializar o Globo 3D da Dashboard
   function initDashboardGlobe() {
     if (window.KryptaGlobe3D && document.getElementById('dashboardGlobeCanvas')) {
@@ -575,6 +591,9 @@ let singleTestToggle = false;
 
 // Sorteio de status com base no perfil de simulação selecionado
 function pickStatusForProfile(profile, tickIdx) {
+  if (profile === 'alternada' || !profile) {
+    return (tickIdx % 2 === 0) ? 'pending' : 'approved';
+  }
   if (profile === 'apenas_aprovadas') return 'approved';
   if (profile === 'cenario_c') return 'pending';
   if (profile === 'cenario_a') {
@@ -601,14 +620,11 @@ function pickStatusForProfile(profile, tickIdx) {
     if (r < 0.90) return 'refused';
     return 'pending';
   }
-  // Default 'realista': 80% aprovadas, 15% recusadas, 5% pendentes
-  const r = Math.random();
-  if (r < 0.80) return 'approved';
-  if (r < 0.95) return 'refused';
-  return 'pending';
+  // Padrão solicitado pelo operador: alternar sempre entre Venda Pendente e Venda Aprovada
+  return (tickIdx % 2 === 0) ? 'pending' : 'approved';
 }
 
-// Disparo de Venda de Teste com suporte a perfis e status explícito
+// Disparo de Venda de Teste com suporte a alternância e perfis
 async function triggerSingleTestNotification(customAmount, explicitStatus = null) {
   let status = 'approved';
 
@@ -620,7 +636,7 @@ async function triggerSingleTestNotification(customAmount, explicitStatus = null
     status = explicitStatus;
   } else {
     const profileSelect = document.getElementById('notifTestProfile');
-    const profile = profileSelect ? profileSelect.value : 'realista';
+    const profile = profileSelect ? profileSelect.value : 'alternada';
     status = pickStatusForProfile(profile, singleTestToggle ? 1 : 0);
     singleTestToggle = !singleTestToggle;
   }
@@ -641,31 +657,32 @@ async function triggerSingleTestNotification(customAmount, explicitStatus = null
 
   const selectVal = document.getElementById('notifTestAmount') ? document.getElementById('notifTestAmount').value : 'random';
   let amount = 197.00;
+  let orderId = '';
 
-  if (customAmount) {
-    amount = customAmount;
-  } else if (selectVal !== 'random') {
-    amount = parseFloat(selectVal) || 197.00;
+  if (isPending || !pendingTestOrder) {
+    if (customAmount) {
+      amount = customAmount;
+    } else if (selectVal !== 'random') {
+      amount = parseFloat(selectVal) || 197.00;
+    } else {
+      const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
+      amount = list[Math.floor(Math.random() * list.length)];
+    }
+    orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
+    if (isPending) {
+      pendingTestOrder = { amount, orderId };
+    }
   } else {
-    const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
-    amount = list[Math.floor(Math.random() * list.length)];
+    // Venda Aprovada correspondente à venda pendente anterior (mesmo pedido e valor)
+    amount = pendingTestOrder.amount;
+    orderId = pendingTestOrder.orderId;
+    pendingTestOrder = null;
   }
 
-  const orderId = `#PED-${10000 + Math.floor(Math.random() * 90000)}`;
   const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  let title = '🎉 VENDA APROVADA! - KryptaPay';
-  let subtitle = 'Pix Instantâneo Aprovado';
-  let statusLabel = 'Venda Aprovada';
-
-  if (isPending) {
-    title = '⏳ VENDA PENDENTE! - KryptaPay';
-    subtitle = 'Venda Pendente — Aguardando Pagamento';
-    statusLabel = 'Venda Pendente';
-  } else if (isRefused) {
-    title = '❌ VENDA RECUSADA - KryptaPay';
-    subtitle = 'Pagamento Recusado pelo Banco Emissor';
-    statusLabel = 'Venda Recusada';
+  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : (isPending ? '⏳ VENDA PENDENTE! - KryptaPay' : '❌ VENDA RECUSADA - KryptaPay');
+  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : (isPending ? 'Venda Pendente — Aguardando Pagamento' : 'Pagamento Recusado pelo Banco Emissor');
+  const statusLabel = isApproved ? 'Venda Aprovada' : (isPending ? 'Venda Pendente' : 'Venda Recusada');
   } else if (status === 'refunded') {
     title = '↩️ REEMBOLSO PROCESSADO - KryptaPay';
     subtitle = 'Estorno Concluído';
@@ -777,11 +794,13 @@ let simWakeLock = null;
 let simTimerWorker = null;
 
 // ========================================================
-// MOTOR DE EXECUÇÃO EM SEGUNDO PLANO
-// Mantém os disparos contínuos sem reproduzir áudio em loop e sem abrir player de música.
-// As notificações são disparadas exclusivamente como toques nativos de notificação.
+// MOTOR DE EXECUÇÃO EM SEGUNDO PLANO (TELA BLOQUEADA / FORA DO APP)
+// Mantém os disparos contínuos no Safari (iOS) e Chrome (Android) mesmo
+// com a tela apagada/bloqueada através de canal silencioso de baixa prioridade,
+// sem registrar MediaSession (não abre player de música com botões de faixa).
 // ========================================================
 class BackgroundNotificationEngine {
+  static _audioEl = null;
   static _isActive = false;
   static _lastTickTimestamp = 0;
   static _onTickCallback = null;
@@ -793,11 +812,46 @@ class BackgroundNotificationEngine {
     this._isActive = true;
     this._lastTickTimestamp = Date.now();
 
-    // Garantir que nenhuma sessão de mídia seja aberta no iOS ou Android
+    try {
+      if (!this._audioEl) {
+        this._audioEl = new Audio('/audio/silence.wav');
+        this._audioEl.loop = true;
+        this._audioEl.volume = 0.01;
+        this._audioEl.setAttribute('playsinline', 'true');
+        this._audioEl.setAttribute('webkit-playsinline', 'true');
+      }
+
+      this._audioEl.ontimeupdate = () => {
+        if (!this._isActive) return;
+        const now = Date.now();
+        const intervalMs = this._getIntervalMs ? this._getIntervalMs() : 5000;
+        if (now - this._lastTickTimestamp >= intervalMs) {
+          this._lastTickTimestamp = now;
+          if (typeof this._onTickCallback === 'function') {
+            this._onTickCallback();
+          }
+        }
+      };
+
+      const p = this._audioEl.play();
+      if (p !== undefined) {
+        p.catch(err => {
+          console.log('Background audio aguardando interação do usuário:', err);
+        });
+      }
+    } catch (e) {
+      console.warn('Erro ao inicializar segundo plano:', e);
+    }
+
+    // NUNCA registrar metadata nem action handlers no mediaSession para evitar o widget de música
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.metadata = null;
         navigator.mediaSession.playbackState = 'none';
+        try { navigator.mediaSession.setActionHandler('play', null); } catch (_) {}
+        try { navigator.mediaSession.setActionHandler('pause', null); } catch (_) {}
+        try { navigator.mediaSession.setActionHandler('previoustrack', null); } catch (_) {}
+        try { navigator.mediaSession.setActionHandler('nexttrack', null); } catch (_) {}
       } catch (_) {}
     }
   }
@@ -806,6 +860,12 @@ class BackgroundNotificationEngine {
     this._isActive = false;
     this._onTickCallback = null;
     this._getIntervalMs = null;
+    if (this._audioEl) {
+      try {
+        this._audioEl.pause();
+        this._audioEl.currentTime = 0;
+      } catch (_) {}
+    }
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.metadata = null;
@@ -1009,7 +1069,7 @@ function handleSeqTick() {
   BackgroundNotificationEngine.markTick();
 
   const profileSelect = document.getElementById('notifTestProfile');
-  const profile = profileSelect ? profileSelect.value : 'realista';
+  const profile = profileSelect ? profileSelect.value : 'alternada';
   const status = pickStatusForProfile(profile, notifSeqCurrent);
 
   triggerSingleTestNotification(null, status);
@@ -2913,6 +2973,9 @@ function addTestSale(notif) {
   if (status === 'approved') {
     TestDashboardState.vendasAprovadas = (TestDashboardState.vendasAprovadas || 0) + 1;
     TestDashboardState.faturamentoTotal += rawAmt;
+    if (TestDashboardState.vendasPendentes > 0) TestDashboardState.vendasPendentes--;
+    if (TestDashboardState.saldoPendente >= rawAmt) TestDashboardState.saldoPendente -= rawAmt;
+    else TestDashboardState.saldoPendente = 0;
   } else if (status === 'pending') {
     TestDashboardState.saldoPendente = (TestDashboardState.saldoPendente || 0) + rawAmt;
     TestDashboardState.vendasPendentes = (TestDashboardState.vendasPendentes || 0) + 1;

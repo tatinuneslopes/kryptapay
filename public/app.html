@@ -53,7 +53,7 @@
   <!-- Auto-Update Seguro: Atualiza sem loop de tela branca -->
   <script>
     (function() {
-      const CLIENT_VERSION = '2026.29';
+      const CLIENT_VERSION = '2026.30';
       let isUpdating = false;
 
       function checkAppUpdate() {
@@ -121,8 +121,8 @@
     window.closeMobileSidebar = closeMobileSidebar;
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.29">
-  <link rel="stylesheet" href="/css/components.css?v=2026.29">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.30">
+  <link rel="stylesheet" href="/css/components.css?v=2026.30">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -1349,9 +1349,10 @@
               <div>
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Perfil de Conversão (Aprovações & Recusas)</label>
                 <select id="notifTestProfile" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
-                  <option value="realista" selected>📊 Realista (~80% Aprovadas, 15% Recusadas, 5% Pendentes)</option>
-                  <option value="media">⚖️ Média (~50% Aprovadas, 40% Recusadas, 10% Pendentes)</option>
+                  <option value="alternada" selected>⚡ Alternado (Venda Pendente ➔ Venda Aprovada Pix)</option>
+                  <option value="realista">📊 Realista (~80% Aprovadas, 15% Recusadas, 5% Pendentes)</option>
                   <option value="apenas_aprovadas">🎉 100% Aprovadas (Apenas Vendas Confirmadas)</option>
+                  <option value="media">⚖️ Média (~50% Aprovadas, 40% Recusadas, 10% Pendentes)</option>
                   <option value="alta_recusa">⚠️ Alta Recusa (~30% Aprovadas, 60% Recusadas, 10% Pendentes)</option>
                   <option value="cenario_a">🧪 Cenário A (80 Aprovadas, 15 Recusadas, 5 Pendentes — 84,21%)</option>
                   <option value="cenario_b">🧪 Cenário B (45 Aprovadas, 45 Recusadas, 10 Pendentes — 50%)</option>
@@ -2528,12 +2529,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.29"></script>
-  <script src="/js/i18n.js?v=2026.29"></script>
-  <script src="/js/globe3d.js?v=2026.29"></script>
-  <script src="/js/particles.js?v=2026.29"></script>
-  <script src="/js/card3d.js?v=2026.29"></script>
-  <script src="/js/pwa.js?v=2026.29"></script>
-  <script src="/js/app.js?v=2026.29"></script>
+  <script src="/js/api.js?v=2026.30"></script>
+  <script src="/js/i18n.js?v=2026.30"></script>
+  <script src="/js/globe3d.js?v=2026.30"></script>
+  <script src="/js/particles.js?v=2026.30"></script>
+  <script src="/js/card3d.js?v=2026.30"></script>
+  <script src="/js/pwa.js?v=2026.30"></script>
+  <script src="/js/app.js?v=2026.30"></script>
 </body>
 </html>
