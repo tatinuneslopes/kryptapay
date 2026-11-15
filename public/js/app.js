@@ -751,16 +751,27 @@ function parseNotifDurationValue(val) {
 
 let lastSeqTickTime = 0;
 
+// Função acionada pelo controle deslizante de notificações (Arraste para Direita LIGA / Esquerda DESLIGA)
+function handleNotifSequenceToggle(isOn) {
+  if (isOn) {
+    startNotificationSequence();
+  } else {
+    stopNotificationSequence(false);
+  }
+}
+
 // Iniciar sequência de notificações contínua
 async function startNotificationSequence() {
-  // Solicita permissão de push se ainda não concedida
+  // Solicita permissão de push se ainda não concedida (sem travar a execução)
   if ('Notification' in window && Notification.permission !== 'granted') {
-    const perm = await Notification.requestPermission();
-    updateNotificationPermissionBadge();
-    if (perm !== 'granted') {
-      alert('Para as notificações de venda pingarem na barra do seu celular, autorize as notificações tocando em "Permitir"!');
-      return;
-    }
+    try {
+      const res = Notification.requestPermission();
+      if (res && typeof res.then === 'function') {
+        res.then(() => updateNotificationPermissionBadge()).catch(() => {});
+      } else {
+        updateNotificationPermissionBadge();
+      }
+    } catch (_) {}
   }
 
   const countSelect = document.getElementById('notifTestCount');
@@ -774,6 +785,20 @@ async function startNotificationSequence() {
   notifSeqCurrent = 0;
   notifSeqSessionStart = Date.now();
   lastSeqTickTime = 0;
+
+  // Atualizar visual do botãozinho deslizante para LIGADO
+  const toggle = document.getElementById('toggleNotifSequence');
+  if (toggle) toggle.checked = true;
+  const toggleBadge = document.getElementById('toggleNotifSequenceBadge');
+  if (toggleBadge) {
+    toggleBadge.className = 'badge-status badge-approved';
+    toggleBadge.innerHTML = '🟢 LIGADO — PINGANDO NO CELULAR';
+  }
+  const toggleStateText = document.getElementById('toggleNotifStateText');
+  if (toggleStateText) {
+    toggleStateText.textContent = 'LIGADO ⚡';
+    toggleStateText.style.color = '#4ade80';
+  }
 
   // Salvar sessão persistente no localStorage
   const sessionData = {
@@ -897,6 +922,20 @@ function stopNotificationSequence(completed = false) {
   releaseSimulationWakeLock();
   localStorage.removeItem('kryptapay_sim_session');
 
+  // Atualizar visual do botãozinho deslizante para DESLIGADO
+  const toggle = document.getElementById('toggleNotifSequence');
+  if (toggle) toggle.checked = false;
+  const toggleBadge = document.getElementById('toggleNotifSequenceBadge');
+  if (toggleBadge) {
+    toggleBadge.className = 'badge-status badge-pending';
+    toggleBadge.innerHTML = '⚪ DESLIGADO (Arraste para Ligar)';
+  }
+  const toggleStateText = document.getElementById('toggleNotifStateText');
+  if (toggleStateText) {
+    toggleStateText.textContent = 'DESLIGADO';
+    toggleStateText.style.color = 'var(--text-muted)';
+  }
+
   const btnStart = document.getElementById('btnStartNotifSeq');
   const btnStop = document.getElementById('btnStopNotifSeq');
   if (btnStart) btnStart.disabled = false;
@@ -906,7 +945,7 @@ function stopNotificationSequence(completed = false) {
   if (statusLabel) {
     statusLabel.textContent = completed 
       ? `✅ Disparo concluído com sucesso! ${notifSeqCurrent} vendas pingadas no celular.` 
-      : 'Disparos interrompidos pelo usuário.';
+      : 'Disparos desligados pelo botão.';
   }
 }
 
@@ -966,6 +1005,20 @@ function checkActiveSimulationSession() {
     notifSeqCurrent = s.currentTicks || 0;
     notifSeqSessionStart = s.startTime || now;
     lastSeqTickTime = 0;
+
+    // Atualizar visual do botãozinho deslizante para LIGADO
+    const toggle = document.getElementById('toggleNotifSequence');
+    if (toggle) toggle.checked = true;
+    const toggleBadge = document.getElementById('toggleNotifSequenceBadge');
+    if (toggleBadge) {
+      toggleBadge.className = 'badge-status badge-approved';
+      toggleBadge.innerHTML = '🟢 LIGADO — PINGANDO NO CELULAR';
+    }
+    const toggleStateText = document.getElementById('toggleNotifStateText');
+    if (toggleStateText) {
+      toggleStateText.textContent = 'LIGADO ⚡';
+      toggleStateText.style.color = '#4ade80';
+    }
 
     const btnStart = document.getElementById('btnStartNotifSeq');
     const btnStop = document.getElementById('btnStopNotifSeq');
@@ -2431,6 +2484,7 @@ window.toggleMobileSidebar = toggleSidebarMenu;
 window.closeMobileSidebar = closeMobileSidebar;
 if (typeof startNotificationSequence !== 'undefined') window.startNotificationSequence = startNotificationSequence;
 if (typeof stopNotificationSequence !== 'undefined') window.stopNotificationSequence = stopNotificationSequence;
+if (typeof handleNotifSequenceToggle !== 'undefined') window.handleNotifSequenceToggle = handleNotifSequenceToggle;
 if (typeof triggerSingleTestNotification !== 'undefined') window.triggerSingleTestNotification = triggerSingleTestNotification;
 if (typeof loadTransactionsData !== 'undefined') window.loadTransactionsData = loadTransactionsData;
 if (typeof loadFinancialData !== 'undefined') window.loadFinancialData = loadFinancialData;

@@ -1152,6 +1152,62 @@
   transform: translateX(22px);
 }
 
+/* SWITCH DESLIZANTE GRANDE DE DISPARO CONTÍNUO (ARRASTAR PARA DIREITA LIGA / ESQUERDA DESLIGA) */
+.krypta-switch-lg {
+  position: relative;
+  display: inline-block;
+  width: 72px;
+  height: 38px;
+  flex-shrink: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.krypta-switch-lg input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.krypta-slider-lg {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 38px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.krypta-slider-lg:before {
+  position: absolute;
+  content: "";
+  height: 28px;
+  width: 28px;
+  left: 4px;
+  bottom: 3.5px;
+  background-color: #ffffff;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.krypta-switch-lg input:checked + .krypta-slider-lg {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #34d399;
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.6), inset 0 1px 3px rgba(255, 255, 255, 0.3);
+}
+
+.krypta-switch-lg input:checked + .krypta-slider-lg:before {
+  transform: translateX(34px);
+  background-color: #ffffff;
+}
+
 /* Enquadramento responsivo do Header e Menus Flutuantes */
 #langMenu {
   z-index: 9999999 !important;
