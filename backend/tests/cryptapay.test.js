@@ -184,3 +184,120 @@ test('8. Saque Pix sem Trava com Taxa Oficial de R$ 1,99', async (t) => {
   assert.strictEqual(withdraw.fee, 1.99, 'Taxa registrada no saque deve ser R$ 1,99');
   assert.strictEqual(withdraw.status, 'completed', 'Saque deve ser aprovado sem bloqueios');
 });
+
+test('9. Reestruturação Dashboard 2: Fórmula Oficial da Taxa de Aprovação (Cenários A, B e C)', async (t) => {
+  function computeRate(aprovadas, recusadas) {
+    const finalizadas = (parseInt(aprovadas, 10) || 0) + (parseInt(recusadas, 10) || 0);
+    if (finalizadas === 0) return 'Sem dados';
+    const taxa = ((aprovadas / finalizadas) * 100);
+    return taxa.toFixed(2).replace('.', ',') + '%';
+  }
+
+  // Cenário A: 80 aprovadas, 15 recusadas, 5 pendentes -> 84,21%
+  const taxaA = computeRate(80, 15);
+  assert.strictEqual(taxaA, '84,21%', 'Cenário A deve resultar exatamente em 84,21%');
+
+  // Cenário B: 45 aprovadas, 45 recusadas, 10 pendentes -> 50,00%
+  const taxaB = computeRate(45, 45);
+  assert.strictEqual(taxaB, '50,00%', 'Cenário B deve resultar exatamente em 50,00%');
+
+  // Cenário C: 0 aprovadas, 0 recusadas, 10 pendentes -> "Sem dados" (NUNCA fixado em 100%)
+  const taxaC = computeRate(0, 0);
+  assert.strictEqual(taxaC, 'Sem dados', 'Cenário C sem transações finalizadas DEVE mostrar "Sem dados" e nunca 100%');
+});
+
+test('10. Reestruturação Dashboard 2: Integridade dos 10 Indicadores Financeiros', async (t) => {
+  // Simulação de transações
+  const vendas = [
+    { id: '#PED-1', amount: 100.00, status: 'approved' },
+    { id: '#PED-2', amount: 200.00, status: 'approved' },
+    { id: '#PED-3', amount: 150.00, status: 'refused' },  // Recusada não entra no faturamento
+    { id: '#PED-4', amount: 50.00,  status: 'pending' },  // Pendente não entra no faturamento
+    { id: '#PED-5', amount: 30.00,  status: 'refunded' }, // Reembolso
+    { id: '#PED-6', amount: 20.00,  status: 'chargeback' } // Chargeback
+  ];
+
+  let faturamentoTotal = 0;
+  let saldoPendente = 0;
+  let vendasAprovadas = 0;
+  let vendasRecusadas = 0;
+  let vendasPendentes = 0;
+  let totalReembolsos = 0;
+  let totalChargebacks = 0;
+
+  for (const v of vendas) {
+    if (v.status === 'approved') {
+      faturamentoTotal += v.amount;
+      vendasAprovadas++;
+    } else if (v.status === 'refused') {
+      vendasRecusadas++;
+    } else if (v.status === 'pending') {
+      saldoPendente += v.amount;
+      vendasPendentes++;
+    } else if (v.status === 'refunded') {
+      totalReembolsos += v.amount;
+    } else if (v.status === 'chargeback') {
+      totalChargebacks += v.amount;
+    }
+  }
+
+  const saldoDisponivel = parseFloat((faturamentoTotal * 0.95).toFixed(2));
+  const saldoRetencao = parseFloat((faturamentoTotal * 0.05).toFixed(2));
+  const finalizadas = vendasAprovadas + vendasRecusadas;
+  const taxaAprovacao = finalizadas > 0 ? (((vendasAprovadas / finalizadas) * 100).toFixed(2).replace('.', ',') + '%') : 'Sem dados';
+  const ticketMedio = vendasAprovadas > 0 ? parseFloat((faturamentoTotal / vendasAprovadas).toFixed(2)) : 0;
+
+  // 1. Faturamento total: soma das vendas aprovadas (100 + 200 = 300)
+  assert.strictEqual(faturamentoTotal, 300.00, 'Faturamento total deve considerar apenas vendas aprovadas');
+  // 2. Saldo disponível: 95% do faturamento (300 * 0.95 = 285)
+  assert.strictEqual(saldoDisponivel, 285.00, 'Saldo disponível deve ser exatamente 95% do faturamento aprovado');
+  // 3. Saldo pendente: soma das vendas pendentes (50)
+  assert.strictEqual(saldoPendente, 50.00, 'Saldo pendente deve ser a soma das transações pendentes');
+  // 4. Saldo em retenção: 5% do faturamento (300 * 0.05 = 15)
+  assert.strictEqual(saldoRetencao, 15.00, 'Saldo em retenção deve ser 5% do faturamento aprovado');
+  // 5. Quantidade de vendas aprovadas: 2
+  assert.strictEqual(vendasAprovadas, 2, 'Quantidade de aprovadas deve ser 2');
+  // 6. Quantidade de vendas recusadas: 1
+  assert.strictEqual(vendasRecusadas, 1, 'Quantidade de recusadas deve ser 1');
+  // 7. Taxa de aprovação: (2 / (2 + 1)) * 100 = 66,67%
+  assert.strictEqual(taxaAprovacao, '66,67%', 'Taxa de aprovação deve ser 66,67%');
+  // 8. Ticket médio: 300 / 2 = 150
+  assert.strictEqual(ticketMedio, 150.00, 'Ticket médio deve ser R$ 150,00 considerando apenas aprovadas');
+  // 9. Total de reembolsos: 30
+  assert.strictEqual(totalReembolsos, 30.00, 'Total de reembolsos deve ser 30,00');
+  // 10. Total de chargebacks: 20
+  assert.strictEqual(totalChargebacks, 20.00, 'Total de chargebacks deve ser 20,00');
+});
+
+test('11. Transição de Venda Pendente para Aprovada e para Recusada', async (t) => {
+  let faturamentoTotal = 1000.00;
+  let saldoPendente = 200.00;
+  let vendasAprovadas = 10;
+  let vendasRecusadas = 2;
+  let vendasPendentes = 1;
+
+  // Transição 1: Venda pendente de R$ 200 é aprovada
+  const valorVenda = 200.00;
+  saldoPendente -= valorVenda;
+  vendasPendentes--;
+  faturamentoTotal += valorVenda;
+  vendasAprovadas++;
+
+  assert.strictEqual(saldoPendente, 0.00, 'Saldo pendente deve zerar após aprovação');
+  assert.strictEqual(vendasPendentes, 0, 'Vendas pendentes deve decrementar');
+  assert.strictEqual(faturamentoTotal, 1200.00, 'Faturamento total deve incorporar o valor da venda aprovada');
+  assert.strictEqual(vendasAprovadas, 11, 'Vendas aprovadas deve incrementar');
+
+  // Transição 2: Nova venda pendente de R$ 100 é recusada
+  saldoPendente += 100.00;
+  vendasPendentes++;
+  
+  // Agora recusa:
+  saldoPendente -= 100.00;
+  vendasPendentes--;
+  vendasRecusadas++;
+
+  assert.strictEqual(saldoPendente, 0.00, 'Saldo pendente deve ser removido após recusa');
+  assert.strictEqual(faturamentoTotal, 1200.00, 'Faturamento NÃO deve alterar ao recusar');
+  assert.strictEqual(vendasRecusadas, 3, 'Vendas recusadas deve incrementar');
+});

@@ -508,22 +508,49 @@
         <!-- ========================================================= -->
         <div id="pane-test-dashboard" class="view-pane" style="display:none;">
           <!-- Topo com Filtros e Ações -->
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
             <div>
-              <h3 style="font-size: 1.55rem; font-weight: 800; color: #fff;">Dashboard 2</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); max-width:720px;">
-                Acompanhamento dinâmico de faturamento, saldo disponível e vendas conforme as notificações são disparadas.
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <h3 style="font-size: 1.65rem; font-weight: 800; color: #fff; margin:0;">Dashboard 2</h3>
+                <span class="badge-status badge-approved" style="font-size:0.75rem; padding:0.25rem 0.65rem;">🧪 Modo Simulação & Demonstração</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); max-width:760px; margin:0.35rem 0 0;">
+                Ambiente de demonstração e simulação em tempo real para lojistas. Movimentações dinâmicas, indicadores calculados matematicamente e integração total com as notificações de teste.
               </p>
             </div>
-            <div>
-              <button onclick="resetTestDashboard()" class="btn-secondary" style="padding:0.55rem 1.25rem; font-size:0.85rem; font-weight:700; border-radius:10px; color:#f87171; border-color:rgba(239,68,68,0.45); background:rgba(239,68,68,0.1); cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;" title="Zerar métricas">
+            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+              <button onclick="openSimulationConfigModal()" class="btn-primary" style="padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:10px; display:inline-flex; align-items:center; gap:0.4rem;" title="Configurar e Iniciar Simulação">
+                <span>🚀</span> <span>Disparar Simulação</span>
+              </button>
+              <button onclick="resetTestDashboard()" class="btn-secondary" style="padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:10px; color:#f87171; border-color:rgba(239,68,68,0.45); background:rgba(239,68,68,0.1); cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;" title="Zerar todas as métricas simuladas">
                 <span>🔄</span> <span>Zerar</span>
               </button>
             </div>
           </div>
 
-          <!-- CARDS DE INDICADORES DA DASHBOARD 2 -->
-          <div class="kpi-grid">
+          <!-- BANNER DE ISOLAMENTO DE TESTE vs PRODUÇÃO (OBRIGATÓRIO) -->
+          <div style="background:linear-gradient(135deg, rgba(168,85,247,0.12), rgba(6,182,212,0.08)); border:1px solid rgba(168,85,247,0.35); border-radius:14px; padding:0.95rem 1.35rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.9rem;">
+            <div style="display:flex; align-items:center; gap:0.85rem;">
+              <div style="width:40px; height:40px; border-radius:10px; background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.4); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">
+                🛡️
+              </div>
+              <div>
+                <strong style="color:#c084fc; font-size:0.95rem; display:block;">Isolamento Rígido: Saldo Virtual & Transações Simuladas</strong>
+                <span style="font-size:0.82rem; color:var(--text-muted); line-height:1.4;">
+                  Este ambiente opera exclusivamente com dados de demonstração. Não movimenta dinheiro real, não altera saldos reais nem interfere nas operações de produção.
+                </span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <span style="font-size:0.75rem; color:#a1a1aa; font-weight:600;">Cenários de Teste Rápidos:</span>
+              <button onclick="loadScenarioPreset('A')" class="pill-btn" style="padding:0.25rem 0.65rem; font-size:0.75rem;" title="80 Aprovadas, 15 Recusadas, 5 Pendentes (Taxa: 84,21%)">Cenário A (84,21%)</button>
+              <button onclick="loadScenarioPreset('B')" class="pill-btn" style="padding:0.25rem 0.65rem; font-size:0.75rem;" title="45 Aprovadas, 45 Recusadas, 10 Pendentes (Taxa: 50%)">Cenário B (50%)</button>
+              <button onclick="loadScenarioPreset('C')" class="pill-btn" style="padding:0.25rem 0.65rem; font-size:0.75rem;" title="0 Aprovadas, 0 Recusadas, 10 Pendentes (Taxa: Sem dados)">Cenário C (Sem dados)</button>
+            </div>
+          </div>
+
+          <!-- OS 10 INDICADORES FINANCEIROS DA DASHBOARD 2 -->
+          <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:1rem;">
             <!-- 1. Faturamento Total -->
             <div class="glass-card kpi-card" style="--card-accent: #a855f7;">
               <div class="kpi-header">
@@ -531,7 +558,7 @@
                 <span class="kpi-icon">💰</span>
               </div>
               <div id="test-metric-faturamento" class="kpi-value" style="color:#ffffff;">R$ 0,00</div>
-              <div class="kpi-footer"><span class="kpi-trend-up">▲ 100%</span> Faturamento acumulado</div>
+              <div class="kpi-footer"><span class="kpi-trend-up">▲ Bruto</span> Apenas vendas aprovadas</div>
             </div>
 
             <!-- 2. Saldo Disponível -->
@@ -541,7 +568,7 @@
                 <span class="kpi-icon">⚡</span>
               </div>
               <div id="test-metric-disponivel" class="kpi-value" style="color:var(--status-success);">R$ 0,00</div>
-              <div class="kpi-footer">Líquido de vendas aprovadas</div>
+              <div class="kpi-footer">Líquido de taxas (95%)</div>
             </div>
 
             <!-- 3. Saldo Pendente -->
@@ -551,7 +578,7 @@
                 <span class="kpi-icon">⏳</span>
               </div>
               <div id="test-metric-pendente" class="kpi-value" style="color:var(--status-warning);">R$ 0,00</div>
-              <div class="kpi-footer">Vendas pendentes aguardando pagamento</div>
+              <div class="kpi-footer">Aguardando pagamento</div>
             </div>
 
             <!-- 4. Saldo em Retenção -->
@@ -564,34 +591,34 @@
               <div class="kpi-footer">5% reserva antifraude</div>
             </div>
 
-            <!-- 5. Vendas Aprovadas -->
+            <!-- 5. Quantidade de Vendas Aprovadas -->
             <div class="glass-card kpi-card" style="--card-accent: #10b981;">
               <div class="kpi-header">
                 <span class="kpi-title">5. Vendas Aprovadas</span>
                 <span class="kpi-icon">✅</span>
               </div>
               <div id="test-metric-aprovadas" class="kpi-value" style="color:var(--status-success);">0</div>
-              <div class="kpi-footer">Notificações recebidas no celular</div>
+              <div class="kpi-footer">Pagamentos confirmados</div>
             </div>
 
-            <!-- 6. Vendas Pendentes -->
-            <div class="glass-card kpi-card" style="--card-accent: #f59e0b;">
+            <!-- 6. Quantidade de Vendas Recusadas -->
+            <div class="glass-card kpi-card" style="--card-accent: #ef4444;">
               <div class="kpi-header">
-                <span class="kpi-title">6. Vendas Pendentes</span>
-                <span class="kpi-icon">🔄</span>
+                <span class="kpi-title">6. Vendas Recusadas</span>
+                <span class="kpi-icon">❌</span>
               </div>
-              <div id="test-metric-pendentes" class="kpi-value" style="color:var(--status-warning);">0</div>
-              <div class="kpi-footer">Pix aguardando compensação</div>
+              <div id="test-metric-recusadas" class="kpi-value" style="color:#f87171;">0</div>
+              <div class="kpi-footer">Pagamento não autorizado</div>
             </div>
 
-            <!-- 7. Taxa de Aprovação / Conversão -->
+            <!-- 7. Taxa de Aprovação (FÓRMULA AUTOMÁTICA OFICIAL) -->
             <div class="glass-card kpi-card" style="--card-accent: #06b6d4;">
               <div class="kpi-header">
                 <span class="kpi-title">7. Taxa de Aprovação</span>
                 <span class="kpi-icon">📈</span>
               </div>
-              <div id="test-metric-taxa" class="kpi-value" style="color:#38bdf8;">0%</div>
-              <div class="kpi-footer">Taxa de conversão em tempo real</div>
+              <div id="test-metric-taxa" class="kpi-value" style="color:#38bdf8;">Sem dados</div>
+              <div class="kpi-footer" id="test-metric-taxa-footer">Aprovadas ÷ Finalizadas</div>
             </div>
 
             <!-- 8. Ticket Médio -->
@@ -601,32 +628,118 @@
                 <span class="kpi-icon">🏷️</span>
               </div>
               <div id="test-metric-ticket" class="kpi-value" style="color:#f472b6;">R$ 0,00</div>
-              <div class="kpi-footer">Média por venda aprovada</div>
+              <div class="kpi-footer">Faturamento ÷ Aprovadas</div>
+            </div>
+
+            <!-- 9. Total de Reembolsos -->
+            <div class="glass-card kpi-card" style="--card-accent: #64748b;">
+              <div class="kpi-header">
+                <span class="kpi-title">9. Total de Reembolsos</span>
+                <span class="kpi-icon">↩️</span>
+              </div>
+              <div id="test-metric-reembolsos" class="kpi-value" style="color:#94a3b8;">R$ 0,00</div>
+              <div class="kpi-footer">Pagamentos devolvidos</div>
+            </div>
+
+            <!-- 10. Total de Chargebacks -->
+            <div class="glass-card kpi-card" style="--card-accent: #f97316;">
+              <div class="kpi-header">
+                <span class="kpi-title">10. Total Chargebacks</span>
+                <span class="kpi-icon">⚠️</span>
+              </div>
+              <div id="test-metric-chargebacks" class="kpi-value" style="color:#fb923c;">R$ 0,00</div>
+              <div class="kpi-footer">Contestações bancárias</div>
             </div>
           </div>
 
-          <!-- Tabela de Notificações / Vendas de Teste que Pingaram -->
+          <!-- SEÇÃO DE GRÁFICOS DINÂMICOS DA DASHBOARD 2 -->
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:1.25rem; margin-top:1.5rem;">
+            <!-- Gráfico 1: Volume de Vendas & Faturamento em Tempo Real -->
+            <div class="glass-card glow-border" style="padding:1.5rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                <div>
+                  <h4 style="font-size:1.05rem; font-weight:800; color:#fff; margin:0;">Volume de Faturamento (Ao Vivo)</h4>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Curva de faturamento acumulado por transação</div>
+                </div>
+                <span id="chartRevenueTotalBadge" class="badge-status badge-approved" style="font-size:0.75rem;">R$ 0,00</span>
+              </div>
+              <div id="dashboard2RevenueChartContainer" style="width:100%; height:160px; position:relative;">
+                <!-- Gráfico SVG renderizado via JavaScript -->
+              </div>
+            </div>
+
+            <!-- Gráfico 2: Distribuição de Conversão (Aprovadas vs Recusadas vs Pendentes) -->
+            <div class="glass-card glow-border" style="padding:1.5rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                <div>
+                  <h4 style="font-size:1.05rem; font-weight:800; color:#fff; margin:0;">Distribuição de Conversão</h4>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Aprovadas, Recusadas e Pendentes</div>
+                </div>
+                <span id="chartConversionRateBadge" class="badge-status badge-approved" style="font-size:0.75rem;">Taxa: Sem dados</span>
+              </div>
+              <div id="dashboard2ConversionBarContainer" style="width:100%; padding-top:0.5rem;">
+                <!-- Barras proporcionais e percentuais renderizados via JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <!-- HISTÓRICO DE MOVIMENTAÇÕES EM TEMPO REAL COM FILTROS -->
           <div class="glass-card" style="padding: 1.75rem; margin-top: 1.75rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
-              <h4 style="font-size: 1.25rem; font-weight:800; color:#fff;">Extrato de Vendas Pingadas no Celular (Ao Vivo)</h4>
-              <span id="test-sales-live-badge" class="badge-status badge-approved" style="font-size:0.75rem;">🟢 Aguardando Notificações</span>
+              <div>
+                <h4 style="font-size: 1.25rem; font-weight:800; color:#fff; margin:0;">Histórico de Movimentações em Tempo Real</h4>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+                  Cada notificação que apita no celular reflete instantaneamente neste extrato e atualiza todos os indicadores.
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                <span id="test-sales-live-badge" class="badge-status badge-approved" style="font-size:0.75rem;">🟢 Sistema Sincronizado</span>
+                <button onclick="triggerSingleTestNotification(null, null)" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem; border-radius:8px;">
+                  + Disparar 1 Venda
+                </button>
+              </div>
             </div>
+
+            <!-- Barra de Filtros por Período e por Status -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:0.85rem 1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; margin-bottom:1.25rem;">
+              <!-- Filtro de Período -->
+              <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700;">Período:</span>
+                <button onclick="setTestSalesPeriodFilter('all')" id="filterPeriodAll" class="pill-btn active" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Todos</button>
+                <button onclick="setTestSalesPeriodFilter('today')" id="filterPeriodToday" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Hoje</button>
+                <button onclick="setTestSalesPeriodFilter('7d')" id="filterPeriod7d" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">7 Dias</button>
+                <button onclick="setTestSalesPeriodFilter('30d')" id="filterPeriod30d" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">30 Dias</button>
+              </div>
+
+              <!-- Filtro de Status -->
+              <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700;">Status:</span>
+                <button onclick="setTestSalesStatusFilter('all')" id="filterStatusAll" class="pill-btn active" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Todos</button>
+                <button onclick="setTestSalesStatusFilter('approved')" id="filterStatusApproved" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Aprovadas</button>
+                <button onclick="setTestSalesStatusFilter('pending')" id="filterStatusPending" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Pendentes</button>
+                <button onclick="setTestSalesStatusFilter('refused')" id="filterStatusRefused" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Recusadas</button>
+                <button onclick="setTestSalesStatusFilter('other')" id="filterStatusOther" class="pill-btn" style="font-size:0.75rem; padding:0.25rem 0.65rem;">Reembolso / Chargeback</button>
+              </div>
+            </div>
+
+            <!-- Tabela de Transações Simuladas -->
             <div class="table-responsive">
               <table class="crypta-table">
                 <thead>
                   <tr>
-                    <th>Pedido</th>
+                    <th>Identificador</th>
                     <th>Valor</th>
-                    <th>Tipo</th>
-                    <th>Status</th>
+                    <th>Método</th>
+                    <th>Status Atualizado</th>
                     <th>Dispositivo</th>
-                    <th>Horário</th>
+                    <th>Data & Horário</th>
+                    <th style="text-align:right;">Ações / Transição</th>
                   </tr>
                 </thead>
                 <tbody id="testSalesTableBody">
                   <tr>
-                    <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
-                      Nenhuma notificação pingada ainda. Vá em <strong>Notificações</strong>, configure a quantidade e inicie os disparos para ver o faturamento subir ao vivo!
+                    <td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                      Nenhuma notificação simulada ainda. Vá em <strong>Notificações</strong> ou clique em <strong>Disparar Simulação</strong> para ver os indicadores e o faturamento evoluírem ao vivo!
                     </td>
                   </tr>
                 </tbody>
@@ -1210,6 +1323,19 @@
                   <option value="197">R$ 197,00 (Ticket Médio)</option>
                   <option value="497">R$ 497,00 (Ticket Alto)</option>
                   <option value="997">R$ 997,00 (Ticket VIP Black)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Perfil de Conversão (Aprovações & Recusas)</label>
+                <select id="notifTestProfile" class="glass-card" style="width:100%; padding:0.85rem; color:#fff; margin-top:0.4rem; background:var(--bg-surface); font-size:0.92rem; border:1px solid rgba(168,85,247,0.35); border-radius:10px;">
+                  <option value="realista" selected>📊 Realista (~80% Aprovadas, 15% Recusadas, 5% Pendentes)</option>
+                  <option value="media">⚖️ Média (~50% Aprovadas, 40% Recusadas, 10% Pendentes)</option>
+                  <option value="apenas_aprovadas">🎉 100% Aprovadas (Apenas Vendas Confirmadas)</option>
+                  <option value="alta_recusa">⚠️ Alta Recusa (~30% Aprovadas, 60% Recusadas, 10% Pendentes)</option>
+                  <option value="cenario_a">🧪 Cenário A (80 Aprovadas, 15 Recusadas, 5 Pendentes — 84,21%)</option>
+                  <option value="cenario_b">🧪 Cenário B (45 Aprovadas, 45 Recusadas, 10 Pendentes — 50%)</option>
+                  <option value="cenario_c">🧪 Cenário C (0 Aprovadas, 0 Recusadas, 10 Pendentes — Sem dados)</option>
                 </select>
               </div>
             </div>

@@ -548,14 +548,63 @@ async function sendNativePhoneNotification(notifObj) {
 
 let pendingTestOrder = null;
 let singleTestToggle = false;
+let pendingTestOrder = null;
 
-// Disparo com Alternância (VENDA PENDENTE -> VENDA APROVADA)
-async function triggerSingleTestNotification(customAmount, isPending = null) {
-  if (isPending === null) {
-    // Alterna a cada clique: 1º Pendente, 2º Aprovada, 3º Pendente, 4º Aprovada...
-    isPending = singleTestToggle;
+// Sorteio de status com base no perfil de simulação selecionado
+function pickStatusForProfile(profile, tickIdx) {
+  if (profile === 'apenas_aprovadas') return 'approved';
+  if (profile === 'cenario_c') return 'pending';
+  if (profile === 'cenario_a') {
+    const m = (tickIdx || 0) % 100;
+    if (m < 80) return 'approved';
+    if (m < 95) return 'refused';
+    return 'pending';
+  }
+  if (profile === 'cenario_b') {
+    const m = (tickIdx || 0) % 100;
+    if (m < 45) return 'approved';
+    if (m < 90) return 'refused';
+    return 'pending';
+  }
+  if (profile === 'alta_recusa') {
+    const r = Math.random();
+    if (r < 0.30) return 'approved';
+    if (r < 0.90) return 'refused';
+    return 'pending';
+  }
+  if (profile === 'media') {
+    const r = Math.random();
+    if (r < 0.50) return 'approved';
+    if (r < 0.90) return 'refused';
+    return 'pending';
+  }
+  // Default 'realista': 80% aprovadas, 15% recusadas, 5% pendentes
+  const r = Math.random();
+  if (r < 0.80) return 'approved';
+  if (r < 0.95) return 'refused';
+  return 'pending';
+}
+
+// Disparo de Venda de Teste com suporte a perfis e status explícito
+async function triggerSingleTestNotification(customAmount, explicitStatus = null) {
+  let status = 'approved';
+
+  if (explicitStatus === true) {
+    status = 'pending';
+  } else if (explicitStatus === false) {
+    status = 'approved';
+  } else if (typeof explicitStatus === 'string') {
+    status = explicitStatus;
+  } else {
+    const profileSelect = document.getElementById('notifTestProfile');
+    const profile = profileSelect ? profileSelect.value : 'realista';
+    status = pickStatusForProfile(profile, singleTestToggle ? 1 : 0);
     singleTestToggle = !singleTestToggle;
   }
+
+  const isApproved = status === 'approved';
+  const isPending = status === 'pending';
+  const isRefused = status === 'refused';
 
   const prefSound = document.getElementById('prefSoundToggle') ? document.getElementById('prefSoundToggle').checked : true;
   if (prefSound) {
@@ -569,30 +618,40 @@ async function triggerSingleTestNotification(customAmount, isPending = null) {
 
   const selectVal = document.getElementById('notifTestAmount') ? document.getElementById('notifTestAmount').value : 'random';
   let amount = 197.00;
-  let orderId = '';
 
-  if (isPending || !pendingTestOrder) {
-    if (customAmount) {
-      amount = customAmount;
-    } else if (selectVal !== 'random') {
-      amount = parseFloat(selectVal) || 197.00;
-    } else {
-      const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
-      amount = list[Math.floor(Math.random() * list.length)];
-    }
-    orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
-    pendingTestOrder = { amount, orderId };
+  if (customAmount) {
+    amount = customAmount;
+  } else if (selectVal !== 'random') {
+    amount = parseFloat(selectVal) || 197.00;
   } else {
-    // Aprovação da venda pendente anterior (mesmo pedido e valor)
-    amount = pendingTestOrder.amount;
-    orderId = pendingTestOrder.orderId;
-    pendingTestOrder = null;
+    const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
+    amount = list[Math.floor(Math.random() * list.length)];
   }
 
+  const orderId = `#PED-${10000 + Math.floor(Math.random() * 90000)}`;
   const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const isApproved = !isPending;
-  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
-  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
+
+  let title = '🎉 VENDA APROVADA! - KryptaPay';
+  let subtitle = 'Pix Instantâneo Aprovado';
+  let statusLabel = 'Venda Aprovada';
+
+  if (isPending) {
+    title = '⏳ VENDA PENDENTE! - KryptaPay';
+    subtitle = 'Venda Pendente — Aguardando Pagamento';
+    statusLabel = 'Venda Pendente';
+  } else if (isRefused) {
+    title = '❌ VENDA RECUSADA - KryptaPay';
+    subtitle = 'Pagamento Recusado pelo Banco Emissor';
+    statusLabel = 'Venda Recusada';
+  } else if (status === 'refunded') {
+    title = '↩️ REEMBOLSO PROCESSADO - KryptaPay';
+    subtitle = 'Estorno Concluído';
+    statusLabel = 'Reembolso';
+  } else if (status === 'chargeback') {
+    title = '⚠️ DISPUTA / CHARGEBACK - KryptaPay';
+    subtitle = 'Contestação Aberta pelo Titular';
+    statusLabel = 'Chargeback';
+  }
 
   const notifId = 'krypta_sale_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
   processedNotifIds.add(notifId);
@@ -606,7 +665,8 @@ async function triggerSingleTestNotification(customAmount, isPending = null) {
     amount: `R$ ${formattedAmount}`,
     rawAmount: amount,
     orderId: orderId,
-    status: isApproved ? 'approved' : 'pending',
+    status: status,
+    statusLabel: statusLabel,
     subtitle: subtitle,
     nativeBody: `Valor: R$ ${formattedAmount} • Pedido ${orderId}\n${subtitle}`,
     timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -620,7 +680,7 @@ async function triggerSingleTestNotification(customAmount, isPending = null) {
   AppState.notificationsHistory.unshift(notifObj);
   renderNotificationsList();
 
-  // 3. Atualizar a Dashboard Teste em tempo real
+  // 3. Atualizar a Dashboard Teste em tempo real com os 10 indicadores e gráficos
   addTestSale(notifObj);
 
   // 4. TRANSMITIR IMEDIATAMENTE PARA TODOS OS CELULARES LOGADOS PINGAREM!
@@ -971,7 +1031,7 @@ async function startNotificationSequence() {
   }, () => Math.round(notifSeqIntervalSec * 1000));
 }
 
-// Cada disparo individual da sequência (alternando Venda Pendente e Venda Aprovada)
+// Cada disparo individual da sequência conforme o perfil configurado
 function handleSeqTick() {
   const now = Date.now();
   const minIntervalMs = Math.max((notifSeqIntervalSec * 1000) * 0.7, 300);
@@ -982,9 +1042,11 @@ function handleSeqTick() {
 
   BackgroundNotificationEngine.markTick();
 
-  // Alterna perfeitamente: Venda Pendente -> Venda Aprovada
-  const isPending = (notifSeqCurrent % 2 === 0);
-  triggerSingleTestNotification(null, isPending);
+  const profileSelect = document.getElementById('notifTestProfile');
+  const profile = profileSelect ? profileSelect.value : 'realista';
+  const status = pickStatusForProfile(profile, notifSeqCurrent);
+
+  triggerSingleTestNotification(null, status);
   notifSeqCurrent++;
 
   // Atualizar sessão persistente
@@ -2678,29 +2740,64 @@ const GlobalSyncBridge = {
 const savedLocalFaturamento = parseFloat(localStorage.getItem('krypta_test_faturamento'));
 const initialFaturamento = (!isNaN(savedLocalFaturamento) && savedLocalFaturamento > 45000) ? savedLocalFaturamento : 641506.00;
 const initialAprovadas = parseInt(localStorage.getItem('krypta_test_aprovadas'), 10) || 325;
+const initialRecusadas = parseInt(localStorage.getItem('krypta_test_recusadas'), 10) || 18;
+const initialPendentes = parseInt(localStorage.getItem('krypta_test_pendentes'), 10) || 0;
+const initialSaldoPendente = parseFloat(localStorage.getItem('krypta_test_pendente')) || 0;
+const initialReembolsos = parseFloat(localStorage.getItem('krypta_test_reembolsos')) || 0;
+const initialChargebacks = parseFloat(localStorage.getItem('krypta_test_chargebacks')) || 0;
 
 const TestDashboardState = {
   faturamentoTotal: initialFaturamento,
   saldoDisponivel: parseFloat(localStorage.getItem('krypta_test_disponivel')) || (initialFaturamento * 0.95),
-  saldoPendente: 0,
+  saldoPendente: initialSaldoPendente,
   saldoRetencao: parseFloat(localStorage.getItem('krypta_test_retencao')) || (initialFaturamento * 0.05),
   vendasAprovadas: initialAprovadas,
-  vendasPendentes: 0,
-  recentSales: JSON.parse(localStorage.getItem('krypta_test_recent_sales') || '[]')
+  vendasRecusadas: initialRecusadas,
+  vendasPendentes: initialPendentes,
+  taxaAprovacao: '94,75%',
+  ticketMedio: (initialAprovadas > 0 ? (initialFaturamento / initialAprovadas) : 0),
+  totalReembolsos: initialReembolsos,
+  totalChargebacks: initialChargebacks,
+  recentSales: JSON.parse(localStorage.getItem('krypta_test_recent_sales') || '[]'),
+  currentPeriodFilter: 'all',
+  currentStatusFilter: 'all'
 };
 
-// Manter saldo pendente zerado na dashboard 2
-localStorage.setItem('krypta_test_pendente', '0');
-localStorage.setItem('krypta_test_pendentes', '0');
+// Cálculo Oficial da Taxa de Aprovação:
+// Taxa = (Vendas aprovadas ÷ (Vendas aprovadas + Vendas recusadas)) × 100
+function computeApprovalRate(aprovadas, recusadas) {
+  const ap = parseInt(aprovadas, 10) || 0;
+  const rc = parseInt(recusadas, 10) || 0;
+  const finalizadas = ap + rc;
+  if (finalizadas === 0) {
+    return 'Sem dados';
+  }
+  const pct = (ap / finalizadas) * 100;
+  return pct.toFixed(2).replace('.', ',') + '%';
+}
+
+function recalculateDashboard2Metrics() {
+  const ap = parseInt(TestDashboardState.vendasAprovadas, 10) || 0;
+  const rc = parseInt(TestDashboardState.vendasRecusadas, 10) || 0;
+  const fat = parseFloat(TestDashboardState.faturamentoTotal) || 0;
+
+  TestDashboardState.taxaAprovacao = computeApprovalRate(ap, rc);
+  TestDashboardState.saldoDisponivel = parseFloat((fat * 0.95).toFixed(2));
+  TestDashboardState.saldoRetencao = parseFloat((fat * 0.05).toFixed(2));
+  TestDashboardState.ticketMedio = ap > 0 ? parseFloat((fat / ap).toFixed(2)) : 0;
+}
 
 function saveTestDashboardStateLocally() {
   localStorage.setItem('krypta_test_faturamento', TestDashboardState.faturamentoTotal);
   localStorage.setItem('krypta_test_disponivel', TestDashboardState.saldoDisponivel);
-  localStorage.setItem('krypta_test_pendente', '0');
+  localStorage.setItem('krypta_test_pendente', TestDashboardState.saldoPendente);
   localStorage.setItem('krypta_test_retencao', TestDashboardState.saldoRetencao);
   localStorage.setItem('krypta_test_aprovadas', TestDashboardState.vendasAprovadas);
-  localStorage.setItem('krypta_test_pendentes', '0');
-  localStorage.setItem('krypta_test_recent_sales', JSON.stringify(TestDashboardState.recentSales.slice(0, 50)));
+  localStorage.setItem('krypta_test_recusadas', TestDashboardState.vendasRecusadas);
+  localStorage.setItem('krypta_test_pendentes', TestDashboardState.vendasPendentes);
+  localStorage.setItem('krypta_test_reembolsos', TestDashboardState.totalReembolsos);
+  localStorage.setItem('krypta_test_chargebacks', TestDashboardState.totalChargebacks);
+  localStorage.setItem('krypta_test_recent_sales', JSON.stringify(TestDashboardState.recentSales.slice(0, 100)));
 }
 
 function saveTestDashboardState() {
@@ -2722,22 +2819,32 @@ function applyServerTestDashboardState(serverState) {
     TestDashboardState.saldoPendente = 0;
     TestDashboardState.saldoRetencao = 0;
     TestDashboardState.vendasAprovadas = 0;
+    TestDashboardState.vendasRecusadas = 0;
     TestDashboardState.vendasPendentes = 0;
+    TestDashboardState.totalReembolsos = 0;
+    TestDashboardState.totalChargebacks = 0;
+    TestDashboardState.taxaAprovacao = 'Sem dados';
+    TestDashboardState.ticketMedio = 0;
     TestDashboardState.recentSales = [];
     saveTestDashboardStateLocally();
     updateTestDashboardUI();
     return;
   }
 
-  // Se o servidor tem valores mais novos, maiores ou iguais (ex: notebook recebendo dados do celular):
-  if (serverAmt >= localAmt) {
+  // Sincronização Server -> Client com todos os 10 indicadores
+  if (serverAmt >= localAmt || serverAprov >= localAprov) {
     const changed = (TestDashboardState.faturamentoTotal !== serverAmt || TestDashboardState.vendasAprovadas !== serverAprov);
     TestDashboardState.faturamentoTotal = serverAmt;
     TestDashboardState.saldoDisponivel = parseFloat(serverState.saldoDisponivel) || (serverAmt * 0.95);
-    TestDashboardState.saldoPendente = 0;
+    TestDashboardState.saldoPendente = parseFloat(serverState.saldoPendente) || 0;
     TestDashboardState.saldoRetencao = parseFloat(serverState.saldoRetencao) || (serverAmt * 0.05);
     TestDashboardState.vendasAprovadas = serverAprov;
-    TestDashboardState.vendasPendentes = 0;
+    TestDashboardState.vendasRecusadas = parseInt(serverState.vendasRecusadas, 10) || TestDashboardState.vendasRecusadas || 0;
+    TestDashboardState.vendasPendentes = parseInt(serverState.vendasPendentes, 10) || 0;
+    TestDashboardState.totalReembolsos = parseFloat(serverState.totalReembolsos) || 0;
+    TestDashboardState.totalChargebacks = parseFloat(serverState.totalChargebacks) || 0;
+    recalculateDashboard2Metrics();
+
     if (Array.isArray(serverState.recentSales) && serverState.recentSales.length > 0) {
       TestDashboardState.recentSales = serverState.recentSales;
     }
@@ -2757,10 +2864,15 @@ async function syncTestDashboardToServer(force = false) {
     const res = await API.post('/api/test-dashboard/sync', {
       faturamentoTotal: TestDashboardState.faturamentoTotal,
       saldoDisponivel: TestDashboardState.saldoDisponivel,
-      saldoPendente: 0,
+      saldoPendente: TestDashboardState.saldoPendente,
       saldoRetencao: TestDashboardState.saldoRetencao,
       vendasAprovadas: TestDashboardState.vendasAprovadas,
-      vendasPendentes: 0,
+      vendasRecusadas: TestDashboardState.vendasRecusadas,
+      vendasPendentes: TestDashboardState.vendasPendentes,
+      totalReembolsos: TestDashboardState.totalReembolsos,
+      totalChargebacks: TestDashboardState.totalChargebacks,
+      taxaAprovacao: TestDashboardState.taxaAprovacao,
+      ticketMedio: TestDashboardState.ticketMedio,
       recentSales: TestDashboardState.recentSales.slice(0, 50),
       deviceId: myDeviceId,
       force: force
@@ -2806,7 +2918,12 @@ async function resetTestDashboard() {
   TestDashboardState.saldoPendente = 0;
   TestDashboardState.saldoRetencao = 0;
   TestDashboardState.vendasAprovadas = 0;
+  TestDashboardState.vendasRecusadas = 0;
   TestDashboardState.vendasPendentes = 0;
+  TestDashboardState.totalReembolsos = 0;
+  TestDashboardState.totalChargebacks = 0;
+  TestDashboardState.taxaAprovacao = 'Sem dados';
+  TestDashboardState.ticketMedio = 0;
   TestDashboardState.recentSales = [];
   TestDashboardState.resetAt = resetTimestamp;
   saveTestDashboardStateLocally();
@@ -2818,7 +2935,12 @@ async function resetTestDashboard() {
     saldoPendente: 0,
     saldoRetencao: 0,
     vendasAprovadas: 0,
+    vendasRecusadas: 0,
     vendasPendentes: 0,
+    totalReembolsos: 0,
+    totalChargebacks: 0,
+    taxaAprovacao: 'Sem dados',
+    ticketMedio: 0,
     recentSales: [],
     resetAt: resetTimestamp
   });
@@ -2829,26 +2951,37 @@ async function resetTestDashboard() {
 
 function addTestSale(notif) {
   const rawAmt = typeof notif.rawAmount === 'number' ? notif.rawAmount : (parseFloat(String(notif.amount || '').replace(/[^0-9,.-]/g, '').replace(',', '.')) || 97.00);
-  const isApproved = notif.status !== 'pending';
+  const status = notif.status || (notif.isApproved ? 'approved' : 'pending');
 
-  if (isApproved) {
-    TestDashboardState.vendasAprovadas++;
+  if (status === 'approved') {
+    TestDashboardState.vendasAprovadas = (TestDashboardState.vendasAprovadas || 0) + 1;
     TestDashboardState.faturamentoTotal += rawAmt;
-    TestDashboardState.saldoDisponivel += (rawAmt * 0.95);
-    TestDashboardState.saldoRetencao += (rawAmt * 0.05);
+  } else if (status === 'pending') {
+    TestDashboardState.saldoPendente = (TestDashboardState.saldoPendente || 0) + rawAmt;
+    TestDashboardState.vendasPendentes = (TestDashboardState.vendasPendentes || 0) + 1;
+  } else if (status === 'refused') {
+    TestDashboardState.vendasRecusadas = (TestDashboardState.vendasRecusadas || 0) + 1;
+    // Venda recusada NÃO adiciona faturamento nem saldo disponível
+  } else if (status === 'refunded') {
+    TestDashboardState.totalReembolsos = (TestDashboardState.totalReembolsos || 0) + rawAmt;
+  } else if (status === 'chargeback') {
+    TestDashboardState.totalChargebacks = (TestDashboardState.totalChargebacks || 0) + rawAmt;
   }
-  TestDashboardState.saldoPendente = 0;
-  TestDashboardState.vendasPendentes = 0;
+
+  recalculateDashboard2Metrics();
 
   TestDashboardState.recentSales.unshift({
-    orderId: notif.orderId || ('#' + (10000 + Math.floor(Math.random() * 90000))),
+    orderId: notif.orderId || ('#PED-' + (10000 + Math.floor(Math.random() * 90000))),
     amount: rawAmt,
-    isApproved: isApproved,
-    status: isApproved ? 'Venda Aprovada' : 'Venda Pendente',
+    isApproved: status === 'approved',
+    status: notif.statusLabel || (status === 'approved' ? 'Venda Aprovada' : (status === 'pending' ? 'Venda Pendente' : 'Venda Recusada')),
+    statusKey: status,
+    paymentMethod: 'Pix Instantâneo',
     device: /iphone|ipad/i.test(navigator.userAgent) ? 'iPhone Push' : (/android/i.test(navigator.userAgent) ? 'Android Push' : 'Celular Push'),
-    time: notif.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    time: notif.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    timestamp: Date.now()
   });
-  if (TestDashboardState.recentSales.length > 50) TestDashboardState.recentSales.length = 50;
+  if (TestDashboardState.recentSales.length > 100) TestDashboardState.recentSales.length = 100;
 
   saveTestDashboardStateLocally();
   localStorage.setItem('krypta_last_sale_time', String(Date.now()));
@@ -2857,16 +2990,374 @@ function addTestSale(notif) {
   GlobalSyncBridge.pushToCloud(TestDashboardState);
 }
 
+// Transição de Status para Vendas Pendentes (Aprovar / Recusar)
+window.updateTestSaleStatus = function(orderId, newStatus) {
+  const sale = TestDashboardState.recentSales.find(s => s.orderId === orderId);
+  if (!sale) return;
+  const oldStatus = sale.statusKey || (sale.isApproved ? 'approved' : 'pending');
+  if (oldStatus === newStatus) return;
+
+  const rawAmt = typeof sale.amount === 'number' ? sale.amount : parseFloat(sale.amount) || 0;
+
+  if (oldStatus === 'pending') {
+    TestDashboardState.saldoPendente = Math.max(0, TestDashboardState.saldoPendente - rawAmt);
+    TestDashboardState.vendasPendentes = Math.max(0, TestDashboardState.vendasPendentes - 1);
+  }
+
+  if (newStatus === 'approved') {
+    sale.isApproved = true;
+    sale.status = 'Venda Aprovada';
+    sale.statusKey = 'approved';
+    TestDashboardState.vendasAprovadas = (TestDashboardState.vendasAprovadas || 0) + 1;
+    TestDashboardState.faturamentoTotal += rawAmt;
+
+    NotificationAudio.playCashSound();
+    sendNativePhoneNotification({
+      title: '🎉 VENDA APROVADA! - KryptaPay',
+      nativeBody: `Venda pendente ${orderId} confirmada!\nValor: R$ ${rawAmt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      amount: `R$ ${rawAmt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      orderId: orderId,
+      status: 'approved'
+    });
+    showToastAlert(`Pedido ${orderId} aprovado! Faturamento e saldo disponíveis atualizados.`);
+  } else if (newStatus === 'refused') {
+    sale.isApproved = false;
+    sale.status = 'Venda Recusada';
+    sale.statusKey = 'refused';
+    TestDashboardState.vendasRecusadas = (TestDashboardState.vendasRecusadas || 0) + 1;
+    showToastAlert(`Pedido ${orderId} marcado como recusado.`);
+  }
+
+  recalculateDashboard2Metrics();
+  saveTestDashboardStateLocally();
+  updateTestDashboardUI();
+  syncTestDashboardToServer(true);
+  GlobalSyncBridge.pushToCloud(TestDashboardState);
+  API.post('/api/test-dashboard/transaction/update', { orderId, newStatus }).catch(() => {});
+};
+
+// Carga Rápida de Cenários Automatizados de Teste Obrigatórios
+window.loadScenarioPreset = function(preset) {
+  const timestamp = Date.now();
+  let aprovadas = 0;
+  let recusadas = 0;
+  let pendentes = 0;
+  let sampleSales = [];
+
+  if (preset === 'A') {
+    // Cenário A: 80 aprovadas, 15 recusadas, 5 pendentes -> Taxa: 84,21%
+    aprovadas = 80;
+    recusadas = 15;
+    pendentes = 5;
+  } else if (preset === 'B') {
+    // Cenário B: 45 aprovadas, 45 recusadas, 10 pendentes -> Taxa: 50%
+    aprovadas = 45;
+    recusadas = 45;
+    pendentes = 10;
+  } else if (preset === 'C') {
+    // Cenário C: 0 aprovadas, 0 recusadas, 10 pendentes -> Taxa: "Sem dados"
+    aprovadas = 0;
+    recusadas = 0;
+    pendentes = 10;
+  }
+
+  const amounts = [49.90, 97.00, 147.00, 197.00, 297.00];
+  let faturamentoTotal = 0;
+  let saldoPendente = 0;
+
+  for (let i = 0; i < aprovadas; i++) {
+    const amt = amounts[i % amounts.length];
+    faturamentoTotal += amt;
+    if (sampleSales.length < 50) {
+      sampleSales.push({
+        orderId: `#PED-${80000 + i}`,
+        amount: amt,
+        isApproved: true,
+        status: 'Venda Aprovada',
+        statusKey: 'approved',
+        paymentMethod: 'Pix Instantâneo',
+        device: 'Demonstração Sandbox',
+        time: new Date(timestamp - (i * 60000)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: timestamp - (i * 60000)
+      });
+    }
+  }
+
+  for (let i = 0; i < recusadas; i++) {
+    const amt = amounts[i % amounts.length];
+    if (sampleSales.length < 50) {
+      sampleSales.push({
+        orderId: `#PED-${70000 + i}`,
+        amount: amt,
+        isApproved: false,
+        status: 'Venda Recusada',
+        statusKey: 'refused',
+        paymentMethod: 'Cartão de Crédito',
+        device: 'Demonstração Sandbox',
+        time: new Date(timestamp - ((aprovadas + i) * 60000)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: timestamp - ((aprovadas + i) * 60000)
+      });
+    }
+  }
+
+  for (let i = 0; i < pendentes; i++) {
+    const amt = amounts[i % amounts.length];
+    saldoPendente += amt;
+    sampleSales.unshift({
+      orderId: `#PED-${60000 + i}`,
+      amount: amt,
+      isApproved: false,
+      status: 'Venda Pendente',
+      statusKey: 'pending',
+      paymentMethod: 'Pix Instantâneo',
+      device: 'Demonstração Sandbox',
+      time: new Date(timestamp - (i * 30000)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: timestamp - (i * 30000)
+    });
+  }
+
+  TestDashboardState.faturamentoTotal = faturamentoTotal;
+  TestDashboardState.saldoDisponivel = parseFloat((faturamentoTotal * 0.95).toFixed(2));
+  TestDashboardState.saldoPendente = saldoPendente;
+  TestDashboardState.saldoRetencao = parseFloat((faturamentoTotal * 0.05).toFixed(2));
+  TestDashboardState.vendasAprovadas = aprovadas;
+  TestDashboardState.vendasRecusadas = recusadas;
+  TestDashboardState.vendasPendentes = pendentes;
+  TestDashboardState.totalReembolsos = 0;
+  TestDashboardState.totalChargebacks = 0;
+  TestDashboardState.recentSales = sampleSales;
+  recalculateDashboard2Metrics();
+
+  saveTestDashboardStateLocally();
+  updateTestDashboardUI();
+  syncTestDashboardToServer(true);
+  GlobalSyncBridge.pushToCloud(TestDashboardState);
+
+  showToastAlert(`Cenário ${preset} carregado! Taxa de aprovação: ${TestDashboardState.taxaAprovacao}`);
+};
+
+// Gráfico Vetorial SVG de Volume e Receita em Tempo Real
+function renderRevenueChartSVG() {
+  const container = document.getElementById('dashboard2RevenueChartContainer');
+  if (!container) return;
+
+  const sales = (TestDashboardState.recentSales || []).filter(s => s.statusKey === 'approved' || s.isApproved).slice(0, 15).reverse();
+
+  if (sales.length < 2) {
+    container.innerHTML = `
+      <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); font-size:0.85rem; padding:1.5rem; text-align:center;">
+        <span style="font-size:1.5rem; margin-bottom:0.5rem; opacity:0.6;">📈</span>
+        <span>A curva de receita será traçada automaticamente conforme as notificações forem pingadas.</span>
+      </div>
+    `;
+    return;
+  }
+
+  let cum = 0;
+  const points = sales.map((s, idx) => {
+    cum += s.amount;
+    return { x: idx, y: cum, label: s.time, amt: s.amount };
+  });
+
+  const width = container.clientWidth || 500;
+  const height = 180;
+  const padX = 40;
+  const padY = 25;
+
+  const maxVal = Math.max(...points.map(p => p.y), 100);
+  const minVal = 0;
+
+  const getSvgX = (idx) => padX + (idx / (points.length - 1)) * (width - padX * 2);
+  const getSvgY = (val) => height - padY - ((val - minVal) / (maxVal - minVal)) * (height - padY * 2);
+
+  const pathD = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${getSvgX(idx)} ${getSvgY(p.y)}`).join(' ');
+  const areaD = `${pathD} L ${getSvgX(points.length - 1)} ${height - padY} L ${getSvgX(0)} ${height - padY} Z`;
+
+  container.innerHTML = `
+    <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible;">
+      <defs>
+        <linearGradient id="chartNeonGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#a855f7" stop-opacity="0.45"/>
+          <stop offset="100%" stop-color="#a855f7" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <line x1="${padX}" y1="${getSvgY(maxVal * 0.75)}" x2="${width - padX}" y2="${getSvgY(maxVal * 0.75)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+      <line x1="${padX}" y1="${getSvgY(maxVal * 0.25)}" x2="${width - padX}" y2="${getSvgY(maxVal * 0.25)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+      <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="rgba(255,255,255,0.15)" />
+      
+      <path d="${areaD}" fill="url(#chartNeonGrad)" />
+      <path d="${pathD}" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      
+      ${points.map((p, idx) => `
+        <circle cx="${getSvgX(idx)}" cy="${getSvgY(p.y)}" r="4" fill="#a855f7" stroke="#0f0c20" stroke-width="2" />
+      `).join('')}
+
+      <text x="${getSvgX(0)}" y="${height - 8}" fill="#94a3b8" font-size="10" font-family="monospace">${points[0].label}</text>
+      <text x="${getSvgX(points.length - 1)}" y="${height - 8}" text-anchor="end" fill="#c084fc" font-size="10" font-family="monospace">${points[points.length - 1].label}</text>
+      <text x="${width - padX}" y="${getSvgY(points[points.length - 1].y) - 8}" text-anchor="end" fill="#4ade80" font-size="11" font-weight="bold">R$ ${points[points.length - 1].y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</text>
+    </svg>
+  `;
+}
+
+// Barra de Conversão Multissegmentada
+function renderConversionChart() {
+  const container = document.getElementById('dashboard2ConversionBarContainer');
+  if (!container) return;
+
+  const aprovadas = parseInt(TestDashboardState.vendasAprovadas, 10) || 0;
+  const recusadas = parseInt(TestDashboardState.vendasRecusadas, 10) || 0;
+  const pendentes = parseInt(TestDashboardState.vendasPendentes, 10) || 0;
+  const total = aprovadas + recusadas + pendentes;
+
+  if (total === 0) {
+    container.innerHTML = `
+      <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); font-size:0.85rem; text-align:center;">
+        <span style="font-size:1.5rem; margin-bottom:0.5rem; opacity:0.6;">📊</span>
+        <span>Aguardando transações simuladas para exibir a distribuição de status.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const pctAprov = ((aprovadas / total) * 100).toFixed(1);
+  const pctRec = ((recusadas / total) * 100).toFixed(1);
+  const pctPend = ((pendentes / total) * 100).toFixed(1);
+
+  container.innerHTML = `
+    <div>
+      <div style="display:flex; height:24px; border-radius:8px; overflow:hidden; background:rgba(255,255,255,0.05); margin-bottom:1rem; border:1px solid rgba(255,255,255,0.1);">
+        ${aprovadas > 0 ? `<div style="width:${pctAprov}%; background:linear-gradient(90deg, #10b981, #22c55e); display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.75rem; font-weight:bold; transition:width 0.4s ease;" title="Aprovadas: ${aprovadas} (${pctAprov}%)">${pctAprov}%</div>` : ''}
+        ${recusadas > 0 ? `<div style="width:${pctRec}%; background:linear-gradient(90deg, #ef4444, #f43f5e); display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.75rem; font-weight:bold; transition:width 0.4s ease;" title="Recusadas: ${recusadas} (${pctRec}%)">${pctRec}%</div>` : ''}
+        ${pendentes > 0 ? `<div style="width:${pctPend}%; background:linear-gradient(90deg, #f59e0b, #fbbf24); display:flex; align-items:center; justify-content:center; color:#0f0c20; font-size:0.75rem; font-weight:bold; transition:width 0.4s ease;" title="Pendentes: ${pendentes} (${pctPend}%)">${pctPend}%</div>` : ''}
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between; font-size:0.82rem;">
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#22c55e;"></span>
+          <span style="color:var(--text-muted);">Aprovadas:</span>
+          <strong style="color:#4ade80;">${aprovadas} (${pctAprov}%)</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef4444;"></span>
+          <span style="color:var(--text-muted);">Recusadas:</span>
+          <strong style="color:#f87171;">${recusadas} (${pctRec}%)</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#fbbf24;"></span>
+          <span style="color:var(--text-muted);">Pendentes:</span>
+          <strong style="color:#fbbf24;">${pendentes} (${pctPend}%)</strong>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Filtros do Histórico
+window.setTestSalesPeriodFilter = function(period) {
+  TestDashboardState.currentPeriodFilter = period;
+  document.querySelectorAll('.filter-period-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === period);
+  });
+  renderTestSalesTable();
+};
+
+window.setTestSalesStatusFilter = function(status) {
+  TestDashboardState.currentStatusFilter = status;
+  document.querySelectorAll('.filter-status-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.status === status);
+  });
+  renderTestSalesTable();
+};
+
+function renderTestSalesTable() {
+  const tableBody = document.getElementById('testSalesTableBody');
+  if (!tableBody) return;
+
+  const status = TestDashboardState.currentStatusFilter || 'all';
+  let list = TestDashboardState.recentSales || [];
+
+  if (status !== 'all') {
+    list = list.filter(s => {
+      const k = s.statusKey || (s.isApproved ? 'approved' : 'pending');
+      if (status === 'approved') return k === 'approved';
+      if (status === 'pending') return k === 'pending';
+      if (status === 'refused') return k === 'refused';
+      if (status === 'refunded') return k === 'refunded' || k === 'chargeback';
+      return true;
+    });
+  }
+
+  if (list.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">
+          Nenhuma transação encontrada com os filtros selecionados.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tableBody.innerHTML = list.slice(0, 35).map(s => {
+    const k = s.statusKey || (s.isApproved ? 'approved' : 'pending');
+    let badgeClass = 'badge-approved';
+    let badgeLabel = s.status || 'Venda Aprovada';
+    let colorAmt = '#4ade80';
+
+    if (k === 'pending') {
+      badgeClass = 'badge-pending';
+      badgeLabel = 'Venda Pendente';
+      colorAmt = '#fbbf24';
+    } else if (k === 'refused') {
+      badgeClass = 'badge-refused';
+      badgeLabel = 'Venda Recusada';
+      colorAmt = '#f87171';
+    } else if (k === 'refunded') {
+      badgeClass = 'badge-refused';
+      badgeLabel = 'Reembolso';
+      colorAmt = '#c084fc';
+    } else if (k === 'chargeback') {
+      badgeClass = 'badge-refused';
+      badgeLabel = 'Chargeback';
+      colorAmt = '#e11d48';
+    }
+
+    const actionButtons = (k === 'pending') ? `
+      <div style="display:flex; gap:0.3rem;">
+        <button onclick="updateTestSaleStatus('${s.orderId}', 'approved')" class="btn-primary" style="padding:0.25rem 0.5rem; font-size:0.75rem; background:#16a34a; border-color:#22c55e;" title="Confirmar pagamento">Aprovar</button>
+        <button onclick="updateTestSaleStatus('${s.orderId}', 'refused')" class="btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#f87171; border-color:#ef4444;" title="Recusar venda">Recusar</button>
+      </div>
+    ` : `<span style="font-size:0.78rem; color:var(--text-dim);">Finalizado</span>`;
+
+    return `
+      <tr>
+        <td style="font-weight:700; color:var(--purple-400); font-family:monospace;">${s.orderId}</td>
+        <td style="font-weight:700; color:${colorAmt};">R$ ${s.amount.toFixed(2).replace('.', ',')}</td>
+        <td style="font-size:0.85rem;">${s.paymentMethod || 'Pix Instantâneo'}</td>
+        <td><span class="badge-status ${badgeClass}">${badgeLabel}</span></td>
+        <td><span style="font-size:0.8rem; color:#c084fc;">📲 ${s.device || 'Celular Push'}</span></td>
+        <td style="font-size:0.82rem; color:var(--text-dim);">${s.time}</td>
+        <td>${actionButtons}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Atualização de toda a Interface da Dashboard 2 (10 Indicadores + Gráficos + Tabela)
 function updateTestDashboardUI() {
+  recalculateDashboard2Metrics();
+
   const faturamentoEl = document.getElementById('test-metric-faturamento');
   const disponivelEl = document.getElementById('test-metric-disponivel');
   const pendenteEl = document.getElementById('test-metric-pendente');
   const retencaoEl = document.getElementById('test-metric-retencao');
   const aprovadasEl = document.getElementById('test-metric-aprovadas');
+  const recusadasEl = document.getElementById('test-metric-recusadas');
   const pendentesEl = document.getElementById('test-metric-pendentes');
   const taxaEl = document.getElementById('test-metric-taxa');
   const ticketEl = document.getElementById('test-metric-ticket');
-  const tableBody = document.getElementById('testSalesTableBody');
+  const reembolsosEl = document.getElementById('test-metric-reembolsos');
+  const chargebacksEl = document.getElementById('test-metric-chargebacks');
   const liveBadge = document.getElementById('test-sales-live-badge');
 
   if (faturamentoEl) faturamentoEl.textContent = `R$ ${TestDashboardState.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -2874,50 +3365,27 @@ function updateTestDashboardUI() {
   if (pendenteEl) pendenteEl.textContent = `R$ ${TestDashboardState.saldoPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (retencaoEl) retencaoEl.textContent = `R$ ${TestDashboardState.saldoRetencao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (aprovadasEl) aprovadasEl.textContent = TestDashboardState.vendasAprovadas;
+  if (recusadasEl) recusadasEl.textContent = TestDashboardState.vendasRecusadas;
   if (pendentesEl) pendentesEl.textContent = TestDashboardState.vendasPendentes;
+  if (taxaEl) taxaEl.textContent = TestDashboardState.taxaAprovacao;
+  if (ticketEl) ticketEl.textContent = `R$ ${TestDashboardState.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (reembolsosEl) reembolsosEl.textContent = `R$ ${TestDashboardState.totalReembolsos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (chargebacksEl) chargebacksEl.textContent = `R$ ${TestDashboardState.totalChargebacks.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const totalVendas = TestDashboardState.vendasAprovadas + TestDashboardState.vendasPendentes;
-  const taxaCalc = totalVendas > 0 ? ((TestDashboardState.vendasAprovadas / totalVendas) * 100).toFixed(1) + '%' : '0%';
-  if (taxaEl) taxaEl.textContent = taxaCalc;
-
-  const ticketCalc = TestDashboardState.vendasAprovadas > 0 ? (TestDashboardState.faturamentoTotal / TestDashboardState.vendasAprovadas) : 0;
-  if (ticketEl) ticketEl.textContent = `R$ ${ticketCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
+  const totalMov = TestDashboardState.vendasAprovadas + TestDashboardState.vendasRecusadas + TestDashboardState.vendasPendentes;
   if (liveBadge) {
-    if (totalVendas > 0) {
-      liveBadge.innerHTML = `🟢 ${totalVendas} Notificações Processadas no Celular`;
+    if (totalMov > 0) {
+      liveBadge.innerHTML = `🟢 ${totalMov} Transações Simuladas em Tempo Real`;
       liveBadge.className = 'badge-status badge-approved';
     } else {
-      liveBadge.innerHTML = '⚪ Aguardando Disparo de Notificações';
+      liveBadge.innerHTML = '⚪ Demonstração Sandbox Ativa';
       liveBadge.className = 'badge-status badge-pending';
     }
   }
 
-  if (tableBody) {
-    if (!TestDashboardState.recentSales || TestDashboardState.recentSales.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
-            Nenhuma notificação pingada ainda. Vá em <strong>Notificações</strong>, configure a quantidade e inicie os disparos para ver o faturamento subir ao vivo!
-          </td>
-        </tr>
-      `;
-    } else {
-      tableBody.innerHTML = TestDashboardState.recentSales.slice(0, 30).map(s => {
-        const badgeClass = s.isApproved ? 'badge-approved' : 'badge-pending';
-        return `
-          <tr>
-            <td style="font-weight:700; color:var(--purple-400);">${s.orderId}</td>
-            <td style="font-weight:700; color:${s.isApproved ? '#4ade80' : '#fbbf24'};">R$ ${s.amount.toFixed(2).replace('.', ',')}</td>
-            <td>Pix Instantâneo</td>
-            <td><span class="badge-status ${badgeClass}">${s.status}</span></td>
-            <td><span style="font-size:0.8rem; color:#c084fc;">📲 ${s.device}</span></td>
-            <td style="font-size:0.82rem; color:var(--text-dim);">${s.time}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-  }
+  renderRevenueChartSVG();
+  renderConversionChart();
+  renderTestSalesTable();
 }
 
 // Exposição global de funções essenciais para os botões do HTML
@@ -2955,6 +3423,12 @@ if (typeof GlobalSyncBridge !== 'undefined') window.GlobalSyncBridge = GlobalSyn
 if (typeof changeUserPasswordAction !== 'undefined') window.changeUserPasswordAction = changeUserPasswordAction;
 if (typeof toggleLangMenu !== 'undefined') window.toggleLangMenu = toggleLangMenu;
 if (typeof changeAppLang !== 'undefined') window.changeAppLang = changeAppLang;
+if (typeof loadScenarioPreset !== 'undefined') window.loadScenarioPreset = loadScenarioPreset;
+if (typeof updateTestSaleStatus !== 'undefined') window.updateTestSaleStatus = updateTestSaleStatus;
+if (typeof setTestSalesPeriodFilter !== 'undefined') window.setTestSalesPeriodFilter = setTestSalesPeriodFilter;
+if (typeof setTestSalesStatusFilter !== 'undefined') window.setTestSalesStatusFilter = setTestSalesStatusFilter;
+if (typeof recalculateDashboard2Metrics !== 'undefined') window.recalculateDashboard2Metrics = recalculateDashboard2Metrics;
+if (typeof computeApprovalRate !== 'undefined') window.computeApprovalRate = computeApprovalRate;
 
 // Inicialização segura após o carregamento completo de todos os scripts e funções
 if (document.readyState === 'loading') {

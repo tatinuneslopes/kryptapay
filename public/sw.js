@@ -1,5 +1,5 @@
 // KryptaPay Service Worker - PWA & Push Notifications com Logomarca Oficial
-const CACHE_NAME = 'kryptapay-v2026.27';
+const CACHE_NAME = 'kryptapay-v2026.28';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -141,32 +141,18 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  // Extrair URL limpa para redirecionar diretamente para a Dashboard 2
-  let targetUrl = '/app.html?tab=test-dashboard';
-  const notifData = event.notification ? event.notification.data : null;
-
-  if (typeof notifData === 'string' && notifData.length > 0 && !notifData.includes('object')) {
-    targetUrl = notifData;
-  } else if (notifData && typeof notifData === 'object' && typeof notifData.url === 'string' && !notifData.url.includes('object')) {
-    targetUrl = notifData.url;
-  }
-
-  // Garantir destino na Dashboard 2 para exibir os saldos e vendas pingadas
-  if (!targetUrl.includes('tab=')) {
-    targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'tab=test-dashboard';
-  }
+  // Redirecionamento 100% seguro para a Dashboard 2
+  const origin = self.location.origin;
+  const targetUrl = origin + '/app.html?tab=test-dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // 1. Se o aplicativo já estiver aberto em alguma aba ou PWA do celular:
       for (const client of clientList) {
-        if (client.url && (client.url.includes('app.html') || client.url.includes('/app'))) {
+        if (client.url && (client.url.includes('app.html') || client.url.includes('/app') || client.url.startsWith(origin))) {
           try {
             client.postMessage({ type: 'SWITCH_TAB', tab: 'test-dashboard' });
           } catch (_) {}
-          if ('navigate' in client) {
-            try { client.navigate(targetUrl); } catch (_) {}
-          }
           if ('focus' in client) {
             return client.focus();
           }
