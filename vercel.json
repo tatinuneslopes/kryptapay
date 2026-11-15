@@ -17,6 +17,18 @@
       "dest": "/api/index.js"
     },
     {
+      "src": "/app",
+      "dest": "/public/app.html"
+    },
+    {
+      "src": "/app.html",
+      "dest": "/public/app.html"
+    },
+    {
+      "src": "/.*object.*",
+      "dest": "/public/app.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/public/$1"
     }

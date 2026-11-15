@@ -120,8 +120,8 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*'
     });
     return res.end(JSON.stringify({
-      version: '2026.25',
-      build: 202625,
+      version: '2026.26',
+      build: 202626,
       timestamp: Date.now()
     }));
   }
@@ -1576,6 +1576,7 @@ function stopServerRunner() {
   // -------------------------------------------------------------
   let safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
   if (safePath === '/' || safePath === '\\') safePath = '/index.html';
+  if (safePath === '/app' || safePath === '\\app' || safePath.includes('object')) safePath = '/app.html';
 
   const filePath = path.join(PUBLIC_DIR, safePath);
 

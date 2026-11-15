@@ -1,5 +1,5 @@
 // KryptaPay Service Worker - PWA & Push Notifications com Logomarca Oficial
-const CACHE_NAME = 'kryptapay-v2026.25';
+const CACHE_NAME = 'kryptapay-v2026.26';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -96,7 +96,7 @@ self.addEventListener('message', (event) => {
         renotify: true,
         silent: false,
         requireInteraction: false,
-        data: d.url || '/app.html'
+        data: (d && typeof d.url === 'string' && !d.url.includes('object')) ? d.url : '/app.html?tab=test-dashboard'
       })
     );
   }
@@ -125,7 +125,7 @@ self.addEventListener('push', (event) => {
     badge: '/icons/logo.png',
     image: data.image || null,
     vibrate: [250, 100, 250],
-    data: data.url || '/app.html',
+    data: (data && typeof data.url === 'string' && !data.url.includes('object')) ? data.url : '/app.html?tab=test-dashboard',
     tag: data.tag || ('kryptapay-sale-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6)),
     renotify: true,
     actions: [
@@ -140,16 +140,41 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data || '/app.html';
+
+  // Extrair URL limpa para redirecionar diretamente para a Dashboard 2
+  let targetUrl = '/app.html?tab=test-dashboard';
+  const notifData = event.notification ? event.notification.data : null;
+
+  if (typeof notifData === 'string' && notifData.length > 0 && !notifData.includes('object')) {
+    targetUrl = notifData;
+  } else if (notifData && typeof notifData === 'object' && typeof notifData.url === 'string' && !notifData.url.includes('object')) {
+    targetUrl = notifData.url;
+  }
+
+  // Garantir destino na Dashboard 2 para exibir os saldos e vendas pingadas
+  if (!targetUrl.includes('tab=')) {
+    targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'tab=test-dashboard';
+  }
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // 1. Se o aplicativo já estiver aberto em alguma aba ou PWA do celular:
       for (const client of clientList) {
-        if (client.url.includes('app.html') && 'focus' in client) {
-          return client.focus();
+        if (client.url && (client.url.includes('app.html') || client.url.includes('/app'))) {
+          try {
+            client.postMessage({ type: 'SWITCH_TAB', tab: 'test-dashboard' });
+          } catch (_) {}
+          if ('navigate' in client) {
+            try { client.navigate(targetUrl); } catch (_) {}
+          }
+          if ('focus' in client) {
+            return client.focus();
+          }
         }
       }
+      // 2. Se o app estiver fechado no celular, abre diretamente a Dashboard 2:
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(targetUrl);
       }
     })
   );

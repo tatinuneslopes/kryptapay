@@ -30,6 +30,26 @@ function startApp() {
   updateNotificationPermissionBadge();
   checkActiveSimulationSession();
 
+  // Redirecionamento automático quando clicado na notificação com ?tab=test-dashboard
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetTab = urlParams.get('tab');
+    if (targetTab) {
+      setTimeout(() => switchTab(targetTab), 50);
+    }
+  } catch (_) {}
+
+  // Listener para troca de aba instantânea vinda do Service Worker (ao clicar na notificação)
+  if ('serviceWorker' in navigator) {
+    try {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SWITCH_TAB' && event.data.tab) {
+          switchTab(event.data.tab);
+        }
+      });
+    } catch (_) {}
+  }
+
   // Pré-habilitar áudio em segundo plano no primeiro toque em celular iOS/Android
   const armAudio = () => {
     if (!BackgroundNotificationEngine._audioEl) {
@@ -469,7 +489,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.15');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.26');
       }
       await navigator.serviceWorker.ready;
 
@@ -483,7 +503,7 @@ async function sendNativePhoneNotification(notifObj) {
           renotify: true,
           silent: false,
           requireInteraction: false,
-          data: { url: '/app.html' }
+          data: '/app.html?tab=test-dashboard'
         });
         return true;
       } else if (navigator.serviceWorker.controller) {
@@ -492,7 +512,7 @@ async function sendNativePhoneNotification(notifObj) {
           notification: {
             title: title,
             body: bodyText,
-            url: '/app.html'
+            url: '/app.html?tab=test-dashboard'
           }
         });
         return true;
@@ -505,11 +525,16 @@ async function sendNativePhoneNotification(notifObj) {
   // 3. Fallback para Desktop / navegadores legados
   if ('Notification' in window && Notification.permission === 'granted') {
     try {
-      new Notification(title, {
+      const desktopNotif = new Notification(title, {
         body: bodyText,
         icon: '/icons/logo.png',
-        badge: '/icons/logo.png'
+        badge: '/icons/logo.png',
+        data: '/app.html?tab=test-dashboard'
       });
+      desktopNotif.onclick = function() {
+        try { window.focus(); } catch (_) {}
+        if (typeof switchTab === 'function') switchTab('test-dashboard');
+      };
       return true;
     } catch (e) {}
   }
