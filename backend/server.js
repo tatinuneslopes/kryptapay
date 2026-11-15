@@ -119,8 +119,8 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*'
     });
     return res.end(JSON.stringify({
-      version: '2026.22',
-      build: 202619,
+      version: '2026.23',
+      build: 202623,
       timestamp: Date.now()
     }));
   }
