@@ -116,10 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Erro ao registrar ServiceWorker:', err);
       });
 
-    // Se um novo Service Worker tomar controle, recarregar instantaneamente
+    // Se um novo Service Worker tomar controle, manter a interface ativa sem recarregar abruptamente a tela
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('🔄 Novo Service Worker assumiu controle. Atualizando interface...');
-      window.location.reload();
+      console.log('🔄 Novo Service Worker assumiu controle em segundo plano.');
     });
   }
 });

@@ -50,22 +50,6 @@ function startApp() {
     } catch (_) {}
   }
 
-  // Pré-habilitar áudio em segundo plano no primeiro toque em celular iOS/Android
-  const armAudio = () => {
-    if (!BackgroundNotificationEngine._audioEl) {
-      try {
-        BackgroundNotificationEngine._audioEl = new Audio('/audio/silence.wav');
-        BackgroundNotificationEngine._audioEl.loop = true;
-        BackgroundNotificationEngine._audioEl.volume = 0.05;
-        BackgroundNotificationEngine._audioEl.setAttribute('playsinline', 'true');
-        BackgroundNotificationEngine._audioEl.setAttribute('webkit-playsinline', 'true');
-        BackgroundNotificationEngine._audioEl.load();
-      } catch (_) {}
-    }
-  };
-  document.addEventListener('touchstart', armAudio, { once: true, passive: true });
-  document.addEventListener('click', armAudio, { once: true, passive: true });
-
   // Inicializar o Globo 3D da Dashboard
   function initDashboardGlobe() {
     if (window.KryptaGlobe3D && document.getElementById('dashboardGlobeCanvas')) {
@@ -122,14 +106,6 @@ function setupNavigation() {
     collapseBtn.dataset.bound = 'true';
     collapseBtn.addEventListener('click', (e) => {
       closeMobileSidebar();
-    });
-  }
-
-  const mobileToggle = document.getElementById('mobileMenuBtn');
-  if (mobileToggle && !mobileToggle.dataset.bound) {
-    mobileToggle.dataset.bound = 'true';
-    mobileToggle.addEventListener('click', (e) => {
-      toggleSidebarMenu(e);
     });
   }
 }
@@ -754,13 +730,11 @@ let simWakeLock = null;
 let simTimerWorker = null;
 
 // ========================================================
-// ========================================================
-// MOTOR DE EXECUÇÃO EM SEGUNDO PLANO (TELA BLOQUEADA / FORA DO APP)
-// Mantém as notificações ativas no Safari (iOS) e Chrome (Android) mesmo
-// com a tela apagada/bloqueada através de sessão de áudio de baixa prioridade.
+// MOTOR DE EXECUÇÃO EM SEGUNDO PLANO
+// Mantém os disparos contínuos sem reproduzir áudio em loop e sem abrir player de música.
+// As notificações são disparadas exclusivamente como toques nativos de notificação.
 // ========================================================
 class BackgroundNotificationEngine {
-  static _audioEl = null;
   static _isActive = false;
   static _lastTickTimestamp = 0;
   static _onTickCallback = null;
@@ -772,60 +746,11 @@ class BackgroundNotificationEngine {
     this._isActive = true;
     this._lastTickTimestamp = Date.now();
 
-    try {
-      if (!this._audioEl) {
-        // Áudio WAV silencioso real servido via HTTP/HTTPS para conformidade total de segundo plano no iOS e Android
-        this._audioEl = new Audio('/audio/silence.wav');
-        this._audioEl.loop = true;
-        this._audioEl.volume = 0.05;
-        this._audioEl.setAttribute('playsinline', 'true');
-        this._audioEl.setAttribute('webkit-playsinline', 'true');
-      }
-
-      // O evento 'timeupdate' continua disparando ininterruptamente no iOS e Android
-      // mesmo quando o usuário sai do app, vai para o WhatsApp ou apaga/bloqueia a tela!
-      this._audioEl.ontimeupdate = () => {
-        if (!this._isActive) return;
-        const now = Date.now();
-        const intervalMs = this._getIntervalMs ? this._getIntervalMs() : 5000;
-        if (now - this._lastTickTimestamp >= intervalMs) {
-          this._lastTickTimestamp = now;
-          if (typeof this._onTickCallback === 'function') {
-            this._onTickCallback();
-          }
-        }
-      };
-
-      const p = this._audioEl.play();
-      if (p !== undefined) {
-        p.catch(err => {
-          console.log('Autoplay silencioso aguardando interação do usuário:', err);
-        });
-      }
-    } catch (e) {
-      console.warn('Erro ao inicializar áudio em segundo plano:', e);
-    }
-
+    // Garantir que nenhuma sessão de mídia seja aberta no iOS ou Android
     if ('mediaSession' in navigator) {
       try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: 'KryptaPay — Vendas Ativas',
-          artist: 'Disparando Notificações Contínuas',
-          album: 'KryptaPay Gateway Oficial',
-          artwork: [
-            { src: '/icons/logo.png', sizes: '192x192', type: 'image/png' },
-            { src: '/icons/logo.png', sizes: '512x512', type: 'image/png' }
-          ]
-        });
-        navigator.mediaSession.playbackState = 'playing';
-
-        navigator.mediaSession.setActionHandler('play', () => {
-          if (this._audioEl) this._audioEl.play();
-          navigator.mediaSession.playbackState = 'playing';
-        });
-        navigator.mediaSession.setActionHandler('pause', () => {
-          navigator.mediaSession.playbackState = 'paused';
-        });
+        navigator.mediaSession.metadata = null;
+        navigator.mediaSession.playbackState = 'none';
       } catch (_) {}
     }
   }
@@ -834,21 +759,18 @@ class BackgroundNotificationEngine {
     this._isActive = false;
     this._onTickCallback = null;
     this._getIntervalMs = null;
-    if (this._audioEl) {
-      try {
-        this._audioEl.ontimeupdate = null;
-        this._audioEl.pause();
-        this._audioEl.currentTime = 0;
-      } catch (_) {}
-    }
     if ('mediaSession' in navigator) {
       try {
+        navigator.mediaSession.metadata = null;
         navigator.mediaSession.playbackState = 'none';
       } catch (_) {}
     }
   }
 
   static markTick() {
+    this._lastTickTimestamp = Date.now();
+  }
+}
     this._lastTickTimestamp = Date.now();
   }
 }
@@ -1282,18 +1204,11 @@ function clearNotificationHistory() {
   showToastAlert('Histórico de notificações limpo.');
 }
 
-let lastToggleSidebarTime = 0;
-
 function toggleSidebarMenu(e) {
   if (e) {
     if (typeof e.preventDefault === 'function') e.preventDefault();
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
   }
-  const now = Date.now();
-  if (now - lastToggleSidebarTime < 200) {
-    return; // evita duplo disparo acidental entre onclick e eventListener
-  }
-  lastToggleSidebarTime = now;
 
   const sidebar = document.querySelector('.sidebar');
   const backdrop = document.getElementById('sidebarBackdrop');
@@ -1310,9 +1225,7 @@ function toggleSidebarMenu(e) {
     sidebar.classList.remove('collapsed');
     sidebar.classList.add('mobile-open');
     sidebar.classList.add('sidebar-drawer-open');
-    if (backdrop) {
-      backdrop.style.display = 'block';
-    }
+    if (backdrop) backdrop.style.display = 'block';
     document.body.style.overflow = 'hidden';
   }
 }

@@ -50,64 +50,41 @@
     })();
   </script>
 
-  <!-- Auto-Update Instantâneo: Atualiza automaticamente na Vercel, GitHub e Celulares na Tela Inicial -->
+  <!-- Auto-Update Seguro: Atualiza sem loop de tela branca -->
   <script>
     (function() {
-      const CLIENT_VERSION = '2026.27';
+      const CLIENT_VERSION = '2026.28';
       let isUpdating = false;
 
       function checkAppUpdate() {
         if (isUpdating) return;
-        fetch('/api/version?t=' + Date.now(), { cache: 'no-store' })
-          .then(res => {
-            if (!res.ok) throw new Error('status ' + res.status);
-            return res.json();
-          })
-          .catch(() => fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()))
+        fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+          .then(r => r.json())
           .then(data => {
             if (data && data.version && data.version !== CLIENT_VERSION) {
+              const alreadyReloaded = sessionStorage.getItem('krypta_reloaded_ver') === data.version;
+              if (alreadyReloaded) return;
               isUpdating = true;
-              console.log('[KryptaPay] Nova versão detectada:', data.version, '(atual: ' + CLIENT_VERSION + '). Atualizando app...');
+              sessionStorage.setItem('krypta_reloaded_ver', data.version);
               localStorage.setItem('kryptapay_build_version', data.version);
               if ('caches' in window) {
                 caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
-                  if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(regs => {
-                      regs.forEach(r => { try { r.update(); } catch (_) {} });
-                    });
-                  }
-                  window.location.reload(true);
+                  window.location.reload();
                 });
               } else {
-                window.location.reload(true);
+                window.location.reload();
               }
-            } else {
-              localStorage.setItem('kryptapay_build_version', CLIENT_VERSION);
             }
           })
           .catch(() => {});
       }
 
-      // Checagem imediata ao abrir o aplicativo
-      checkAppUpdate();
-
-      // Checagem automática ao destravar tela do celular ou reabrir o app na tela inicial
-      document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-          checkAppUpdate();
-        }
-      });
-      window.addEventListener('pageshow', function() {
-        checkAppUpdate();
-      });
-
-      // Checagem contínua em segundo plano
-      setInterval(checkAppUpdate, 25000);
+      setTimeout(checkAppUpdate, 3000);
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.27">
-  <link rel="stylesheet" href="/css/components.css?v=2026.27">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.28">
+  <link rel="stylesheet" href="/css/components.css?v=2026.28">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -132,101 +109,101 @@
 
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>
-        <a class="nav-item active" data-tab="dashboard">
+        <a class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
           <span class="nav-icon">📊</span>
           <span class="nav-label">Dashboard 1</span>
         </a>
-        <a class="nav-item" data-tab="test-dashboard" style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius:10px;">
+        <a class="nav-item" data-tab="test-dashboard" onclick="switchTab('test-dashboard')" style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius:10px;">
           <span class="nav-icon">📈</span>
           <span class="nav-label">Dashboard 2</span>
         </a>
-        <a class="nav-item" data-tab="quick-pay">
+        <a class="nav-item" data-tab="quick-pay" onclick="switchTab('quick-pay')">
           <span class="nav-icon">⚡</span>
           <span class="nav-label" data-i18n="quick_pix">Cobrança Pix</span>
           <span class="nav-badge">Instantâneo</span>
         </a>
-        <a class="nav-item" data-tab="global">
+        <a class="nav-item" data-tab="global" onclick="switchTab('global')">
           <span class="nav-icon">🌍</span>
           <span class="nav-label" data-i18n="global">Módulo Global FX</span>
           <span class="nav-badge" style="background:#06b6d4; color:#fff;">Multi-FX</span>
         </a>
 
         <div class="nav-section-title">Operações & Vendas</div>
-        <a class="nav-item" data-tab="sales">
+        <a class="nav-item" data-tab="sales" onclick="switchTab('sales')">
           <span class="nav-icon">🛒</span>
           <span class="nav-label" data-i18n="sales">Vendas</span>
         </a>
-        <a class="nav-item" data-tab="transactions">
+        <a class="nav-item" data-tab="transactions" onclick="switchTab('transactions')">
           <span class="nav-icon">📑</span>
           <span class="nav-label">Transações</span>
         </a>
-        <a class="nav-item" data-tab="acquirers">
+        <a class="nav-item" data-tab="acquirers" onclick="switchTab('acquirers')">
           <span class="nav-icon">🔀</span>
           <span class="nav-label">Adquirentes</span>
           <span class="nav-badge">AI</span>
         </a>
-        <a class="nav-item" data-tab="financial">
+        <a class="nav-item" data-tab="financial" onclick="switchTab('financial')">
           <span class="nav-icon">💰</span>
           <span class="nav-label" data-i18n="financial">Financeiro & Saques</span>
           <span class="nav-badge" style="background:#10b981; color:#fff;">Pix R$ 1,99</span>
         </a>
 
         <div class="nav-section-title">Catálogo & Checkout</div>
-        <a class="nav-item" data-tab="products">
+        <a class="nav-item" data-tab="products" onclick="switchTab('products')">
           <span class="nav-icon">📦</span>
-          <span class="nav-label">Produtos</span>
+          <span class="nav-label">Produtos / Criar Produto</span>
         </a>
-        <a class="nav-item" data-tab="checkout">
+        <a class="nav-item" data-tab="checkout" onclick="switchTab('checkout')">
           <span class="nav-icon">🎨</span>
           <span class="nav-label">Checkout Customizável</span>
         </a>
-        <a class="nav-item" data-tab="links">
+        <a class="nav-item" data-tab="links" onclick="switchTab('links')">
           <span class="nav-icon">🔗</span>
           <span class="nav-label">Meus Links</span>
         </a>
-        <a class="nav-item" data-tab="customers">
+        <a class="nav-item" data-tab="customers" onclick="switchTab('customers')">
           <span class="nav-icon">👥</span>
           <span class="nav-label">Clientes</span>
         </a>
-        <a class="nav-item" data-tab="subscriptions">
+        <a class="nav-item" data-tab="subscriptions" onclick="switchTab('subscriptions')">
           <span class="nav-icon">🔄</span>
           <span class="nav-label">Assinaturas</span>
         </a>
 
         <div class="nav-section-title">Integração & Desenvolvedor</div>
-        <a class="nav-item" data-tab="integrations">
+        <a class="nav-item" data-tab="integrations" onclick="switchTab('integrations')">
           <span class="nav-icon">🔌</span>
           <span class="nav-label">Integrações</span>
         </a>
-        <a class="nav-item" data-tab="api">
+        <a class="nav-item" data-tab="api" onclick="switchTab('api')">
           <span class="nav-icon">🔑</span>
           <span class="nav-label">Chaves de API</span>
         </a>
-        <a class="nav-item" data-tab="webhooks">
+        <a class="nav-item" data-tab="webhooks" onclick="switchTab('webhooks')">
           <span class="nav-icon">📡</span>
           <span class="nav-label">Webhooks</span>
         </a>
 
         <div class="nav-section-title">Alertas & Gestão</div>
-        <a class="nav-item" data-tab="notifications">
+        <a class="nav-item" data-tab="notifications" onclick="switchTab('notifications')">
           <span class="nav-icon">🔔</span>
           <span class="nav-label">Notificações</span>
           <span class="nav-badge" style="background:#8b5cf6; color:#fff;">Ao Vivo</span>
         </a>
-        <a class="nav-item" data-tab="rewards">
+        <a class="nav-item" data-tab="rewards" onclick="switchTab('rewards')">
           <span class="nav-icon">🏆</span>
           <span class="nav-label">Premiações & Metas</span>
         </a>
-        <a class="nav-item" data-tab="support">
+        <a class="nav-item" data-tab="support" onclick="switchTab('support')">
           <span class="nav-icon">🎧</span>
           <span class="nav-label">Suporte</span>
           <span class="nav-badge" style="background:#22c55e; color:#fff;">Online</span>
         </a>
-        <a class="nav-item" data-tab="settings">
+        <a class="nav-item" data-tab="settings" onclick="switchTab('settings')">
           <span class="nav-icon">⚙️</span>
           <span class="nav-label">Configurações</span>
         </a>
-        <a class="nav-item" data-tab="admin" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+        <a class="nav-item" data-tab="admin" onclick="switchTab('admin')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
           <span class="nav-icon">👑</span>
           <span class="nav-label">Painel Master Admin</span>
         </a>
@@ -239,11 +216,16 @@
     <!-- WRAPPER PRINCIPAL -->
     <main class="main-wrapper">
       <header class="app-header">
-        <div class="header-left">
-          <button id="mobileMenuBtn" type="button" class="btn-icon" onclick="toggleSidebarMenu(event)" title="Abrir Menu de Navegação" aria-label="Abrir Menu">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <div class="header-left" style="display:flex; align-items:center; gap:0.6rem;">
+          <!-- Botão Três Pontos / Menu Lateral -->
+          <button id="mobileMenuBtn" type="button" class="btn-icon" onclick="toggleSidebarMenu(event)" title="Menu lateral — Dashboard 1, Dashboard 2, Criar Produto..." aria-label="Abrir Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;">
+              <circle cx="12" cy="5" r="2.3"></circle>
+              <circle cx="12" cy="12" r="2.3"></circle>
+              <circle cx="12" cy="19" r="2.3"></circle>
+            </svg>
           </button>
-          <h2 id="headerPageTitle" style="font-size:1.3rem; font-weight:700; color:#fff;">Dashboard 1</h2>
+          <h2 id="headerPageTitle" style="font-size:1.25rem; font-weight:700; color:#fff; margin:0;">Dashboard 1</h2>
         </div>
 
         <div class="header-right">
