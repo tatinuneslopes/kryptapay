@@ -53,7 +53,7 @@
   <!-- Auto-Update Instantâneo: Atualiza automaticamente na Vercel, GitHub e Celulares na Tela Inicial -->
   <script>
     (function() {
-      const CLIENT_VERSION = '2026.26';
+      const CLIENT_VERSION = '2026.27';
       let isUpdating = false;
 
       function checkAppUpdate() {
@@ -106,8 +106,8 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.26">
-  <link rel="stylesheet" href="/css/components.css?v=2026.26">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.27">
+  <link rel="stylesheet" href="/css/components.css?v=2026.27">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -1635,134 +1635,136 @@
         <div id="pane-integrations" class="view-pane" style="display:none;">
           <div class="glass-card glow-border" style="padding: 2rem; margin-bottom: 2rem;">
             <div style="margin-bottom:1.5rem;">
-              <span class="badge-status badge-approved">⚡ Conexão Direta</span>
-              <h3 style="font-size: 1.5rem; font-weight:800; color:#fff; margin-top:0.35rem;">Integrações de E-commerce & Checkout</h3>
+              <span class="badge-status badge-approved">⚡ Conexão Oficial de Gateways</span>
+              <h3 style="font-size: 1.5rem; font-weight:800; color:#fff; margin-top:0.35rem;">Gateways de Pagamento & Integrações Homologadas</h3>
               <p style="font-size:0.88rem; color:var(--text-muted); max-width:720px;">
-                Conecte a KryptaPay à sua plataforma ou funil de vendas em poucos cliques para processar Pix e Cartão de Crédito com alta taxa de aprovação.
+                Conecte a KryptaPay diretamente aos seus gateways e plataformas parceiras para receber pagamentos Pix Instantâneo e Cartão de Crédito com conciliação automática e alta taxa de conversão.
               </p>
             </div>
 
-            <!-- Grid de Plataformas Oficiais -->
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
-              <!-- Shopify -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">🛍️</span>
+            <!-- Grid Oficial: Apenas as 4 Gateways Homologadas (Themify, Even, Korvex e Nuvemshop) -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.25rem;">
+              
+              <!-- 1. Themify -->
+              <div class="glass-card" style="padding:1.4rem; border:1px solid rgba(168,85,247,0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1.2rem; background:rgba(20,12,38,0.65); border-radius:14px;">
+                <div style="display:flex; align-items:center; gap:0.9rem;">
+                  <div style="flex-shrink:0;">
+                    <svg width="46" height="46" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="4" y="4" width="56" height="56" rx="14" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" stroke-width="1.8"/>
+                      <path d="M19 21 H45 M32 21 V45 M25 45 H39" stroke="#c084fc" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="45" cy="21" r="3.5" fill="#4ade80"/>
+                    </svg>
+                  </div>
                   <div>
-                    <strong style="color:#fff; font-size:1.05rem;">Shopify</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Gateway Pix & Cartão Transparente</div>
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                      <strong style="color:#fff; font-size:1.15rem; font-weight:800;">Themify</strong>
+                      <span class="badge-status badge-approved" style="font-size:0.65rem; padding:0.15rem 0.45rem;">Oficial</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Gateway Pix & Checkout Alta Conversão</div>
                   </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('Shopify')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
+                <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.4;">
+                  Conciliação automática via Webhook, liquidação imediata e taxas exclusivas para lojistas Themify.
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.85rem;">
+                  <span style="font-size:0.75rem; color:#4ade80; display:flex; align-items:center; gap:0.3rem;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block;"></span> Disponível
+                  </span>
+                  <button onclick="openIntegrationModal('Themify')" class="btn-primary" style="padding:0.45rem 1rem; font-size:0.82rem;">Conectar Gateway</button>
                 </div>
               </div>
 
-              <!-- WooCommerce -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">🔌</span>
+              <!-- 2. Even (com tela de Águia de asas abertas) -->
+              <div class="glass-card" style="padding:1.4rem; border:1px solid rgba(56,189,248,0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1.2rem; background:rgba(12,24,42,0.65); border-radius:14px;">
+                <div style="display:flex; align-items:center; gap:0.9rem;">
+                  <div style="flex-shrink:0;">
+                    <svg width="46" height="46" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="32" cy="32" r="28" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="1.8"/>
+                      <!-- Águia com as asas abertas majestosas -->
+                      <path d="M32 25 C25 13 9 12 5 18 C11 24 17 31 23 35 C19 30 13 26 9 24 C15 33 21 38 26 41 C21 39 16 37 13 36 C18 43 24 46 29 46" fill="#38bdf8"/>
+                      <path d="M32 25 C39 13 55 12 59 18 C53 24 47 31 41 35 C45 30 51 26 55 24 C49 33 43 38 38 41 C43 39 48 37 51 36 C46 43 40 46 35 46" fill="#38bdf8"/>
+                      <path d="M29 32 L35 32 L36 49 L32 54 L28 49 Z" fill="#60a5fa"/>
+                      <path d="M32 17 C30 17 28 19 28 21 C29 22 31 23 32 24 C33 23 35 22 36 21 C36 19 34 17 32 17 Z" fill="#ffffff"/>
+                      <path d="M32 21 L37 23 L32 25 Z" fill="#fbbf24"/>
+                    </svg>
+                  </div>
                   <div>
-                    <strong style="color:#fff; font-size:1.05rem;">WooCommerce</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Plugin oficial para WordPress</div>
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                      <strong style="color:#fff; font-size:1.15rem; font-weight:800;">Even</strong>
+                      <span class="badge-status badge-approved" style="font-size:0.65rem; padding:0.15rem 0.45rem;">Homologado</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Gateway Pix Instantâneo & Cartão</div>
                   </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('WooCommerce')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
+                <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.4;">
+                  Processamento de alta velocidade, antifraude em tempo real e conciliação instantânea de pedidos Even.
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.85rem;">
+                  <span style="font-size:0.75rem; color:#4ade80; display:flex; align-items:center; gap:0.3rem;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block;"></span> Disponível
+                  </span>
+                  <button onclick="openIntegrationModal('Even')" class="btn-primary" style="padding:0.45rem 1rem; font-size:0.82rem;">Conectar Gateway</button>
                 </div>
               </div>
 
-              <!-- Kiwify -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">🥝</span>
+              <!-- 3. Korvex -->
+              <div class="glass-card" style="padding:1.4rem; border:1px solid rgba(6,182,212,0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1.2rem; background:rgba(8,26,36,0.65); border-radius:14px;">
+                <div style="display:flex; align-items:center; gap:0.9rem;">
+                  <div style="flex-shrink:0;">
+                    <svg width="46" height="46" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="4" y="4" width="56" height="56" rx="14" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" stroke-width="1.8"/>
+                      <path d="M22 17 V47 M22 32 L39 17 M28 27 L43 47" stroke="#22d3ee" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="39" cy="17" r="3.5" fill="#38bdf8"/>
+                    </svg>
+                  </div>
                   <div>
-                    <strong style="color:#fff; font-size:1.05rem;">Kiwify</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Webhook & Rastreamento de Vendas</div>
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                      <strong style="color:#fff; font-size:1.15rem; font-weight:800;">Korvex</strong>
+                      <span class="badge-status badge-approved" style="font-size:0.65rem; padding:0.15rem 0.45rem;">Oficial</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Gateway Inteligente & Antifraude</div>
                   </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('Kiwify')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
+                <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.4;">
+                  Roteamento de transações de alto volume, estorno blindado e webhooks de disparo ultra-rápidos.
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.85rem;">
+                  <span style="font-size:0.75rem; color:#4ade80; display:flex; align-items:center; gap:0.3rem;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block;"></span> Disponível
+                  </span>
+                  <button onclick="openIntegrationModal('Korvex')" class="btn-primary" style="padding:0.45rem 1rem; font-size:0.82rem;">Conectar Gateway</button>
                 </div>
               </div>
 
-              <!-- Hotmart -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">🔥</span>
+              <!-- 4. Nuvemshop -->
+              <div class="glass-card" style="padding:1.4rem; border:1px solid rgba(37,99,235,0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1.2rem; background:rgba(10,22,48,0.65); border-radius:14px;">
+                <div style="display:flex; align-items:center; gap:0.9rem;">
+                  <div style="flex-shrink:0;">
+                    <svg width="46" height="46" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="4" y="4" width="56" height="56" rx="14" fill="rgba(37, 99, 235, 0.15)" stroke="#2563eb" stroke-width="1.8"/>
+                      <path d="M22 39 C18 39 15 36 15 32 C15 28.5 17.5 25.8 21 25.5 C22 20.2 27 16.5 33 16.5 C39.5 16.5 45 21.2 46 27.5 C49 28 51.5 30.5 51.5 33.8 C51.5 37.2 48.8 40 45.2 40 L22 40 Z" fill="#3b82f6"/>
+                      <circle cx="33" cy="28" r="3.5" fill="#ffffff" fill-opacity="0.9"/>
+                    </svg>
+                  </div>
                   <div>
-                    <strong style="color:#fff; font-size:1.05rem;">Hotmart</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Integração Webhook & Postback</div>
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                      <strong style="color:#fff; font-size:1.15rem; font-weight:800;">Nuvemshop</strong>
+                      <span class="badge-status badge-approved" style="font-size:0.65rem; padding:0.15rem 0.45rem;">Checkout Oficial</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Lojas Virtuais & Checkout Transparente</div>
                   </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('Hotmart')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
+                <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.4;">
+                  Integração nativa para lojas virtuais, Pix transparente direto no carrinho e atualização automática de status.
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.85rem;">
+                  <span style="font-size:0.75rem; color:#4ade80; display:flex; align-items:center; gap:0.3rem;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block;"></span> Disponível
+                  </span>
+                  <button onclick="openIntegrationModal('Nuvemshop')" class="btn-primary" style="padding:0.45rem 1rem; font-size:0.82rem;">Conectar Gateway</button>
                 </div>
               </div>
 
-              <!-- Braip -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">🚀</span>
-                  <div>
-                    <strong style="color:#fff; font-size:1.05rem;">Braip</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Físicos e Digitais via Postback</div>
-                  </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('Braip')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
-                </div>
-              </div>
-
-              <!-- PerfectPay -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">💎</span>
-                  <div>
-                    <strong style="color:#fff; font-size:1.05rem;">PerfectPay</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Notificação de Pedidos & Status</div>
-                  </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('PerfectPay')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
-                </div>
-              </div>
-
-              <!-- Ticto -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">🎯</span>
-                  <div>
-                    <strong style="color:#fff; font-size:1.05rem;">Ticto</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Webhooks & Disparos de Eventos</div>
-                  </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('Ticto')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
-                </div>
-              </div>
-
-              <!-- ActiveCampaign -->
-              <div class="glass-card" style="padding:1.25rem; border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                  <span style="font-size:2rem;">📧</span>
-                  <div>
-                    <strong style="color:#fff; font-size:1.05rem;">ActiveCampaign</strong>
-                    <div style="font-size:0.78rem; color:var(--text-muted);">Automação de E-mails & Tags Pix</div>
-                  </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge-status badge-approved" style="font-size:0.7rem;">Disponível</span>
-                  <button onclick="openIntegrationModal('ActiveCampaign')" class="btn-primary" style="padding:0.4rem 0.85rem; font-size:0.8rem;">Conectar</button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -2294,6 +2296,54 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
           </div>
         </div>
 
+        <!-- ========================================== -->
+        <!-- MODAL DE INTEGRAÇÃO DE GATEWAY (Themify, Even, Korvex, Nuvemshop) -->
+        <!-- ========================================== -->
+        <div id="modalIntegrationGateway" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(8px);">
+          <div class="glass-card glow-border" style="max-width:540px; width:100%; padding:2rem; background:var(--bg-surface); position:relative; border-radius:16px;">
+            <button onclick="closeIntegrationModal()" style="position:absolute; right:1.25rem; top:1.25rem; background:transparent; border:none; color:#fff; font-size:1.6rem; cursor:pointer; line-height:1;">&times;</button>
+            <div style="display:flex; align-items:center; gap:0.9rem; margin-bottom:1.25rem;">
+              <div id="modalGatewayIcon"></div>
+              <div>
+                <h3 id="modalGatewayTitle" style="font-size:1.35rem; font-weight:800; color:#fff; margin:0;">Conectar Gateway</h3>
+                <p id="modalGatewaySubtitle" style="font-size:0.82rem; color:var(--text-muted); margin:0.15rem 0 0;">Configuração e credenciais de conciliação automática.</p>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:1.15rem;">
+              <div>
+                <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem;">URL do Webhook KryptaPay (Cole no seu Gateway) *</label>
+                <div style="display:flex; gap:0.5rem;">
+                  <input type="text" id="modalGatewayWebhook" readonly class="glass-card" style="width:100%; padding:0.75rem 0.95rem; color:#a78bfa; background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,0.3); border-radius:10px; font-size:0.82rem; font-family:Consolas, monospace;">
+                  <button type="button" onclick="copyGatewayWebhookUrl()" class="btn-secondary" style="padding:0.75rem 1rem; font-size:0.82rem; white-space:nowrap;">📋 Copiar</button>
+                </div>
+              </div>
+
+              <div>
+                <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem;">Token Secreto / Secret Key do Gateway</label>
+                <input type="password" id="modalGatewaySecret" placeholder="Cole a Chave Secreta ou Token de Produção" class="glass-card" style="width:100%; padding:0.75rem 0.95rem; color:#fff; background:rgba(255,255,255,0.04); border:1px solid rgba(168,85,247,0.3); border-radius:10px; font-size:0.88rem;">
+              </div>
+
+              <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.25); padding:0.75rem 1rem; border-radius:10px;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span style="width:8px; height:8px; border-radius:50%; background:#4ade80; display:inline-block;"></span>
+                  <span style="font-size:0.82rem; color:#4ade80; font-weight:600;">Status: Conexão Ativa & Monitorada</span>
+                </div>
+                <button type="button" onclick="testGatewayWebhookPing()" class="btn-primary" style="padding:0.35rem 0.8rem; font-size:0.75rem;">🔔 Testar Disparo</button>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:0.5rem;">
+                <button type="button" onclick="closeIntegrationModal()" class="btn-secondary" style="padding:0.75rem 1.4rem; font-weight:600; border-radius:10px;">
+                  Cancelar
+                </button>
+                <button type="button" onclick="saveGatewayIntegrationAction()" class="btn-primary" style="padding:0.75rem 1.6rem; font-weight:700; border-radius:10px;">
+                  <span>💾 Salvar e Ativar Conexão</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Barra de Navegação Inferior para Celular (Mobile Bottom Nav estilo BlackPay / FlevoPay) -->
         <nav class="mobile-bottom-nav">
           <button class="mobile-nav-btn active" data-bottom-tab="dashboard" onclick="switchTab('dashboard')">
@@ -2332,12 +2382,12 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.26"></script>
-  <script src="/js/i18n.js?v=2026.26"></script>
-  <script src="/js/globe3d.js?v=2026.26"></script>
-  <script src="/js/particles.js?v=2026.26"></script>
-  <script src="/js/card3d.js?v=2026.26"></script>
-  <script src="/js/pwa.js?v=2026.26"></script>
-  <script src="/js/app.js?v=2026.26"></script>
+  <script src="/js/api.js?v=2026.27"></script>
+  <script src="/js/i18n.js?v=2026.27"></script>
+  <script src="/js/globe3d.js?v=2026.27"></script>
+  <script src="/js/particles.js?v=2026.27"></script>
+  <script src="/js/card3d.js?v=2026.27"></script>
+  <script src="/js/pwa.js?v=2026.27"></script>
+  <script src="/js/app.js?v=2026.27"></script>
 </body>
 </html>

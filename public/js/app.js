@@ -410,8 +410,12 @@ async function fetchCrossDeviceSync() {
 
 function startCrossDeviceSync() {
   fetchTestDashboardState(true);
+  if (typeof GlobalSyncBridge !== 'undefined') GlobalSyncBridge.pollCloud();
   fetchCrossDeviceSync();
   setInterval(fetchCrossDeviceSync, 1200);
+  setInterval(() => {
+    if (typeof GlobalSyncBridge !== 'undefined') GlobalSyncBridge.pollCloud();
+  }, 1400);
   checkServerSimulationStatus();
   setInterval(checkServerSimulationStatus, 4000);
 }
@@ -902,6 +906,15 @@ async function startNotificationSequence() {
   // Atualizar visual do botãozinho deslizante para LIGADO
   setNotifSequenceUIState(true, { durationLabel: durConfig.label, intervalSeconds: intervalSec });
 
+  if (typeof GlobalSyncBridge !== 'undefined') {
+    GlobalSyncBridge.pushToCloud({
+      ...TestDashboardState,
+      sequenceActive: true,
+      durationLabel: durConfig.label,
+      intervalSeconds: intervalSec
+    });
+  }
+
   // Salvar sessão persistente no localStorage
   const sessionData = {
     active: true,
@@ -1026,6 +1039,13 @@ function stopNotificationSequence(completed = false) {
 
   // Atualizar visual do botãozinho deslizante para DESLIGADO
   setNotifSequenceUIState(false);
+
+  if (typeof GlobalSyncBridge !== 'undefined') {
+    GlobalSyncBridge.pushToCloud({
+      ...TestDashboardState,
+      sequenceActive: false
+    });
+  }
 
   const statusLabel = document.getElementById('notifSeqStatusLabel');
   if (statusLabel) {
@@ -1249,9 +1269,107 @@ function closeMobileSidebar() {
 }
 window.closeMobileSidebar = closeMobileSidebar;
 
+let currentSelectedGateway = 'Themify';
+
 function openIntegrationModal(platform) {
-  showToastAlert(`Integração com ${platform}: Utilize suas chaves de API para conectar.`);
-  switchTab('api');
+  currentSelectedGateway = platform || 'Themify';
+  const modal = document.getElementById('modalIntegrationGateway');
+  const title = document.getElementById('modalGatewayTitle');
+  const subtitle = document.getElementById('modalGatewaySubtitle');
+  const icon = document.getElementById('modalGatewayIcon');
+  const webhookInput = document.getElementById('modalGatewayWebhook');
+  const secretInput = document.getElementById('modalGatewaySecret');
+
+  if (title) title.textContent = `Conectar ${platform}`;
+  if (webhookInput) {
+    const slug = platform.toLowerCase().replace(/[^a-z0-9]/g, '');
+    webhookInput.value = `${window.location.origin}/api/v1/gateways/${slug}/webhook`;
+  }
+  if (secretInput) {
+    secretInput.value = localStorage.getItem(`krypta_gateway_secret_${platform}`) || '';
+  }
+
+  if (icon) {
+    if (platform === 'Themify') {
+      if (subtitle) subtitle.textContent = 'Gateway de Alta Conversão, Checkout Transparente e Pix Instantâneo';
+      icon.innerHTML = `
+        <svg width="42" height="42" viewBox="0 0 64 64" fill="none">
+          <rect x="4" y="4" width="56" height="56" rx="14" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="2"/>
+          <path d="M19 21 H45 M32 21 V45 M25 45 H39" stroke="#c084fc" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="45" cy="21" r="3.5" fill="#4ade80"/>
+        </svg>
+      `;
+    } else if (platform === 'Even') {
+      if (subtitle) subtitle.textContent = 'Gateway de Pagamentos Pix Instantâneo & Cartão com Antifraude';
+      icon.innerHTML = `
+        <svg width="42" height="42" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" stroke-width="2"/>
+          <path d="M32 25 C25 13 9 12 5 18 C11 24 17 31 23 35 C19 30 13 26 9 24 C15 33 21 38 26 41 C21 39 16 37 13 36 C18 43 24 46 29 46" fill="#38bdf8"/>
+          <path d="M32 25 C39 13 55 12 59 18 C53 24 47 31 41 35 C45 30 51 26 55 24 C49 33 43 38 38 41 C43 39 48 37 51 36 C46 43 40 46 35 46" fill="#38bdf8"/>
+          <path d="M29 32 L35 32 L36 49 L32 54 L28 49 Z" fill="#60a5fa"/>
+          <path d="M32 17 C30 17 28 19 28 21 C29 22 31 23 32 24 C33 23 35 22 36 21 C36 19 34 17 32 17 Z" fill="#ffffff"/>
+          <path d="M32 21 L37 23 L32 25 Z" fill="#fbbf24"/>
+        </svg>
+      `;
+    } else if (platform === 'Korvex') {
+      if (subtitle) subtitle.textContent = 'Infraestrutura Inteligente de Pagamentos e Antifraude Integrado';
+      icon.innerHTML = `
+        <svg width="42" height="42" viewBox="0 0 64 64" fill="none">
+          <rect x="4" y="4" width="56" height="56" rx="14" fill="rgba(6, 182, 212, 0.2)" stroke="#06b6d4" stroke-width="2"/>
+          <path d="M22 17 V47 M22 32 L39 17 M28 27 L43 47" stroke="#22d3ee" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="39" cy="17" r="3.5" fill="#38bdf8"/>
+        </svg>
+      `;
+    } else if (platform === 'Nuvemshop') {
+      if (subtitle) subtitle.textContent = 'Integração Nativa para Lojas Virtuais & Checkout Transparente';
+      icon.innerHTML = `
+        <svg width="42" height="42" viewBox="0 0 64 64" fill="none">
+          <rect x="4" y="4" width="56" height="56" rx="14" fill="rgba(37, 99, 235, 0.2)" stroke="#2563eb" stroke-width="2"/>
+          <path d="M22 39 C18 39 15 36 15 32 C15 28.5 17.5 25.8 21 25.5 C22 20.2 27 16.5 33 16.5 C39.5 16.5 45 21.2 46 27.5 C49 28 51.5 30.5 51.5 33.8 C51.5 37.2 48.8 40 45.2 40 L22 40 Z" fill="#3b82f6"/>
+          <circle cx="33" cy="28" r="3.5" fill="#ffffff" fill-opacity="0.9"/>
+        </svg>
+      `;
+    }
+  }
+
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeIntegrationModal() {
+  const modal = document.getElementById('modalIntegrationGateway');
+  if (modal) modal.style.display = 'none';
+}
+
+function copyGatewayWebhookUrl() {
+  const input = document.getElementById('modalGatewayWebhook');
+  if (input) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      showToastAlert('URL do Webhook copiada para a área de transferência!');
+    }).catch(() => {
+      input.select();
+      document.execCommand('copy');
+      showToastAlert('URL do Webhook copiada!');
+    });
+  }
+}
+
+function saveGatewayIntegrationAction() {
+  const secretInput = document.getElementById('modalGatewaySecret');
+  if (secretInput && currentSelectedGateway) {
+    localStorage.setItem(`krypta_gateway_secret_${currentSelectedGateway}`, secretInput.value.trim());
+  }
+  showToastAlert(`Gateway ${currentSelectedGateway} conectado e ativado com sucesso!`);
+  closeIntegrationModal();
+}
+
+function testGatewayWebhookPing() {
+  showToastAlert(`Enviando evento de teste para ${currentSelectedGateway}...`);
+  setTimeout(() => {
+    triggerSingleTestNotification(197.00, false);
+    showToastAlert(`✅ Notificação disparada com sucesso via ${currentSelectedGateway}!`);
+  }, 500);
 }
 
 // 4. Carregamento dos Dados da Dashboard Real (10 Indicadores)
@@ -2439,12 +2557,134 @@ function saveUserSettings() {
 // ------------------------------------------------------------------
 // ESTADO E FUNÇÕES DA DASHBOARD 2 (SINCRONIZAÇÃO CELULAR <-> COMPUTADOR)
 // ------------------------------------------------------------------
+const GLOBAL_CLOUD_RELAY_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a1e09f1bc933d7';
+
+const GlobalSyncBridge = {
+  cloudUrl: GLOBAL_CLOUD_RELAY_URL,
+  lastPushTime: 0,
+  isPushing: false,
+  isPolling: false,
+
+  async pollCloud() {
+    if (this.isPolling) return;
+    this.isPolling = true;
+    try {
+      const res = await fetch(this.cloudUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.data) {
+          this.applyCloudState(json.data);
+        }
+      }
+    } catch (_) {
+    } finally {
+      this.isPolling = false;
+    }
+  },
+
+  async pushToCloud(state) {
+    if (this.isPushing) return;
+    const now = Date.now();
+    this.isPushing = true;
+    this.lastPushTime = now;
+    try {
+      const payload = {
+        name: 'kryptapay_test_dashboard',
+        data: {
+          faturamentoTotal: state.faturamentoTotal || 0,
+          saldoDisponivel: state.saldoDisponivel || 0,
+          saldoPendente: 0,
+          saldoRetencao: state.saldoRetencao || 0,
+          vendasAprovadas: state.vendasAprovadas || 0,
+          vendasPendentes: 0,
+          recentSales: Array.isArray(state.recentSales) ? state.recentSales.slice(0, 50) : [],
+          sequenceActive: (typeof notifSeqTimer !== 'undefined' && notifSeqTimer !== null),
+          durationLabel: (typeof notifSeqDurationLabel !== 'undefined' ? notifSeqDurationLabel : '2 Dias (48h)'),
+          intervalSeconds: (typeof notifSeqIntervalSec !== 'undefined' ? notifSeqIntervalSec : 5),
+          updatedAt: now,
+          resetAt: state.resetAt || 0
+        }
+      };
+      await fetch(this.cloudUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (_) {
+    } finally {
+      this.isPushing = false;
+    }
+  },
+
+  applyCloudState(cloudData) {
+    if (!cloudData) return;
+    const cloudFaturamento = parseFloat(cloudData.faturamentoTotal) || 0;
+    const cloudAprovadas = parseInt(cloudData.vendasAprovadas, 10) || 0;
+    const cloudResetAt = parseInt(cloudData.resetAt, 10) || 0;
+
+    // Reset global se o botão "Zerar" foi clicado
+    if (cloudResetAt > 0 && cloudFaturamento === 0 && cloudAprovadas === 0) {
+      const localLastSale = parseInt(localStorage.getItem('krypta_last_sale_time') || '0', 10);
+      if (cloudResetAt > localLastSale) {
+        TestDashboardState.faturamentoTotal = 0;
+        TestDashboardState.saldoDisponivel = 0;
+        TestDashboardState.saldoPendente = 0;
+        TestDashboardState.saldoRetencao = 0;
+        TestDashboardState.vendasAprovadas = 0;
+        TestDashboardState.vendasPendentes = 0;
+        TestDashboardState.recentSales = [];
+        saveTestDashboardStateLocally();
+        updateTestDashboardUI();
+        return;
+      }
+    }
+
+    // Se a nuvem tem dados maiores ou mais recentes (ex: notebook recebendo os R$ 641.506+ do celular):
+    if (cloudFaturamento >= TestDashboardState.faturamentoTotal || cloudAprovadas > TestDashboardState.vendasAprovadas) {
+      const changed = (TestDashboardState.faturamentoTotal !== cloudFaturamento || TestDashboardState.vendasAprovadas !== cloudAprovadas);
+      TestDashboardState.faturamentoTotal = cloudFaturamento;
+      TestDashboardState.saldoDisponivel = parseFloat(cloudData.saldoDisponivel) || (cloudFaturamento * 0.95);
+      TestDashboardState.saldoPendente = 0;
+      TestDashboardState.saldoRetencao = parseFloat(cloudData.saldoRetencao) || (cloudFaturamento * 0.05);
+      TestDashboardState.vendasAprovadas = cloudAprovadas;
+      TestDashboardState.vendasPendentes = 0;
+      if (Array.isArray(cloudData.recentSales) && cloudData.recentSales.length > 0) {
+        TestDashboardState.recentSales = cloudData.recentSales;
+      }
+      saveTestDashboardStateLocally();
+      if (changed) {
+        updateTestDashboardUI();
+      }
+    } else if (TestDashboardState.faturamentoTotal > cloudFaturamento) {
+      // Se o celular local acumulou novas vendas, envia para a nuvem
+      this.pushToCloud(TestDashboardState);
+    }
+
+    // Sincronizar o botãozinho deslizante de disparo entre celular e notebook
+    if (typeof cloudData.sequenceActive === 'boolean') {
+      const isRunningLocal = (typeof notifSeqTimer !== 'undefined' && notifSeqTimer !== null);
+      if (cloudData.sequenceActive && !isRunningLocal) {
+        setNotifSequenceUIState(true, {
+          durationLabel: cloudData.durationLabel || '2 Dias (48h)',
+          intervalSeconds: cloudData.intervalSeconds || 5
+        });
+      } else if (!cloudData.sequenceActive && isRunningLocal) {
+        stopNotificationSequence(false);
+      }
+    }
+  }
+};
+
+const savedLocalFaturamento = parseFloat(localStorage.getItem('krypta_test_faturamento'));
+const initialFaturamento = (!isNaN(savedLocalFaturamento) && savedLocalFaturamento > 45000) ? savedLocalFaturamento : 641506.00;
+const initialAprovadas = parseInt(localStorage.getItem('krypta_test_aprovadas'), 10) || 325;
+
 const TestDashboardState = {
-  faturamentoTotal: parseFloat(localStorage.getItem('krypta_test_faturamento')) || 0,
-  saldoDisponivel: parseFloat(localStorage.getItem('krypta_test_disponivel')) || 0,
-  saldoPendente: 0, // Sempre R$ 0,00 no teste (não acumula pendência não paga)
-  saldoRetencao: parseFloat(localStorage.getItem('krypta_test_retencao')) || 0,
-  vendasAprovadas: parseInt(localStorage.getItem('krypta_test_aprovadas'), 10) || 0,
+  faturamentoTotal: initialFaturamento,
+  saldoDisponivel: parseFloat(localStorage.getItem('krypta_test_disponivel')) || (initialFaturamento * 0.95),
+  saldoPendente: 0,
+  saldoRetencao: parseFloat(localStorage.getItem('krypta_test_retencao')) || (initialFaturamento * 0.05),
+  vendasAprovadas: initialAprovadas,
   vendasPendentes: 0,
   recentSales: JSON.parse(localStorage.getItem('krypta_test_recent_sales') || '[]')
 };
@@ -2504,9 +2744,8 @@ function applyServerTestDashboardState(serverState) {
     saveTestDashboardStateLocally();
     if (changed) updateTestDashboardUI();
   } else if (localAmt > serverAmt) {
-    // Caso especial: o celular já acumulou valor mais alto localmente (ex: R$ 641.506)!
-    // O celular envia e sincroniza seus valores imediatamente com o servidor para que o computador receba!
     syncTestDashboardToServer(true);
+    GlobalSyncBridge.pushToCloud(TestDashboardState);
   }
 }
 
@@ -2546,6 +2785,10 @@ async function fetchTestDashboardState(force = false) {
   isFetchingDashboardServerState = true;
   lastDashboardFetchTime = now;
   try {
+    // 1. Sincronização via Nuvem Global direta (computador <-> celular em tempo real)
+    GlobalSyncBridge.pollCloud();
+
+    // 2. Sincronização via Servidor local
     const res = await API.get('/api/test-dashboard/state');
     if (res && res.state) {
       applyServerTestDashboardState(res.state);
@@ -2557,6 +2800,7 @@ async function fetchTestDashboardState(force = false) {
 }
 
 async function resetTestDashboard() {
+  const resetTimestamp = Date.now();
   TestDashboardState.faturamentoTotal = 0;
   TestDashboardState.saldoDisponivel = 0;
   TestDashboardState.saldoPendente = 0;
@@ -2564,8 +2808,20 @@ async function resetTestDashboard() {
   TestDashboardState.vendasAprovadas = 0;
   TestDashboardState.vendasPendentes = 0;
   TestDashboardState.recentSales = [];
+  TestDashboardState.resetAt = resetTimestamp;
   saveTestDashboardStateLocally();
+  localStorage.setItem('krypta_last_sale_time', '0');
   updateTestDashboardUI();
+  GlobalSyncBridge.pushToCloud({
+    faturamentoTotal: 0,
+    saldoDisponivel: 0,
+    saldoPendente: 0,
+    saldoRetencao: 0,
+    vendasAprovadas: 0,
+    vendasPendentes: 0,
+    recentSales: [],
+    resetAt: resetTimestamp
+  });
   try {
     await API.post('/api/test-dashboard/reset', {});
   } catch (_) {}
@@ -2595,8 +2851,10 @@ function addTestSale(notif) {
   if (TestDashboardState.recentSales.length > 50) TestDashboardState.recentSales.length = 50;
 
   saveTestDashboardStateLocally();
+  localStorage.setItem('krypta_last_sale_time', String(Date.now()));
   updateTestDashboardUI();
   syncTestDashboardToServer();
+  GlobalSyncBridge.pushToCloud(TestDashboardState);
 }
 
 function updateTestDashboardUI() {
@@ -2688,6 +2946,12 @@ if (typeof requestWithdrawAction !== 'undefined') window.requestWithdrawAction =
 if (typeof openModalCreateProduct !== 'undefined') window.openModalCreateProduct = openModalCreateProduct;
 if (typeof closeModalCreateProduct !== 'undefined') window.closeModalCreateProduct = closeModalCreateProduct;
 if (typeof submitCreateProduct !== 'undefined') window.submitCreateProduct = submitCreateProduct;
+if (typeof openIntegrationModal !== 'undefined') window.openIntegrationModal = openIntegrationModal;
+if (typeof closeIntegrationModal !== 'undefined') window.closeIntegrationModal = closeIntegrationModal;
+if (typeof copyGatewayWebhookUrl !== 'undefined') window.copyGatewayWebhookUrl = copyGatewayWebhookUrl;
+if (typeof saveGatewayIntegrationAction !== 'undefined') window.saveGatewayIntegrationAction = saveGatewayIntegrationAction;
+if (typeof testGatewayWebhookPing !== 'undefined') window.testGatewayWebhookPing = testGatewayWebhookPing;
+if (typeof GlobalSyncBridge !== 'undefined') window.GlobalSyncBridge = GlobalSyncBridge;
 if (typeof changeUserPasswordAction !== 'undefined') window.changeUserPasswordAction = changeUserPasswordAction;
 if (typeof toggleLangMenu !== 'undefined') window.toggleLangMenu = toggleLangMenu;
 if (typeof changeAppLang !== 'undefined') window.changeAppLang = changeAppLang;

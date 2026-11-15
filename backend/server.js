@@ -120,8 +120,8 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*'
     });
     return res.end(JSON.stringify({
-      version: '2026.26',
-      build: 202626,
+      version: '2026.27',
+      build: 202627,
       timestamp: Date.now()
     }));
   }
@@ -500,26 +500,28 @@ const TEST_DASHBOARD_FILE = path.join(STORAGE_DIR, 'krypta_test_dashboard_state.
 let globalTestDashboardState = null;
 
 function getTestDashboardState() {
+  try {
+    if (fs.existsSync(TEST_DASHBOARD_FILE)) {
+      const raw = fs.readFileSync(TEST_DASHBOARD_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.faturamentoTotal === 'number') {
+        globalTestDashboardState = parsed;
+        return globalTestDashboardState;
+      }
+    }
+  } catch (_) {}
+
   if (!globalTestDashboardState) {
     globalTestDashboardState = {
-      faturamentoTotal: 0,
-      saldoDisponivel: 0,
+      faturamentoTotal: 641506.00,
+      saldoDisponivel: 609430.70,
       saldoPendente: 0,
-      saldoRetencao: 0,
-      vendasAprovadas: 0,
+      saldoRetencao: 32075.30,
+      vendasAprovadas: 325,
       vendasPendentes: 0,
       recentSales: [],
       updatedAt: Date.now()
     };
-    try {
-      if (fs.existsSync(TEST_DASHBOARD_FILE)) {
-        const raw = fs.readFileSync(TEST_DASHBOARD_FILE, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.faturamentoTotal === 'number') {
-          globalTestDashboardState = parsed;
-        }
-      }
-    } catch (_) {}
   }
   return globalTestDashboardState;
 }
