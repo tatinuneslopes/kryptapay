@@ -120,8 +120,8 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*'
     });
     return res.end(JSON.stringify({
-      version: '2026.24',
-      build: 202624,
+      version: '2026.25',
+      build: 202625,
       timestamp: Date.now()
     }));
   }
@@ -556,21 +556,82 @@ function saveSyncStream(stream) {
 // Permite que disparos continuem rodando por 24h, 2 dias ou dias seguidos
 // mesmo se o usuário fechar o navegador, bloquear a tela ou mudar de app.
 // ========================================================
+const RUNNER_STATE_FILE = path.join(STORAGE_DIR, 'krypta_runner_state.json');
+const PRODUCTS_FILE = path.join(STORAGE_DIR, 'krypta_products.json');
+
+function getGlobalRunnerState() {
+  if (!global.__krypta_runner_state) {
+    global.__krypta_runner_state = {
+      active: false,
+      userId: 'usr_merchant_demo',
+      intervalSeconds: 5,
+      totalTicks: -1,
+      currentTicks: 0,
+      startTime: 0,
+      durationLabel: 'Contínuo',
+      amountType: 'random'
+    };
+    try {
+      if (fs.existsSync(RUNNER_STATE_FILE)) {
+        const raw = fs.readFileSync(RUNNER_STATE_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.active === 'boolean') {
+          global.__krypta_runner_state = parsed;
+        }
+      }
+    } catch (_) {}
+  }
+  return global.__krypta_runner_state;
+}
+
+function saveGlobalRunnerState(state) {
+  global.__krypta_runner_state = state;
+  try {
+    fs.writeFileSync(RUNNER_STATE_FILE, JSON.stringify(global.__krypta_runner_state), 'utf8');
+  } catch (_) {}
+}
+
+function getGlobalProductsList(userId) {
+  let list = [];
+  try {
+    if (fs.existsSync(PRODUCTS_FILE)) {
+      const raw = fs.readFileSync(PRODUCTS_FILE, 'utf8');
+      list = JSON.parse(raw);
+    }
+  } catch (_) {}
+  try {
+    const rows = db.prepare(`SELECT * FROM products ORDER BY created_at DESC`).all();
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        if (!list.some(p => p.id === r.id)) list.push(r);
+      }
+    }
+  } catch (_) {}
+  return list;
+}
+
+function saveGlobalProduct(prod) {
+  let list = [];
+  try {
+    if (fs.existsSync(PRODUCTS_FILE)) {
+      const raw = fs.readFileSync(PRODUCTS_FILE, 'utf8');
+      list = JSON.parse(raw);
+    }
+  } catch (_) {}
+  list.unshift(prod);
+  if (list.length > 200) list.length = 200;
+  try {
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(list), 'utf8');
+  } catch (_) {}
+}
+
 let globalRunnerTimer = null;
-let globalRunnerState = {
-  active: false,
-  userId: 'usr_merchant_demo',
-  intervalSeconds: 5,
-  totalTicks: -1,
-  currentTicks: 0,
-  startTime: 0,
-  durationLabel: '2 Dias',
-  amountType: 'random'
-};
+let globalRunnerState = getGlobalRunnerState();
 
 function tickServerRunner() {
-  if (!globalRunnerState.active) return;
-  if (globalRunnerState.totalTicks !== -1 && globalRunnerState.currentTicks >= globalRunnerState.totalTicks) {
+  const runnerState = getGlobalRunnerState();
+  if (!runnerState.active) return;
+  if (runnerState.totalTicks !== -1 && runnerState.currentTicks >= runnerState.totalTicks) {
     stopServerRunner();
     return;
   }
@@ -579,22 +640,22 @@ function tickServerRunner() {
   const lastSeq = stream.length > 0 ? stream[stream.length - 1].seqId : 0;
   const seqId = lastSeq + 1;
 
-  const tickIndex = globalRunnerState.currentTicks;
+  const tickIndex = runnerState.currentTicks;
   const isPending = (tickIndex % 2 === 0);
   const isApproved = !isPending;
 
   let chosenAmount;
   let orderNumber;
 
-  if (isPending || !globalRunnerState._lastPendingOrder) {
+  if (isPending || !runnerState._lastPendingOrder) {
     const amounts = [24.90, 47.00, 67.00, 97.00, 147.00, 197.00, 297.00, 497.00];
     chosenAmount = amounts[Math.floor(Math.random() * amounts.length)];
     orderNumber = `#${10000 + Math.floor(Math.random() * 90000)}`;
-    globalRunnerState._lastPendingOrder = { amount: chosenAmount, orderNumber };
+    runnerState._lastPendingOrder = { amount: chosenAmount, orderNumber };
   } else {
-    chosenAmount = globalRunnerState._lastPendingOrder.amount;
-    orderNumber = globalRunnerState._lastPendingOrder.orderNumber;
-    globalRunnerState._lastPendingOrder = null;
+    chosenAmount = runnerState._lastPendingOrder.amount;
+    orderNumber = runnerState._lastPendingOrder.orderNumber;
+    runnerState._lastPendingOrder = null;
   }
 
   const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -681,20 +742,26 @@ function tickServerRunner() {
 
 function startServerRunner(params) {
   stopServerRunner();
-  globalRunnerState = {
-    active: true,
-    userId: params.userId || 'usr_merchant_demo',
-    intervalSeconds: Math.max(parseFloat(params.intervalSeconds) || 5, 0.5),
-    totalTicks: params.totalTicks !== undefined ? params.totalTicks : -1,
-    currentTicks: 0,
-    startTime: Date.now(),
-    durationLabel: params.durationLabel || 'Contínuo',
-    amountType: params.amountType || 'random'
-  };
+  const state = getGlobalRunnerState();
+  state.active = true;
+  state.userId = params.userId || 'usr_merchant_demo';
+  state.intervalSeconds = Math.max(parseFloat(params.intervalSeconds) || 5, 0.5);
+  state.totalTicks = params.totalTicks !== undefined ? params.totalTicks : -1;
+  state.currentTicks = 0;
+  state.startTime = Date.now();
+  state.durationLabel = params.durationLabel || 'Contínuo';
+  state.amountType = params.amountType || 'random';
+  saveGlobalRunnerState(state);
+
+  // Broadcast imediato para todos os clientes conectados (computador e celular)
+  const sseMsg = `data: ${JSON.stringify({ type: 'simulation_state', state })}\n\n`;
+  for (const client of sseClients) {
+    try { client.write(sseMsg); } catch (_) { sseClients.delete(client); }
+  }
 
   tickServerRunner();
 
-  const intervalMs = globalRunnerState.intervalSeconds * 1000;
+  const intervalMs = state.intervalSeconds * 1000;
   globalRunnerTimer = setInterval(tickServerRunner, intervalMs);
 }
 
@@ -703,7 +770,14 @@ function stopServerRunner() {
     clearInterval(globalRunnerTimer);
     globalRunnerTimer = null;
   }
-  globalRunnerState.active = false;
+  const state = getGlobalRunnerState();
+  state.active = false;
+  saveGlobalRunnerState(state);
+
+  const sseMsg = `data: ${JSON.stringify({ type: 'simulation_state', state })}\n\n`;
+  for (const client of sseClients) {
+    try { client.write(sseMsg); } catch (_) { sseClients.delete(client); }
+  }
 }
 
   // Endpoints do Runner de Notificações em Segundo Plano 24/7
@@ -717,16 +791,16 @@ function stopServerRunner() {
       durationLabel: body.duration_label,
       amountType: body.amount_type
     });
-    return sendJSON(res, 200, { success: true, message: 'Runner 24/7 de notificações iniciado com sucesso no servidor!', state: globalRunnerState });
+    return sendJSON(res, 200, { success: true, message: 'Runner 24/7 de notificações iniciado com sucesso no servidor!', state: getGlobalRunnerState() });
   }
 
   if (pathname === '/api/notifications/sequence/stop' && method === 'POST') {
     stopServerRunner();
-    return sendJSON(res, 200, { success: true, message: 'Runner de notificações parado.' });
+    return sendJSON(res, 200, { success: true, message: 'Runner de notificações parado.', state: getGlobalRunnerState() });
   }
 
   if (pathname === '/api/notifications/sequence/status' && method === 'GET') {
-    return sendJSON(res, 200, { success: true, state: globalRunnerState });
+    return sendJSON(res, 200, { success: true, state: getGlobalRunnerState() });
   }
 
   // -------------------------------------------------------------
@@ -906,8 +980,8 @@ function stopServerRunner() {
   // -------------------------------------------------------------
   if (pathname === '/api/products' && method === 'GET') {
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
-    const rows = db.prepare(`SELECT * FROM products WHERE user_id = ? ORDER BY created_at DESC`).all(userId);
-    return sendJSON(res, 200, { products: rows });
+    const products = getGlobalProductsList(userId);
+    return sendJSON(res, 200, { success: true, products: products });
   }
 
   if (pathname === '/api/products' && method === 'POST') {
@@ -926,6 +1000,18 @@ function stopServerRunner() {
     const productType = body.product_type || 'digital';
     const category = body.category || 'infoproduto';
 
+    const prodObj = {
+      id: productId,
+      user_id: userId,
+      name,
+      description,
+      price,
+      category,
+      product_type: productType,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+
     try {
       db.prepare(`
         INSERT INTO products (id, user_id, name, description, price, category, product_type, status)
@@ -935,18 +1021,17 @@ function stopServerRunner() {
       console.warn('Erro ao inserir produto no SQLite:', e);
     }
 
+    saveGlobalProduct(prodObj);
+
+    // Broadcast SSE para computadores e celulares conectados atualizarem a lista na hora
+    const sseMsg = `data: ${JSON.stringify({ type: 'product_created', product: prodObj })}\n\n`;
+    for (const client of sseClients) {
+      try { client.write(sseMsg); } catch (_) { sseClients.delete(client); }
+    }
+
     return sendJSON(res, 201, {
       success: true,
-      product: {
-        id: productId,
-        user_id: userId,
-        name,
-        description,
-        price,
-        category,
-        product_type: productType,
-        status: 'active'
-      }
+      product: prodObj
     });
   }
 

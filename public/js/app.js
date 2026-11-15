@@ -184,7 +184,10 @@ function switchTab(tabId) {
   else if (tabId === 'global') loadGlobalData();
   else if (tabId === 'api') loadApiKeysData();
   else if (tabId === 'webhooks') loadWebhooksData();
-  else if (tabId === 'notifications') loadNotificationsData();
+  else if (tabId === 'notifications') {
+    loadNotificationsData();
+    checkServerSimulationStatus();
+  }
   else if (tabId === 'admin') loadAdminData();
   else if (tabId === 'acquirers') loadAcquirersData();
   else if (tabId === 'products') loadProductsData();
@@ -224,6 +227,10 @@ function setupSSE() {
             handleIncomingNotification(data);
           } else if (data.type === 'test_dashboard_sync' && data.state) {
             applyServerTestDashboardState(data.state);
+          } else if (data.type === 'simulation_state' && data.state) {
+            handleServerSimulationState(data.state);
+          } else if (data.type === 'product_created') {
+            if (AppState.currentTab === 'products') loadProductsData();
           } else if (data.type === 'charge') {
             handleChargeNotification(data);
           } else if (data.type === 'withdrawal') {
@@ -254,21 +261,86 @@ function setupSSE() {
 // ========================================================
 let isSyncInProgress = false;
 
+function setNotifSequenceUIState(isActive, stateInfo = {}) {
+  const toggle = document.getElementById('toggleNotifSequence');
+  const toggleBadge = document.getElementById('toggleNotifSequenceBadge');
+  const toggleStateText = document.getElementById('toggleNotifStateText');
+  const btnStart = document.getElementById('btnStartNotifSeq');
+  const btnStop = document.getElementById('btnStopNotifSeq');
+
+  if (isActive) {
+    if (toggle) toggle.checked = true;
+    if (toggleBadge) {
+      toggleBadge.className = 'badge-status badge-approved';
+      toggleBadge.innerHTML = '🟢 LIGADO — PINGANDO NO CELULAR';
+    }
+    if (toggleStateText) {
+      toggleStateText.textContent = 'LIGADO ⚡';
+      toggleStateText.style.color = '#4ade80';
+    }
+    if (btnStart) btnStart.disabled = true;
+    if (btnStop) btnStop.disabled = false;
+    updateNotifSeqProgressUI(`🚀 Disparos Ativos (${stateInfo.durationLabel || 'Contínuo'}) • Intervalo: ${stateInfo.intervalSeconds || notifSeqIntervalSec || 5}s`);
+  } else {
+    if (toggle) toggle.checked = false;
+    if (toggleBadge) {
+      toggleBadge.className = 'badge-status badge-pending';
+      toggleBadge.innerHTML = '⚪ DESLIGADO (Arraste para Ligar)';
+    }
+    if (toggleStateText) {
+      toggleStateText.textContent = 'DESLIGADO';
+      toggleStateText.style.color = 'var(--text-muted)';
+    }
+    if (btnStart) btnStart.disabled = false;
+    if (btnStop) btnStop.disabled = true;
+    const statusLabel = document.getElementById('notifSeqStatusLabel');
+    if (statusLabel) {
+      statusLabel.textContent = 'Disparos desligados pelo botão.';
+    }
+  }
+}
+
+function handleServerSimulationState(state) {
+  if (!state) return;
+  if (state.active) {
+    setNotifSequenceUIState(true, state);
+    notifSeqIntervalSec = state.intervalSeconds || notifSeqIntervalSec || 5;
+    notifSeqIsInfinite = true;
+    notifSeqTotal = Infinity;
+    requestSimulationWakeLock();
+
+    const resumeIntervalMs = Math.round(notifSeqIntervalSec * 1000);
+    if (!notifSeqTimer) {
+      notifSeqTimer = setInterval(() => {
+        handleSeqTick();
+      }, resumeIntervalMs);
+    }
+    if (!BackgroundNotificationEngine._isActive) {
+      BackgroundNotificationEngine.start(() => {
+        handleSeqTick();
+      }, () => Math.round(notifSeqIntervalSec * 1000));
+    }
+  } else {
+    setNotifSequenceUIState(false);
+    BackgroundNotificationEngine.stop();
+    if (simTimerWorker) {
+      try { simTimerWorker.postMessage({ action: 'stop' }); } catch (_) {}
+    }
+    if (notifSeqTimer) {
+      clearInterval(notifSeqTimer);
+      notifSeqTimer = null;
+    }
+    lastSeqTickTime = 0;
+    releaseSimulationWakeLock();
+    localStorage.removeItem('kryptapay_sim_session');
+  }
+}
+
 async function checkServerSimulationStatus() {
   try {
     const res = await API.get('/api/notifications/sequence/status');
-    if (res && res.state && res.state.active) {
-      // Disparos ativos iniciados em outro dispositivo (notebook/PC)
-      if (!BackgroundNotificationEngine._isActive) {
-        BackgroundNotificationEngine.start(() => {
-          fetchCrossDeviceSync();
-        }, () => Math.max(1000, (res.state.intervalSeconds || 5) * 1000));
-      }
-      requestSimulationWakeLock();
-      const statusLabel = document.getElementById('notifSeqStatusLabel');
-      if (statusLabel) {
-        statusLabel.textContent = `📲 Sincronizado com Notebook (Disparos Ativos)`;
-      }
+    if (res && res.state) {
+      handleServerSimulationState(res.state);
     }
   } catch (_) {}
 }
@@ -803,18 +875,7 @@ async function startNotificationSequence() {
   lastSeqTickTime = 0;
 
   // Atualizar visual do botãozinho deslizante para LIGADO
-  const toggle = document.getElementById('toggleNotifSequence');
-  if (toggle) toggle.checked = true;
-  const toggleBadge = document.getElementById('toggleNotifSequenceBadge');
-  if (toggleBadge) {
-    toggleBadge.className = 'badge-status badge-approved';
-    toggleBadge.innerHTML = '🟢 LIGADO — PINGANDO NO CELULAR';
-  }
-  const toggleStateText = document.getElementById('toggleNotifStateText');
-  if (toggleStateText) {
-    toggleStateText.textContent = 'LIGADO ⚡';
-    toggleStateText.style.color = '#4ade80';
-  }
+  setNotifSequenceUIState(true, { durationLabel: durConfig.label, intervalSeconds: intervalSec });
 
   // Salvar sessão persistente no localStorage
   const sessionData = {
@@ -939,23 +1000,7 @@ function stopNotificationSequence(completed = false) {
   localStorage.removeItem('kryptapay_sim_session');
 
   // Atualizar visual do botãozinho deslizante para DESLIGADO
-  const toggle = document.getElementById('toggleNotifSequence');
-  if (toggle) toggle.checked = false;
-  const toggleBadge = document.getElementById('toggleNotifSequenceBadge');
-  if (toggleBadge) {
-    toggleBadge.className = 'badge-status badge-pending';
-    toggleBadge.innerHTML = '⚪ DESLIGADO (Arraste para Ligar)';
-  }
-  const toggleStateText = document.getElementById('toggleNotifStateText');
-  if (toggleStateText) {
-    toggleStateText.textContent = 'DESLIGADO';
-    toggleStateText.style.color = 'var(--text-muted)';
-  }
-
-  const btnStart = document.getElementById('btnStartNotifSeq');
-  const btnStop = document.getElementById('btnStopNotifSeq');
-  if (btnStart) btnStart.disabled = false;
-  if (btnStop) btnStop.disabled = true;
+  setNotifSequenceUIState(false);
 
   const statusLabel = document.getElementById('notifSeqStatusLabel');
   if (statusLabel) {
@@ -965,15 +1010,11 @@ function stopNotificationSequence(completed = false) {
   }
 }
 
-// Recuperar sessão e repor vendas perdidas caso o aparelho tenha dormido à noite
+// Recuperar sessão e sincronizar estado do botão entre computador e celular
 function checkActiveSimulationSession() {
   API.get('/api/notifications/sequence/status').then(res => {
-    if (res && res.state && res.state.active) {
-      const btnStart = document.getElementById('btnStartNotifSeq');
-      const btnStop = document.getElementById('btnStopNotifSeq');
-      if (btnStart) btnStart.disabled = true;
-      if (btnStop) btnStop.disabled = false;
-      updateNotifSeqProgressUI(`🚀 Disparos 24/7 Ativos (${res.state.durationLabel || 'Contínuo'}) • Intervalo: ${res.state.intervalSeconds}s`);
+    if (res && res.state) {
+      handleServerSimulationState(res.state);
     }
   }).catch(() => {});
 
