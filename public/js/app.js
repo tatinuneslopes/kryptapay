@@ -577,6 +577,7 @@ let simWakeLock = null;
 let simTimerWorker = null;
 
 // ========================================================
+// ========================================================
 // MOTOR DE EXECUÇÃO EM SEGUNDO PLANO (TELA BLOQUEADA / FORA DO APP)
 // Mantém as notificações ativas no Safari (iOS) e Chrome (Android) mesmo
 // com a tela apagada/bloqueada através de sessão de áudio de baixa prioridade.
@@ -585,9 +586,12 @@ class BackgroundNotificationEngine {
   static _audioEl = null;
   static _isActive = false;
   static _lastTickTimestamp = 0;
+  static _onTickCallback = null;
+  static _getIntervalMs = null;
 
   static start(onTickCallback, getIntervalMs) {
-    if (this._isActive) return;
+    this._onTickCallback = onTickCallback;
+    this._getIntervalMs = getIntervalMs;
     this._isActive = true;
     this._lastTickTimestamp = Date.now();
 
@@ -606,11 +610,11 @@ class BackgroundNotificationEngine {
       this._audioEl.ontimeupdate = () => {
         if (!this._isActive) return;
         const now = Date.now();
-        const intervalMs = getIntervalMs ? getIntervalMs() : 120000;
+        const intervalMs = this._getIntervalMs ? this._getIntervalMs() : 5000;
         if (now - this._lastTickTimestamp >= intervalMs) {
           this._lastTickTimestamp = now;
-          if (typeof onTickCallback === 'function') {
-            onTickCallback();
+          if (typeof this._onTickCallback === 'function') {
+            this._onTickCallback();
           }
         }
       };
@@ -651,6 +655,8 @@ class BackgroundNotificationEngine {
 
   static stop() {
     this._isActive = false;
+    this._onTickCallback = null;
+    this._getIntervalMs = null;
     if (this._audioEl) {
       try {
         this._audioEl.ontimeupdate = null;
@@ -659,7 +665,9 @@ class BackgroundNotificationEngine {
       } catch (_) {}
     }
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'none';
+      try {
+        navigator.mediaSession.playbackState = 'none';
+      } catch (_) {}
     }
   }
 
@@ -689,39 +697,59 @@ function releaseSimulationWakeLock() {
   }
 }
 
-// Inicializar Web Worker para ticks precisos em segundo plano
+// Inicializar Web Worker para ticks precisos em segundo plano (com Blob inline ininterrupto)
 function initSimulationWorker() {
-  if (window.Worker && !simTimerWorker) {
+  if (simTimerWorker) return;
+  if (typeof window.Worker !== 'undefined') {
     try {
-      simTimerWorker = new Worker('/js/timer-worker.js');
+      const workerCode = `
+        let timer = null;
+        self.onmessage = function(e) {
+          const d = e.data || {};
+          if (d.action === 'start') {
+            if (timer) clearInterval(timer);
+            const ms = Math.max(parseFloat(d.intervalMs) || 1000, 200);
+            timer = setInterval(() => {
+              self.postMessage({ type: 'TICK', time: Date.now() });
+            }, ms);
+          } else if (d.action === 'stop') {
+            if (timer) clearInterval(timer);
+            timer = null;
+          }
+        };
+      `;
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const workerUrl = URL.createObjectURL(blob);
+      simTimerWorker = new Worker(workerUrl);
       simTimerWorker.onmessage = function(e) {
         if (e.data && e.data.type === 'TICK') {
           handleSeqTick();
         }
       };
-    } catch (e) {
-      console.warn('Web Worker não pôde ser instanciado, usando setInterval de fallback:', e);
+    } catch (err) {
+      console.warn('Worker inline indisponível, usando fallback de timer principal:', err);
       simTimerWorker = null;
     }
   }
 }
 
-// Interpretar duração selecionada pelo usuário
+// Interpretar duração selecionada pelo usuário (sempre contínuo até o usuário desligar)
 function parseNotifDurationValue(val) {
   switch (val) {
-    case 'dur_8h': return { totalTicks: 240, durationSec: 8 * 3600, infinite: false, label: '1 Noite (8 Horas)' };
-    case 'dur_24h': return { totalTicks: 720, durationSec: 24 * 3600, infinite: false, label: '24 Horas (1 Dia)' };
-    case 'dur_2d': return { totalTicks: 1440, durationSec: 48 * 3600, infinite: false, label: '2 Dias (48 Horas)' };
-    case 'dur_3d': return { totalTicks: 2160, durationSec: 72 * 3600, infinite: false, label: '3 Dias' };
-    case 'dur_7d': return { totalTicks: 5040, durationSec: 168 * 3600, infinite: false, label: '7 Dias (1 Semana)' };
-    case 'dur_10d': return { totalTicks: 7200, durationSec: 240 * 3600, infinite: false, label: '10 Dias' };
+    case 'dur_8h': return { totalTicks: Infinity, durationSec: 8 * 3600, infinite: true, label: '1 Noite (8 Horas)' };
+    case 'dur_24h': return { totalTicks: Infinity, durationSec: 24 * 3600, infinite: true, label: '24 Horas (1 Dia)' };
+    case 'dur_2d': return { totalTicks: Infinity, durationSec: 48 * 3600, infinite: true, label: '2 Dias (48 Horas)' };
+    case 'dur_3d': return { totalTicks: Infinity, durationSec: 72 * 3600, infinite: true, label: '3 Dias' };
+    case 'dur_7d': return { totalTicks: Infinity, durationSec: 168 * 3600, infinite: true, label: '7 Dias (1 Semana)' };
+    case 'dur_10d': return { totalTicks: Infinity, durationSec: 240 * 3600, infinite: true, label: '10 Dias' };
     case 'dur_infinite': return { totalTicks: Infinity, durationSec: Infinity, infinite: true, label: 'Contínuo / Infinito' };
     default: {
-      const parsed = parseInt(val, 10) || 5;
-      return { totalTicks: parsed, durationSec: parsed * 60, infinite: false, label: `${parsed} Notificações` };
+      return { totalTicks: Infinity, durationSec: Infinity, infinite: true, label: 'Disparos Contínuos' };
     }
   }
 }
+
+let lastSeqTickTime = 0;
 
 // Iniciar sequência de notificações contínua
 async function startNotificationSequence() {
@@ -738,25 +766,23 @@ async function startNotificationSequence() {
   const countSelect = document.getElementById('notifTestCount');
   const intervalSelect = document.getElementById('notifTestInterval');
   const durConfig = parseNotifDurationValue(countSelect ? countSelect.value : 'dur_2d');
-  const intervalSec = Math.max(0.5, parseFloat(intervalSelect ? intervalSelect.value : '120') || 120);
+  const intervalSec = Math.max(0.5, parseFloat(intervalSelect ? intervalSelect.value : '5') || 5);
 
   notifSeqIntervalSec = intervalSec;
-  notifSeqIsInfinite = durConfig.infinite;
-  notifSeqTotal = durConfig.infinite ? Infinity : Math.max(1, Math.round(durConfig.durationSec / intervalSec));
-  if (!durConfig.infinite && countSelect && !countSelect.value.startsWith('dur_')) {
-    notifSeqTotal = durConfig.totalTicks;
-  }
+  notifSeqIsInfinite = true;
+  notifSeqTotal = Infinity;
   notifSeqCurrent = 0;
   notifSeqSessionStart = Date.now();
+  lastSeqTickTime = 0;
 
   // Salvar sessão persistente no localStorage
   const sessionData = {
     active: true,
     startTime: notifSeqSessionStart,
     intervalSec: notifSeqIntervalSec,
-    totalTicks: notifSeqTotal === Infinity ? -1 : notifSeqTotal,
+    totalTicks: -1,
     currentTicks: 0,
-    isInfinite: notifSeqIsInfinite,
+    isInfinite: true,
     lastTickTime: Date.now(),
     durationLabel: durConfig.label
   };
@@ -765,16 +791,10 @@ async function startNotificationSequence() {
   // Notificar o Servidor Cloud para executar o Runner 24/7 continuamente em segundo plano
   API.post('/api/notifications/sequence/start', {
     interval_seconds: intervalSec,
-    total_ticks: notifSeqTotal === Infinity ? -1 : notifSeqTotal,
+    total_ticks: -1,
     duration_label: durConfig.label,
     amount_type: document.getElementById('notifTestAmount')?.value || 'random'
   }).catch(() => {});
-
-  // Iniciar Motor de Segundo Plano (Audio Keep-Alive) para tela bloqueada / fora do app
-  const intervalMs = Math.round(intervalSec * 1000);
-  BackgroundNotificationEngine.start(() => {
-    handleSeqTick();
-  }, () => Math.round(notifSeqIntervalSec * 1000));
 
   // Manter a tela acordada / não suspender
   requestSimulationWakeLock();
@@ -786,25 +806,39 @@ async function startNotificationSequence() {
 
   updateNotifSeqProgressUI(`🚀 Disparos Ativos (${durConfig.label}) • Intervalo: ${intervalSec}s`);
 
-  // Disparar o primeiro ping imediato (Venda Aprovada)
+  // Disparar o primeiro ping imediato
   handleSeqTick();
 
-  // Iniciar timer com Web Worker ou setInterval
+  const intervalMs = Math.round(intervalSec * 1000);
+
+  // 1. Timer principal (setInterval) - SEMPRE ATIVO
+  if (notifSeqTimer) clearInterval(notifSeqTimer);
+  notifSeqTimer = setInterval(() => {
+    handleSeqTick();
+  }, intervalMs);
+
+  // 2. Web Worker em segundo plano (com Blob inline) - NUNCA FALHA
   initSimulationWorker();
   if (simTimerWorker) {
-    simTimerWorker.postMessage({ action: 'start', intervalMs: intervalMs });
-  } else {
-    if (notifSeqTimer) clearInterval(notifSeqTimer);
-    notifSeqTimer = setInterval(handleSeqTick, intervalMs);
+    try {
+      simTimerWorker.postMessage({ action: 'start', intervalMs: intervalMs });
+    } catch (_) {}
   }
+
+  // 3. Motor de Áudio em segundo plano (iOS Safari & Android PWA com tela apagada)
+  BackgroundNotificationEngine.start(() => {
+    handleSeqTick();
+  }, () => Math.round(notifSeqIntervalSec * 1000));
 }
 
-// Cada disparo individual da sequência
+// Cada disparo individual da sequência (alternando Venda Pendente e Venda Aprovada)
 function handleSeqTick() {
-  if (!notifSeqIsInfinite && notifSeqCurrent >= notifSeqTotal) {
-    stopNotificationSequence(true);
+  const now = Date.now();
+  const minIntervalMs = Math.max((notifSeqIntervalSec * 1000) * 0.7, 300);
+  if (lastSeqTickTime > 0 && (now - lastSeqTickTime) < minIntervalMs) {
     return;
   }
+  lastSeqTickTime = now;
 
   BackgroundNotificationEngine.markTick();
 
@@ -825,10 +859,6 @@ function handleSeqTick() {
   } catch (_) {}
 
   updateNotifSeqProgressUI();
-
-  if (!notifSeqIsInfinite && notifSeqCurrent >= notifSeqTotal) {
-    stopNotificationSequence(true);
-  }
 }
 
 // Atualizar interface visual do progresso de disparos
@@ -844,20 +874,11 @@ function updateNotifSeqProgressUI(customStatus) {
   }
 
   if (countLabel) {
-    if (notifSeqIsInfinite) {
-      countLabel.textContent = `${notifSeqCurrent} / ♾️ Contínuo`;
-    } else {
-      countLabel.textContent = `${notifSeqCurrent} / ${notifSeqTotal}`;
-    }
+    countLabel.textContent = `${notifSeqCurrent} / ♾️ Contínuo`;
   }
 
   if (pBar) {
-    if (notifSeqIsInfinite) {
-      pBar.style.width = '100%';
-    } else {
-      const pct = Math.min(100, Math.round((notifSeqCurrent / notifSeqTotal) * 100));
-      pBar.style.width = `${pct}%`;
-    }
+    pBar.style.width = '100%';
   }
 }
 
@@ -872,6 +893,7 @@ function stopNotificationSequence(completed = false) {
     clearInterval(notifSeqTimer);
     notifSeqTimer = null;
   }
+  lastSeqTickTime = 0;
   releaseSimulationWakeLock();
   localStorage.removeItem('kryptapay_sim_session');
 
@@ -938,31 +960,39 @@ function checkActiveSimulationSession() {
       }
     }
 
-    const maxTicks = s.totalTicks === -1 ? Infinity : s.totalTicks;
-    if (s.isInfinite || s.currentTicks < maxTicks) {
-      notifSeqIntervalSec = s.intervalSec || 120;
-      notifSeqIsInfinite = s.isInfinite;
-      notifSeqTotal = maxTicks;
-      notifSeqCurrent = s.currentTicks || 0;
-      notifSeqSessionStart = s.startTime || now;
+    notifSeqIntervalSec = s.intervalSec || 5;
+    notifSeqIsInfinite = true;
+    notifSeqTotal = Infinity;
+    notifSeqCurrent = s.currentTicks || 0;
+    notifSeqSessionStart = s.startTime || now;
+    lastSeqTickTime = 0;
 
-      const btnStart = document.getElementById('btnStartNotifSeq');
-      const btnStop = document.getElementById('btnStopNotifSeq');
-      if (btnStart) btnStart.disabled = true;
-      if (btnStop) btnStop.disabled = false;
+    const btnStart = document.getElementById('btnStartNotifSeq');
+    const btnStop = document.getElementById('btnStopNotifSeq');
+    if (btnStart) btnStart.disabled = true;
+    if (btnStop) btnStop.disabled = false;
 
-      updateNotifSeqProgressUI(`🚀 Continuando disparos em segundo plano (${s.durationLabel || 'Ativo'})...`);
-      requestSimulationWakeLock();
-      initSimulationWorker();
-      if (simTimerWorker) {
-        simTimerWorker.postMessage({ action: 'start', intervalMs: notifSeqIntervalSec * 1000 });
-      } else {
-        if (notifSeqTimer) clearInterval(notifSeqTimer);
-        notifSeqTimer = setInterval(handleSeqTick, notifSeqIntervalSec * 1000);
-      }
-    } else {
-      stopNotificationSequence(true);
+    updateNotifSeqProgressUI(`🚀 Continuando disparos ativos (${s.durationLabel || 'Contínuo'})...`);
+    requestSimulationWakeLock();
+
+    const resumeIntervalMs = Math.round(notifSeqIntervalSec * 1000);
+
+    // 1. Timer principal (setInterval)
+    if (notifSeqTimer) clearInterval(notifSeqTimer);
+    notifSeqTimer = setInterval(() => {
+      handleSeqTick();
+    }, resumeIntervalMs);
+
+    // 2. Web Worker em segundo plano
+    initSimulationWorker();
+    if (simTimerWorker) {
+      try { simTimerWorker.postMessage({ action: 'start', intervalMs: resumeIntervalMs }); } catch (_) {}
     }
+
+    // 3. Motor de Áudio em segundo plano
+    BackgroundNotificationEngine.start(() => {
+      handleSeqTick();
+    }, () => Math.round(notifSeqIntervalSec * 1000));
   } catch (e) {
     console.error('Erro ao verificar sessão de simulação ativa:', e);
   }
