@@ -4,6 +4,12 @@ class KryptaGlobe3D {
   constructor(canvasId, options = {}) {
     this.canvas = document.getElementById(canvasId);
     if (!this.canvas) return;
+
+    if (this.canvas._globeInstance) {
+      try { cancelAnimationFrame(this.canvas._globeInstance.animFrameId); } catch (_) {}
+    }
+    this.canvas._globeInstance = this;
+
     this.ctx = this.canvas.getContext('2d');
     this.options = Object.assign({
       radius: 260,
@@ -132,34 +138,37 @@ class KryptaGlobe3D {
   resize() {
     if (!this.canvas) return;
     const parent = this.canvas.parentElement;
-    const clientW = Math.min(window.innerWidth || 800, parent ? parent.clientWidth : 800);
+    const clientW = parent && parent.clientWidth > 0 ? parent.clientWidth : (window.innerWidth || 800);
     const rect = parent ? parent.getBoundingClientRect() : { width: clientW, height: 500 };
     const dpr = window.devicePixelRatio || 1;
 
-    this.width = Math.min(rect.width || clientW, clientW, window.innerWidth || clientW) || 360;
+    let computedW = rect.width > 50 ? rect.width : (clientW > 50 ? clientW : 360);
+    this.width = Math.min(computedW, window.innerWidth || computedW);
     const isMobile = this.width < 640;
 
     // Altura proporcional respeitando o container pai
     if (rect.height && rect.height > 120) {
       this.height = rect.height;
+    } else if (parent && parent.clientHeight > 120) {
+      this.height = parent.clientHeight;
     } else if (isMobile) {
       this.height = Math.min(this.width * 1.05, 410);
     } else {
-      this.height = 540;
+      this.height = 480;
     }
 
     // Raio do globo proporcional respeitando as opções e dimensões
     if (this.options && this.options.radius) {
       const maxRadius = Math.min(this.width * 0.44, this.height * 0.44);
-      this.radius = Math.min(this.options.radius, maxRadius);
+      this.radius = Math.min(this.options.radius, Math.max(80, maxRadius));
     } else if (isMobile) {
-      this.radius = Math.min(this.width * 0.35, 140);
+      this.radius = Math.min(this.width * 0.38, 150);
     } else {
       this.radius = Math.min(this.width * 0.44, this.height * 0.44, 270);
     }
 
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
+    this.canvas.width = Math.max(200, this.width) * dpr;
+    this.canvas.height = Math.max(200, this.height) * dpr;
     this.canvas.style.width = `${this.width}px`;
     this.canvas.style.height = `${this.height}px`;
     this.canvas.style.maxWidth = '100%';
@@ -212,7 +221,7 @@ class KryptaGlobe3D {
   }
 
   animate() {
-    if (!this.canvas) return;
+    if (!this.canvas || this.canvas._globeInstance !== this) return;
 
     // Rotação contínua e suave do mundo
     if (!this.isDragging) {
@@ -221,7 +230,7 @@ class KryptaGlobe3D {
     }
 
     this.render();
-    requestAnimationFrame(() => this.animate());
+    this.animFrameId = requestAnimationFrame(() => this.animate());
   }
 
   render() {

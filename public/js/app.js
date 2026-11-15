@@ -1,5 +1,45 @@
 // KryptaPay Application Controller (All 27 Modules + 3D Live Globe + Notifications)
 
+// Funções Globais Imediatas do Menu Lateral (Garante funcionamento instantâneo em qualquer tela)
+function toggleSidebarMenu(e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!sidebar) return;
+
+  const isOpen = sidebar.classList.contains('mobile-open') || sidebar.classList.contains('sidebar-drawer-open');
+  if (isOpen) {
+    sidebar.classList.remove('mobile-open');
+    sidebar.classList.remove('sidebar-drawer-open');
+    if (backdrop) backdrop.style.display = 'none';
+    document.body.style.overflow = '';
+  } else {
+    sidebar.classList.remove('collapsed');
+    sidebar.classList.add('mobile-open');
+    sidebar.classList.add('sidebar-drawer-open');
+    if (backdrop) backdrop.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+}
+window.toggleSidebarMenu = toggleSidebarMenu;
+window.toggleMobileSidebar = toggleSidebarMenu;
+
+function closeMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar) {
+    sidebar.classList.remove('mobile-open');
+    sidebar.classList.remove('sidebar-drawer-open');
+  }
+  if (backdrop) backdrop.style.display = 'none';
+  document.body.style.overflow = '';
+}
+window.closeMobileSidebar = closeMobileSidebar;
+
 const AppState = {
   currentTab: 'dashboard',
   user: null,
@@ -106,6 +146,14 @@ function setupNavigation() {
     collapseBtn.dataset.bound = 'true';
     collapseBtn.addEventListener('click', (e) => {
       closeMobileSidebar();
+    });
+  }
+
+  const menuBtn = document.getElementById('mobileMenuBtn');
+  if (menuBtn && !menuBtn.dataset.bound) {
+    menuBtn.dataset.bound = 'true';
+    menuBtn.addEventListener('click', (e) => {
+      toggleSidebarMenu(e);
     });
   }
 }
@@ -469,7 +517,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.26');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.29');
       }
       await navigator.serviceWorker.ready;
 
@@ -524,7 +572,6 @@ async function sendNativePhoneNotification(notifObj) {
 
 let pendingTestOrder = null;
 let singleTestToggle = false;
-let pendingTestOrder = null;
 
 // Sorteio de status com base no perfil de simulação selecionado
 function pickStatusForProfile(profile, tickIdx) {
@@ -768,9 +815,6 @@ class BackgroundNotificationEngine {
   }
 
   static markTick() {
-    this._lastTickTimestamp = Date.now();
-  }
-}
     this._lastTickTimestamp = Date.now();
   }
 }

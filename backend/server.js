@@ -235,28 +235,35 @@ const server = http.createServer(async (req, res) => {
     `).get(userId);
 
     const userWallet = db.prepare(`SELECT balance_available, balance_pending, balance_retained FROM users WHERE id = ?`).get(userId) || {
-      balance_available: 18450.80, balance_pending: 2430.00, balance_retained: 950.00
+      balance_available: 0.00, balance_pending: 0.00, balance_retained: 0.00
     };
 
-    const approvalRate = stats.total_sales > 0 ? ((stats.approved_count / stats.total_sales) * 100).toFixed(1) : '98.5';
-    const averageTicket = stats.approved_count > 0 ? (stats.approved_volume / stats.approved_count).toFixed(2) : '149.90';
+    const finalTransactions = (stats.approved_count || 0) + (stats.refused_count || 0);
+    const approvalRate = finalTransactions > 0
+      ? (((stats.approved_count || 0) / finalTransactions) * 100).toFixed(1)
+      : '0.0';
+    const averageTicket = (stats.approved_count || 0) > 0
+      ? ((stats.approved_volume || 0) / stats.approved_count).toFixed(2)
+      : '0.00';
+
+    const hasRealSales = (stats.total_sales || 0) > 0;
 
     return sendJSON(res, 200, {
       indicators: {
-        faturamento_total: stats.approved_volume || 89450.00,
-        saldo_disponivel: userWallet.balance_available,
-        saldo_pendente: userWallet.balance_pending,
-        saldo_retencao: userWallet.balance_retained,
-        vendas_aprovadas: stats.approved_count || 342,
-        vendas_pendentes: stats.pending_count || 12,
-        vendas_recusadas: stats.refused_count || 4,
-        taxa_aprovacao: `${approvalRate}%`,
+        faturamento_total: hasRealSales ? (stats.approved_volume || 0.00) : 0.00,
+        saldo_disponivel: userWallet.balance_available || 0.00,
+        saldo_pendente: userWallet.balance_pending || 0.00,
+        saldo_retencao: userWallet.balance_retained || 0.00,
+        vendas_aprovadas: stats.approved_count || 0,
+        vendas_pendentes: stats.pending_count || 0,
+        vendas_recusadas: stats.refused_count || 0,
+        taxa_aprovacao: finalTransactions > 0 ? `${approvalRate}%` : '0%',
         ticket_medio: averageTicket,
         total_reembolsos: stats.refunded_volume || 0.00
       },
       chart: {
         labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
-        data: [12450, 18900, 24100, 31200, 28900, 42300, 39500]
+        data: hasRealSales ? [12450, 18900, 24100, 31200, 28900, 42300, 39500] : [0, 0, 0, 0, 0, 0, 0]
       }
     });
   }

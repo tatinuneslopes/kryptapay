@@ -50,8 +50,8 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.27">
-  <link rel="stylesheet" href="/css/components.css?v=2026.27">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.29">
+  <link rel="stylesheet" href="/css/components.css?v=2026.29">
 
   <style>
     :root {
@@ -602,6 +602,11 @@
       Inteligência de roteamento multi-adquirente, aprovação máxima de Pix e cartão, e as maiores premiações físicas de faturamento do mercado.
     </p>
 
+    <!-- GLOBO 3D ROXO INTERATIVO NA TELA INICIAL DE LOGIN -->
+    <div class="hero-globe-preview" style="width:100%; max-width:440px; height:300px; margin: 0.5rem auto 1.25rem; position:relative; display:flex; justify-content:center; align-items:center;">
+      <canvas id="loginGlobeCanvas" style="width:100%; height:100%; cursor:grab;"></canvas>
+    </div>
+
     <!-- CARD DE LOGIN E CADASTRO NO MEIO DA TELA -->
     <div id="auth-box" class="auth-center-card">
       <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:1.5rem;">
@@ -892,12 +897,12 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="/js/api.js?v=2026.27"></script>
-  <script src="/js/globe3d.js?v=2026.27"></script>
-  <script src="/js/particles.js?v=2026.27"></script>
-  <script src="/js/coverflow.js?v=2026.27"></script>
-  <script src="/js/card3d.js?v=2026.27"></script>
-  <script src="/js/pwa.js?v=2026.27"></script>
+  <script src="/js/api.js?v=2026.29"></script>
+  <script src="/js/globe3d.js?v=2026.29"></script>
+  <script src="/js/particles.js?v=2026.29"></script>
+  <script src="/js/coverflow.js?v=2026.29"></script>
+  <script src="/js/card3d.js?v=2026.29"></script>
+  <script src="/js/pwa.js?v=2026.29"></script>
   <script>
     function switchAuthTab(tab) {
       const regBtn = document.getElementById('tabRegisterBtn');
@@ -1003,20 +1008,29 @@
         try { new KryptaCoverflow('coverflowWrapper'); } catch (e) { console.error(e); }
       }
 
-      // Iniciar Globo 3D Roxo Oficial Gigante (Garante inicialização com retry se necessário)
-      function startGlobe() {
-        if (window.KryptaGlobe3D && document.getElementById('landingGlobeCanvas')) {
+      // Iniciar Globos 3D Roxos Oficiais (Tela de Login e Seção Oficial)
+      function startGlobes() {
+        if (!window.KryptaGlobe3D) return;
+        if (document.getElementById('loginGlobeCanvas')) {
+          try {
+            new KryptaGlobe3D('loginGlobeCanvas', {
+              radius: 125,
+              autoRotateSpeed: 0.0085
+            });
+          } catch (e) { console.error('Erro ao iniciar Globo Login 3D:', e); }
+        }
+        if (document.getElementById('landingGlobeCanvas')) {
           try {
             new KryptaGlobe3D('landingGlobeCanvas', {
               radius: 260,
               autoRotateSpeed: 0.007
             });
-          } catch (e) { console.error('Erro ao iniciar Globo 3D:', e); }
+          } catch (e) { console.error('Erro ao iniciar Globo Seção 3D:', e); }
         }
       }
 
-      startGlobe();
-      setTimeout(startGlobe, 150);
+      startGlobes();
+      setTimeout(startGlobes, 150);
     }
 
     if (document.readyState === 'loading') {
@@ -1036,7 +1050,7 @@
     });
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=2026.27')
+      navigator.serviceWorker.register('/sw.js?v=2026.29')
         .then(reg => {
           try { reg.update(); } catch (_) {}
         })
