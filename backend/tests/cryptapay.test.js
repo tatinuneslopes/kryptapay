@@ -134,7 +134,7 @@ test('6. Chaves de API e Autenticação (Sandbox vs Produção)', async (t) => {
   db.prepare(`
     INSERT INTO api_keys (id, user_id, name, environment, public_key, secret_key_hash, secret_key_preview, status)
     VALUES (?, ?, 'Chave Live Test', 'production', ?, ?, 'krypta_sec_live...', 'active')
-  `).run('key_test_1', userId, publicKey, secretHash);
+  `).run('key_test_' + crypto.randomBytes(4).toString('hex'), userId, publicKey, secretHash);
 
   // Buscar por hash
   const found = db.prepare(`SELECT * FROM api_keys WHERE secret_key_hash = ? AND status = 'active'`).get(secretHash);

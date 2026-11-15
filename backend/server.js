@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const url = require('node:url');
 const crypto = require('node:crypto');
+const os = require('node:os');
 
 const db = require('./db');
 const { hashPassword, verifyPassword, createSession, validateSession } = require('./auth');
@@ -119,8 +120,8 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*'
     });
     return res.end(JSON.stringify({
-      version: '2026.23',
-      build: 202623,
+      version: '2026.24',
+      build: 202624,
       timestamp: Date.now()
     }));
   }
@@ -489,9 +490,46 @@ const server = http.createServer(async (req, res) => {
   }
 
 // ========================================================
-// FILA GLOBAL DE NOTIFICAÇÕES MULTI-DISPOSITIVOS (COMPUTADOR <-> CELULAR)
+// FILA GLOBAL DE NOTIFICAÇÕES & ESTADO CENTRALIZADO DASHBOARD 2
+// Sincronização em tempo real entre Celular e Computador
 // ========================================================
-const SYNC_STREAM_FILE = path.join(process.env.TMPDIR || '/tmp', 'krypta_sync_stream.json');
+const STORAGE_DIR = process.env.VERCEL ? (process.env.TMPDIR || '/tmp') : os.tmpdir();
+const SYNC_STREAM_FILE = path.join(STORAGE_DIR, 'krypta_sync_stream.json');
+const TEST_DASHBOARD_FILE = path.join(STORAGE_DIR, 'krypta_test_dashboard_state.json');
+
+let globalTestDashboardState = null;
+
+function getTestDashboardState() {
+  if (!globalTestDashboardState) {
+    globalTestDashboardState = {
+      faturamentoTotal: 0,
+      saldoDisponivel: 0,
+      saldoPendente: 0,
+      saldoRetencao: 0,
+      vendasAprovadas: 0,
+      vendasPendentes: 0,
+      recentSales: [],
+      updatedAt: Date.now()
+    };
+    try {
+      if (fs.existsSync(TEST_DASHBOARD_FILE)) {
+        const raw = fs.readFileSync(TEST_DASHBOARD_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.faturamentoTotal === 'number') {
+          globalTestDashboardState = parsed;
+        }
+      }
+    } catch (_) {}
+  }
+  return globalTestDashboardState;
+}
+
+function saveTestDashboardState(state) {
+  globalTestDashboardState = state;
+  try {
+    fs.writeFileSync(TEST_DASHBOARD_FILE, JSON.stringify(globalTestDashboardState), 'utf8');
+  } catch (_) {}
+}
 
 function getSyncStream() {
   if (!global.__krypta_notifications_stream) {
@@ -585,13 +623,37 @@ function tickServerRunner() {
   if (stream.length > 300) stream.splice(0, stream.length - 300);
   saveSyncStream(stream);
 
+  // Atualizar Estado da Dashboard 2 Centralizado
+  const curDashState = getTestDashboardState();
+  if (isApproved) {
+    curDashState.faturamentoTotal += chosenAmount;
+    curDashState.saldoDisponivel += (chosenAmount * 0.95);
+    curDashState.saldoRetencao += (chosenAmount * 0.05);
+    curDashState.vendasAprovadas++;
+  }
+  curDashState.saldoPendente = 0;
+  curDashState.vendasPendentes = 0;
+  curDashState.recentSales.unshift({
+    orderId: orderNumber,
+    amount: chosenAmount,
+    isApproved: isApproved,
+    status: isApproved ? 'Venda Aprovada' : 'Venda Pendente',
+    device: 'Server 24/7',
+    time: notif.timestamp
+  });
+  if (curDashState.recentSales.length > 50) curDashState.recentSales.length = 50;
+  curDashState.updatedAt = Date.now();
+  saveTestDashboardState(curDashState);
+
   // Broadcast para todos os clientes conectados via SSE
   const ssePayload1 = `data: ${JSON.stringify({ type: 'notification', notification: notif })}\n\n`;
   const ssePayload2 = `data: ${JSON.stringify({ type: 'sync_notification', notification: notif })}\n\n`;
+  const ssePayloadDash = `data: ${JSON.stringify({ type: 'test_dashboard_sync', state: curDashState })}\n\n`;
   for (const client of sseClients) {
     try {
       client.write(ssePayload1);
       client.write(ssePayload2);
+      client.write(ssePayloadDash);
     } catch (_) {
       sseClients.delete(client);
     }
@@ -738,6 +800,34 @@ function stopServerRunner() {
       `).run(notif.id, userId, title, nativeBody, isApproved ? 'venda_aprovada' : 'venda_pendente', orderNumber, chosenAmount);
     } catch (_) {}
 
+    // Atualizar Estado da Dashboard 2 Centralizado para refletir em todos os computadores e celulares
+    const curDashState = getTestDashboardState();
+    if (isApproved) {
+      curDashState.faturamentoTotal += chosenAmount;
+      curDashState.saldoDisponivel += (chosenAmount * 0.95);
+      curDashState.saldoRetencao += (chosenAmount * 0.05);
+      curDashState.vendasAprovadas++;
+    }
+    curDashState.saldoPendente = 0;
+    curDashState.vendasPendentes = 0;
+    curDashState.recentSales.unshift({
+      orderId: orderNumber,
+      amount: chosenAmount,
+      isApproved: isApproved,
+      status: isApproved ? 'Venda Aprovada' : 'Venda Pendente',
+      device: body.deviceId ? 'Celular Push' : 'Dispositivo',
+      time: notif.timestamp
+    });
+    if (curDashState.recentSales.length > 50) curDashState.recentSales.length = 50;
+    curDashState.updatedAt = Date.now();
+    saveTestDashboardState(curDashState);
+
+    // Broadcast para todos os clientes conectados via SSE
+    const ssePayloadDash = `data: ${JSON.stringify({ type: 'test_dashboard_sync', state: curDashState })}\n\n`;
+    for (const client of sseClients) {
+      try { client.write(ssePayloadDash); } catch (_) { sseClients.delete(client); }
+    }
+
     try {
       const { broadcastToClients } = require('./services/simulationQueue');
       if (broadcastToClients) {
@@ -745,12 +835,70 @@ function stopServerRunner() {
           type: 'notification',
           sentCount: 1,
           totalCount: 1,
-          notification: notif
+          notification: notif,
+          testDashboardState: curDashState
         });
       }
     } catch (_) {}
 
-    return sendJSON(res, 200, { success: true, notification: notif, latestSeqId: seqId });
+    return sendJSON(res, 200, { success: true, notification: notif, latestSeqId: seqId, testDashboardState: curDashState });
+  }
+
+  // -------------------------------------------------------------
+  // SINCRONIZAÇÃO EM TEMPO REAL DA DASHBOARD 2 (CELULAR <-> COMPUTADOR)
+  // -------------------------------------------------------------
+  if (pathname === '/api/test-dashboard/state' && method === 'GET') {
+    const state = getTestDashboardState();
+    return sendJSON(res, 200, { success: true, state });
+  }
+
+  if (pathname === '/api/test-dashboard/sync' && method === 'POST') {
+    const body = await parseBody(req);
+    const current = getTestDashboardState();
+    const incomingAmt = parseFloat(body.faturamentoTotal) || 0;
+    const incomingAprovadas = parseInt(body.vendasAprovadas, 10) || 0;
+
+    // Se o cliente (ex: celular com R$ 641.506) enviar valores maiores ou force=true:
+    if (incomingAmt >= current.faturamentoTotal || incomingAprovadas >= current.vendasAprovadas || body.force) {
+      current.faturamentoTotal = incomingAmt;
+      current.saldoDisponivel = parseFloat(body.saldoDisponivel) || (incomingAmt * 0.95);
+      current.saldoPendente = 0;
+      current.saldoRetencao = parseFloat(body.saldoRetencao) || (incomingAmt * 0.05);
+      current.vendasAprovadas = incomingAprovadas;
+      current.vendasPendentes = 0;
+      if (Array.isArray(body.recentSales) && body.recentSales.length > 0) {
+        current.recentSales = body.recentSales.slice(0, 50);
+      }
+      current.updatedAt = Date.now();
+      saveTestDashboardState(current);
+
+      const sseMsg = `data: ${JSON.stringify({ type: 'test_dashboard_sync', state: current })}\n\n`;
+      for (const client of sseClients) {
+        try { client.write(sseMsg); } catch (_) { sseClients.delete(client); }
+      }
+    }
+    return sendJSON(res, 200, { success: true, state: current });
+  }
+
+  if (pathname === '/api/test-dashboard/reset' && method === 'POST') {
+    const resetState = {
+      faturamentoTotal: 0,
+      saldoDisponivel: 0,
+      saldoPendente: 0,
+      saldoRetencao: 0,
+      vendasAprovadas: 0,
+      vendasPendentes: 0,
+      recentSales: [],
+      updatedAt: Date.now()
+    };
+    saveTestDashboardState(resetState);
+
+    const sseMsg = `data: ${JSON.stringify({ type: 'test_dashboard_sync', state: resetState })}\n\n`;
+    for (const client of sseClients) {
+      try { client.write(sseMsg); } catch (_) { sseClients.delete(client); }
+    }
+
+    return sendJSON(res, 200, { success: true, state: resetState });
   }
 
   // -------------------------------------------------------------

@@ -25,6 +25,7 @@ function startApp() {
   loadSavedPixKey();
   loadDashboardData();
   updateTestDashboardUI();
+  fetchTestDashboardState(true);
   setupModalListeners();
   updateNotificationPermissionBadge();
   checkActiveSimulationSession();
@@ -174,7 +175,10 @@ function switchTab(tabId) {
   }
 
   if (tabId === 'dashboard') loadDashboardData();
-  else if (tabId === 'test-dashboard') updateTestDashboardUI();
+  else if (tabId === 'test-dashboard') {
+    updateTestDashboardUI();
+    fetchTestDashboardState(true);
+  }
   else if (tabId === 'sales' || tabId === 'transactions') loadTransactionsData();
   else if (tabId === 'financial') loadFinancialData();
   else if (tabId === 'global') loadGlobalData();
@@ -218,6 +222,8 @@ function setupSSE() {
           const data = JSON.parse(event.data);
           if (data.type === 'notification' || data.type === 'sync_notification') {
             handleIncomingNotification(data);
+          } else if (data.type === 'test_dashboard_sync' && data.state) {
+            applyServerTestDashboardState(data.state);
           } else if (data.type === 'charge') {
             handleChargeNotification(data);
           } else if (data.type === 'withdrawal') {
@@ -271,6 +277,9 @@ async function fetchCrossDeviceSync() {
   if (isSyncInProgress) return;
   isSyncInProgress = true;
   try {
+    // Sincronizar saldos e faturamento da Dashboard 2 continuamente entre celular e notebook
+    fetchTestDashboardState();
+
     const res = await API.get(`/api/notifications/sync?since=${lastSeenSyncSeqId}`);
     if (res && res.notifications && res.notifications.length > 0) {
       if (lastSeenSyncSeqId === 0) {
@@ -308,6 +317,7 @@ async function fetchCrossDeviceSync() {
 }
 
 function startCrossDeviceSync() {
+  fetchTestDashboardState(true);
   fetchCrossDeviceSync();
   setInterval(fetchCrossDeviceSync, 1200);
   checkServerSimulationStatus();
@@ -316,6 +326,10 @@ function startCrossDeviceSync() {
 
 // Manipular Notificação Recebida via SSE (Instantâneo)
 function handleIncomingNotification(data) {
+  if (data.testDashboardState) {
+    applyServerTestDashboardState(data.testDashboardState);
+  }
+
   const notif = data.notification;
   if (!notif) return;
   if (processedNotifIds.has(notif.id)) return;
@@ -2357,7 +2371,7 @@ function saveUserSettings() {
 }
 
 // ------------------------------------------------------------------
-// ESTADO E FUNÇÕES DA DASHBOARD 2 (SIMULAÇÃO AO VIVO NO CELULAR)
+// ESTADO E FUNÇÕES DA DASHBOARD 2 (SINCRONIZAÇÃO CELULAR <-> COMPUTADOR)
 // ------------------------------------------------------------------
 const TestDashboardState = {
   faturamentoTotal: parseFloat(localStorage.getItem('krypta_test_faturamento')) || 0,
@@ -2373,17 +2387,110 @@ const TestDashboardState = {
 localStorage.setItem('krypta_test_pendente', '0');
 localStorage.setItem('krypta_test_pendentes', '0');
 
-function saveTestDashboardState() {
+function saveTestDashboardStateLocally() {
   localStorage.setItem('krypta_test_faturamento', TestDashboardState.faturamentoTotal);
   localStorage.setItem('krypta_test_disponivel', TestDashboardState.saldoDisponivel);
-  localStorage.setItem('krypta_test_pendente', TestDashboardState.saldoPendente);
+  localStorage.setItem('krypta_test_pendente', '0');
   localStorage.setItem('krypta_test_retencao', TestDashboardState.saldoRetencao);
   localStorage.setItem('krypta_test_aprovadas', TestDashboardState.vendasAprovadas);
-  localStorage.setItem('krypta_test_pendentes', TestDashboardState.vendasPendentes);
+  localStorage.setItem('krypta_test_pendentes', '0');
   localStorage.setItem('krypta_test_recent_sales', JSON.stringify(TestDashboardState.recentSales.slice(0, 50)));
 }
 
-function resetTestDashboard() {
+function saveTestDashboardState() {
+  saveTestDashboardStateLocally();
+}
+
+function applyServerTestDashboardState(serverState) {
+  if (!serverState) return;
+  const serverAmt = parseFloat(serverState.faturamentoTotal) || 0;
+  const localAmt = TestDashboardState.faturamentoTotal || 0;
+  const serverAprov = parseInt(serverState.vendasAprovadas, 10) || 0;
+  const localAprov = TestDashboardState.vendasAprovadas || 0;
+
+  // Se o servidor foi zerado pelo botão "Zerar"
+  const isReset = (serverAmt === 0 && serverAprov === 0 && serverState.updatedAt && (Date.now() - serverState.updatedAt < 120000));
+  if (isReset && (localAmt > 0 || localAprov > 0)) {
+    TestDashboardState.faturamentoTotal = 0;
+    TestDashboardState.saldoDisponivel = 0;
+    TestDashboardState.saldoPendente = 0;
+    TestDashboardState.saldoRetencao = 0;
+    TestDashboardState.vendasAprovadas = 0;
+    TestDashboardState.vendasPendentes = 0;
+    TestDashboardState.recentSales = [];
+    saveTestDashboardStateLocally();
+    updateTestDashboardUI();
+    return;
+  }
+
+  // Se o servidor tem valores mais novos, maiores ou iguais (ex: notebook recebendo dados do celular):
+  if (serverAmt >= localAmt) {
+    const changed = (TestDashboardState.faturamentoTotal !== serverAmt || TestDashboardState.vendasAprovadas !== serverAprov);
+    TestDashboardState.faturamentoTotal = serverAmt;
+    TestDashboardState.saldoDisponivel = parseFloat(serverState.saldoDisponivel) || (serverAmt * 0.95);
+    TestDashboardState.saldoPendente = 0;
+    TestDashboardState.saldoRetencao = parseFloat(serverState.saldoRetencao) || (serverAmt * 0.05);
+    TestDashboardState.vendasAprovadas = serverAprov;
+    TestDashboardState.vendasPendentes = 0;
+    if (Array.isArray(serverState.recentSales) && serverState.recentSales.length > 0) {
+      TestDashboardState.recentSales = serverState.recentSales;
+    }
+    saveTestDashboardStateLocally();
+    if (changed) updateTestDashboardUI();
+  } else if (localAmt > serverAmt) {
+    // Caso especial: o celular já acumulou valor mais alto localmente (ex: R$ 641.506)!
+    // O celular envia e sincroniza seus valores imediatamente com o servidor para que o computador receba!
+    syncTestDashboardToServer(true);
+  }
+}
+
+let isSyncingDashboardToServer = false;
+async function syncTestDashboardToServer(force = false) {
+  if (isSyncingDashboardToServer) return;
+  isSyncingDashboardToServer = true;
+  try {
+    const res = await API.post('/api/test-dashboard/sync', {
+      faturamentoTotal: TestDashboardState.faturamentoTotal,
+      saldoDisponivel: TestDashboardState.saldoDisponivel,
+      saldoPendente: 0,
+      saldoRetencao: TestDashboardState.saldoRetencao,
+      vendasAprovadas: TestDashboardState.vendasAprovadas,
+      vendasPendentes: 0,
+      recentSales: TestDashboardState.recentSales.slice(0, 50),
+      deviceId: myDeviceId,
+      force: force
+    });
+    if (res && res.state) {
+      if (res.state.faturamentoTotal > TestDashboardState.faturamentoTotal) {
+        applyServerTestDashboardState(res.state);
+      }
+    }
+  } catch (_) {
+  } finally {
+    isSyncingDashboardToServer = false;
+  }
+}
+
+let isFetchingDashboardServerState = false;
+let lastDashboardFetchTime = 0;
+async function fetchTestDashboardState(force = false) {
+  const now = Date.now();
+  if (!force && (now - lastDashboardFetchTime < 1000)) return;
+  if (isFetchingDashboardServerState) return;
+  isFetchingDashboardServerState = true;
+  lastDashboardFetchTime = now;
+  try {
+    const res = await API.get('/api/test-dashboard/state');
+    if (res && res.state) {
+      applyServerTestDashboardState(res.state);
+    }
+  } catch (_) {
+  } finally {
+    isFetchingDashboardServerState = false;
+  }
+}
+
+async function resetTestDashboard() {
   TestDashboardState.faturamentoTotal = 0;
   TestDashboardState.saldoDisponivel = 0;
   TestDashboardState.saldoPendente = 0;
@@ -2391,8 +2498,11 @@ function resetTestDashboard() {
   TestDashboardState.vendasAprovadas = 0;
   TestDashboardState.vendasPendentes = 0;
   TestDashboardState.recentSales = [];
-  saveTestDashboardState();
+  saveTestDashboardStateLocally();
   updateTestDashboardUI();
+  try {
+    await API.post('/api/test-dashboard/reset', {});
+  } catch (_) {}
 }
 
 function addTestSale(notif) {
@@ -2404,13 +2514,9 @@ function addTestSale(notif) {
     TestDashboardState.faturamentoTotal += rawAmt;
     TestDashboardState.saldoDisponivel += (rawAmt * 0.95);
     TestDashboardState.saldoRetencao += (rawAmt * 0.05);
-  } else {
-    // Venda pendente:
-    // Conforme determinação do usuário: na simulação não acumular valor em Saldo Pendente (fica R$ 0,00),
-    // pois no teste todas as vendas são convertidas e pagas, não havendo saldo não-pago travado.
-    TestDashboardState.saldoPendente = 0;
-    TestDashboardState.vendasPendentes = 0;
   }
+  TestDashboardState.saldoPendente = 0;
+  TestDashboardState.vendasPendentes = 0;
 
   TestDashboardState.recentSales.unshift({
     orderId: notif.orderId || ('#' + (10000 + Math.floor(Math.random() * 90000))),
@@ -2420,9 +2526,11 @@ function addTestSale(notif) {
     device: /iphone|ipad/i.test(navigator.userAgent) ? 'iPhone Push' : (/android/i.test(navigator.userAgent) ? 'Android Push' : 'Celular Push'),
     time: notif.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   });
+  if (TestDashboardState.recentSales.length > 50) TestDashboardState.recentSales.length = 50;
 
-  saveTestDashboardState();
+  saveTestDashboardStateLocally();
   updateTestDashboardUI();
+  syncTestDashboardToServer();
 }
 
 function updateTestDashboardUI() {
@@ -2502,6 +2610,8 @@ if (typeof loadFinancialData !== 'undefined') window.loadFinancialData = loadFin
 if (typeof loadNotificationsData !== 'undefined') window.loadNotificationsData = loadNotificationsData;
 if (typeof loadDashboardData !== 'undefined') window.loadDashboardData = loadDashboardData;
 if (typeof updateTestDashboardUI !== 'undefined') window.updateTestDashboardUI = updateTestDashboardUI;
+if (typeof fetchTestDashboardState !== 'undefined') window.fetchTestDashboardState = fetchTestDashboardState;
+if (typeof syncTestDashboardToServer !== 'undefined') window.syncTestDashboardToServer = syncTestDashboardToServer;
 if (typeof resetTestDashboard !== 'undefined') window.resetTestDashboard = resetTestDashboard;
 if (typeof resetTestDashboardState !== 'undefined') window.resetTestDashboardState = resetTestDashboard;
 if (typeof loadSavedPixKey !== 'undefined') window.loadSavedPixKey = loadSavedPixKey;
