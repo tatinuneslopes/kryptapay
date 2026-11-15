@@ -102,9 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Registro Obrigatório do Service Worker para Notificações Nativas no Celular (Android & iOS)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=2026.19')
+    navigator.serviceWorker.register('/sw.js?v=2026.20')
       .then(reg => {
-        console.log('✅ ServiceWorker KryptaPay ativo v2026.19:', reg.scope);
+        console.log('✅ ServiceWorker KryptaPay ativo v2026.20:', reg.scope);
         // Forçar verificação imediata de nova versão no servidor
         try { reg.update(); } catch (_) {}
         // Checar periodicamente a cada 30 segundos

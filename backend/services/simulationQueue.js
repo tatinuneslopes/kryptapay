@@ -64,18 +64,20 @@ function startSimulation({ userId, count, speed, intervalSeconds = 5, adSpend = 
       return;
     }
 
-    // Todas as vendas de teste da simulação são aprovadas (100% de conversão e saldo liberado)
-    const isApproved = true;
-    const category = 'venda_aprovada';
-    const title = '🎉 VENDA APROVADA! - KryptaPay';
-    const status = 'approved';
+    // Alternância contínua: VENDA PENDENTE -> VENDA APROVADA
+    const isPending = (sent % 2 === 0);
+    const isApproved = !isPending;
+    const category = isApproved ? 'venda_aprovada' : 'venda_pendente';
+    const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
+    const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
+    const status = isApproved ? 'approved' : 'pending';
 
     // Escolher valor realista aleatório
     const randomAmount = SIMULATED_AMOUNTS[Math.floor(Math.random() * SIMULATED_AMOUNTS.length)];
     const orderNumber = 10000 + Math.floor(Math.random() * 90000);
     const orderId = `#${orderNumber}`;
     const formattedAmount = randomAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const body = `${title}\nValor: R$ ${formattedAmount}\nPedido: ${orderId}`;
+    const body = `Valor: R$ ${formattedAmount} • Pedido ${orderId}\n${subtitle}`;
 
     const notifId = crypto.randomUUID();
 
@@ -112,6 +114,8 @@ function startSimulation({ userId, count, speed, intervalSeconds = 5, adSpend = 
         orderId,
         category,
         status,
+        subtitle,
+        nativeBody: body,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       }
     });

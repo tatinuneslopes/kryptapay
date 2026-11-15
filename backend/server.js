@@ -119,7 +119,7 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*'
     });
     return res.end(JSON.stringify({
-      version: '2026.19',
+      version: '2026.20',
       build: 202619,
       timestamp: Date.now()
     }));
@@ -542,16 +542,26 @@ function tickServerRunner() {
   const seqId = lastSeq + 1;
 
   const tickIndex = globalRunnerState.currentTicks;
-  const isPending = false;
-  const isApproved = true;
+  const isPending = (tickIndex % 2 === 0);
+  const isApproved = !isPending;
 
-  const amounts = [24.90, 47.00, 67.00, 97.00, 147.00, 197.00, 297.00, 497.00];
-  const chosenAmount = amounts[Math.floor(Math.random() * amounts.length)];
+  let chosenAmount;
+  let orderNumber;
+
+  if (isPending || !globalRunnerState._lastPendingOrder) {
+    const amounts = [24.90, 47.00, 67.00, 97.00, 147.00, 197.00, 297.00, 497.00];
+    chosenAmount = amounts[Math.floor(Math.random() * amounts.length)];
+    orderNumber = `#${10000 + Math.floor(Math.random() * 90000)}`;
+    globalRunnerState._lastPendingOrder = { amount: chosenAmount, orderNumber };
+  } else {
+    chosenAmount = globalRunnerState._lastPendingOrder.amount;
+    orderNumber = globalRunnerState._lastPendingOrder.orderNumber;
+    globalRunnerState._lastPendingOrder = null;
+  }
+
   const formattedAmount = chosenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const orderNumber = `#${10000 + Math.floor(Math.random() * 90000)}`;
-
-  const title = '🎉 VENDA APROVADA! - KryptaPay';
-  const subtitle = 'Pix Instantâneo Aprovado';
+  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
+  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
   const nativeBody = `Valor: R$ ${formattedAmount} • Pedido ${orderNumber}\n${subtitle}`;
 
   const notif = {
@@ -565,7 +575,7 @@ function tickServerRunner() {
     amount: `R$ ${formattedAmount}`,
     rawAmount: chosenAmount,
     orderId: orderNumber,
-    status: 'approved',
+    status: isApproved ? 'approved' : 'pending',
     subtitle,
     nativeBody,
     timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })

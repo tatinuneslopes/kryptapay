@@ -429,8 +429,17 @@ async function sendNativePhoneNotification(notifObj) {
   return false;
 }
 
-// Disparo Único com Alternância (Aprovada ou Pendente)
-async function triggerSingleTestNotification(customAmount, isPending = false) {
+let pendingTestOrder = null;
+let singleTestToggle = false;
+
+// Disparo com Alternância (VENDA PENDENTE -> VENDA APROVADA)
+async function triggerSingleTestNotification(customAmount, isPending = null) {
+  if (isPending === null) {
+    // Alterna a cada clique: 1º Pendente, 2º Aprovada, 3º Pendente, 4º Aprovada...
+    isPending = singleTestToggle;
+    singleTestToggle = !singleTestToggle;
+  }
+
   const prefSound = document.getElementById('prefSoundToggle') ? document.getElementById('prefSoundToggle').checked : true;
   if (prefSound) {
     NotificationAudio.playCashSound();
@@ -443,18 +452,27 @@ async function triggerSingleTestNotification(customAmount, isPending = false) {
 
   const selectVal = document.getElementById('notifTestAmount') ? document.getElementById('notifTestAmount').value : 'random';
   let amount = 197.00;
-  if (customAmount) {
-    amount = customAmount;
-  } else if (selectVal !== 'random') {
-    amount = parseFloat(selectVal) || 197.00;
+  let orderId = '';
+
+  if (isPending || !pendingTestOrder) {
+    if (customAmount) {
+      amount = customAmount;
+    } else if (selectVal !== 'random') {
+      amount = parseFloat(selectVal) || 197.00;
+    } else {
+      const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
+      amount = list[Math.floor(Math.random() * list.length)];
+    }
+    orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
+    pendingTestOrder = { amount, orderId };
   } else {
-    const list = [47.00, 97.00, 147.00, 197.00, 297.00, 497.00];
-    amount = list[Math.floor(Math.random() * list.length)];
+    // Aprovação da venda pendente anterior (mesmo pedido e valor)
+    amount = pendingTestOrder.amount;
+    orderId = pendingTestOrder.orderId;
+    pendingTestOrder = null;
   }
 
   const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const orderId = `#${10000 + Math.floor(Math.random() * 90000)}`;
-
   const isApproved = !isPending;
   const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : '⏳ VENDA PENDENTE! - KryptaPay';
   const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : 'Venda Pendente — Aguardando Pagamento';
@@ -790,8 +808,9 @@ function handleSeqTick() {
 
   BackgroundNotificationEngine.markTick();
 
-  // Todas as vendas de teste da sequência contínua são 100% aprovadas (saldo liberado)
-  triggerSingleTestNotification(null, false);
+  // Alterna perfeitamente: Venda Pendente -> Venda Aprovada
+  const isPending = (notifSeqCurrent % 2 === 0);
+  triggerSingleTestNotification(null, isPending);
   notifSeqCurrent++;
 
   // Atualizar sessão persistente
@@ -2249,22 +2268,16 @@ function saveUserSettings() {
 const TestDashboardState = {
   faturamentoTotal: parseFloat(localStorage.getItem('krypta_test_faturamento')) || 0,
   saldoDisponivel: parseFloat(localStorage.getItem('krypta_test_disponivel')) || 0,
-  saldoPendente: 0, // Sempre 0 conforme determinação (todas as vendas são aprovadas)
+  saldoPendente: 0, // Sempre R$ 0,00 no teste (não acumula pendência não paga)
   saldoRetencao: parseFloat(localStorage.getItem('krypta_test_retencao')) || 0,
   vendasAprovadas: parseInt(localStorage.getItem('krypta_test_aprovadas'), 10) || 0,
-  vendasPendentes: 0, // 0 pendentes
+  vendasPendentes: 0,
   recentSales: JSON.parse(localStorage.getItem('krypta_test_recent_sales') || '[]')
 };
 
-// Auto-correção: zerar qualquer saldo pendente residual acumulado anteriormente
+// Manter saldo pendente zerado na dashboard 2
 localStorage.setItem('krypta_test_pendente', '0');
 localStorage.setItem('krypta_test_pendentes', '0');
-if (Array.isArray(TestDashboardState.recentSales)) {
-  TestDashboardState.recentSales.forEach(s => {
-    s.isApproved = true;
-    s.status = 'Aprovada';
-  });
-}
 
 function saveTestDashboardState() {
   localStorage.setItem('krypta_test_faturamento', TestDashboardState.faturamentoTotal);
@@ -2298,15 +2311,18 @@ function addTestSale(notif) {
     TestDashboardState.saldoDisponivel += (rawAmt * 0.95);
     TestDashboardState.saldoRetencao += (rawAmt * 0.05);
   } else {
-    TestDashboardState.vendasPendentes++;
-    TestDashboardState.saldoPendente += rawAmt;
+    // Venda pendente:
+    // Conforme determinação do usuário: na simulação não acumular valor em Saldo Pendente (fica R$ 0,00),
+    // pois no teste todas as vendas são convertidas e pagas, não havendo saldo não-pago travado.
+    TestDashboardState.saldoPendente = 0;
+    TestDashboardState.vendasPendentes = 0;
   }
 
   TestDashboardState.recentSales.unshift({
     orderId: notif.orderId || ('#' + (10000 + Math.floor(Math.random() * 90000))),
     amount: rawAmt,
     isApproved: isApproved,
-    status: isApproved ? 'Aprovada' : 'Pendente (Pix)',
+    status: isApproved ? 'Venda Aprovada' : 'Venda Pendente',
     device: /iphone|ipad/i.test(navigator.userAgent) ? 'iPhone Push' : (/android/i.test(navigator.userAgent) ? 'Android Push' : 'Celular Push'),
     time: notif.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   });
@@ -2391,7 +2407,8 @@ if (typeof loadFinancialData !== 'undefined') window.loadFinancialData = loadFin
 if (typeof loadNotificationsData !== 'undefined') window.loadNotificationsData = loadNotificationsData;
 if (typeof loadDashboardData !== 'undefined') window.loadDashboardData = loadDashboardData;
 if (typeof updateTestDashboardUI !== 'undefined') window.updateTestDashboardUI = updateTestDashboardUI;
-if (typeof resetTestDashboardState !== 'undefined') window.resetTestDashboardState = resetTestDashboardState;
+if (typeof resetTestDashboard !== 'undefined') window.resetTestDashboard = resetTestDashboard;
+if (typeof resetTestDashboardState !== 'undefined') window.resetTestDashboardState = resetTestDashboard;
 if (typeof loadSavedPixKey !== 'undefined') window.loadSavedPixKey = loadSavedPixKey;
 if (typeof savePixKeyAction !== 'undefined') window.savePixKeyAction = savePixKeyAction;
 if (typeof copyPixKeyAction !== 'undefined') window.copyPixKeyAction = copyPixKeyAction;
