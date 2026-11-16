@@ -106,9 +106,11 @@ function startApp() {
   document.addEventListener('touchstart', armAudio, { once: true, passive: true });
   document.addEventListener('click', armAudio, { once: true, passive: true });
 
-  // Inicializar o Globo 3D da Dashboard
+  // Inicializar o Globo 3D da Dashboard 1 e Dashboard 2
   function initDashboardGlobe() {
-    if (window.KryptaGlobe3D && document.getElementById('dashboardGlobeCanvas')) {
+    if (!window.KryptaGlobe3D) return;
+    const g1 = document.getElementById('dashboardGlobeCanvas');
+    if (g1) {
       try {
         new KryptaGlobe3D('dashboardGlobeCanvas', {
           radius: 170,
@@ -116,11 +118,21 @@ function startApp() {
           activeBuyers: 60,
           autoRotateSpeed: 0.008
         });
-      } catch (err) {
-        console.error('Erro ao iniciar Globo 3D na Dashboard:', err);
-      }
+      } catch (err) {}
+    }
+    const g2 = document.getElementById('testDashboardGlobeCanvas');
+    if (g2) {
+      try {
+        new KryptaGlobe3D('testDashboardGlobeCanvas', {
+          radius: 170,
+          dotCount: 400,
+          activeBuyers: 60,
+          autoRotateSpeed: 0.008
+        });
+      } catch (err) {}
     }
   }
+  window.initDashboardGlobe = initDashboardGlobe;
 
   initDashboardGlobe();
   setTimeout(initDashboardGlobe, 200);
@@ -234,10 +246,14 @@ function switchTab(tabId) {
     targetPane.style.display = 'block';
   }
 
-  if (tabId === 'dashboard') loadDashboardData();
+  if (tabId === 'dashboard') {
+    loadDashboardData();
+    setTimeout(initDashboardGlobe, 60);
+  }
   else if (tabId === 'test-dashboard') {
     updateTestDashboardUI();
     fetchTestDashboardState(true);
+    setTimeout(initDashboardGlobe, 60);
   }
   else if (tabId === 'sales' || tabId === 'transactions') loadTransactionsData();
   else if (tabId === 'financial') loadFinancialData();
@@ -252,23 +268,12 @@ function switchTab(tabId) {
   else if (tabId === 'acquirers') loadAcquirersData();
   else if (tabId === 'products') loadProductsData();
   else if (tabId === 'rewards') loadRewardsData();
-  else if (tabId === 'dashboard') {
-    setTimeout(() => {
-      if (window.KryptaGlobe3D && document.getElementById('dashboardGlobeCanvas')) {
-        try {
-          new KryptaGlobe3D('dashboardGlobeCanvas', {
-            radius: 170,
-            autoRotateSpeed: 0.008
-          });
-        } catch (_) {}
-      }
-    }, 80);
-  }
 
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.classList.remove('mobile-open');
 }
 window.switchTab = switchTab;
+  window.onSwitchTabHook = switchTab;
 
 // 3. SSE: Escuta de Notificações em Tempo Real (Auto-Reconectável)
 let simulationEvtSource = null;
@@ -533,7 +538,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.29');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.31');
       }
       await navigator.serviceWorker.ready;
 
@@ -680,10 +685,11 @@ async function triggerSingleTestNotification(customAmount, explicitStatus = null
   }
 
   const formattedAmount = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : (isPending ? '⏳ VENDA PENDENTE! - KryptaPay' : '❌ VENDA RECUSADA - KryptaPay');
-  const subtitle = isApproved ? 'Pix Instantâneo Aprovado' : (isPending ? 'Venda Pendente — Aguardando Pagamento' : 'Pagamento Recusado pelo Banco Emissor');
-  const statusLabel = isApproved ? 'Venda Aprovada' : (isPending ? 'Venda Pendente' : 'Venda Recusada');
-  } else if (status === 'refunded') {
+  let title = isApproved ? '🎉 VENDA APROVADA! - KryptaPay' : (isPending ? '⏳ VENDA PENDENTE! - KryptaPay' : '❌ VENDA RECUSADA - KryptaPay');
+  let subtitle = isApproved ? 'Pix Instantâneo Aprovado' : (isPending ? 'Venda Pendente — Aguardando Pagamento' : 'Pagamento Recusado pelo Banco Emissor');
+  let statusLabel = isApproved ? 'Venda Aprovada' : (isPending ? 'Venda Pendente' : 'Venda Recusada');
+
+  if (status === 'refunded') {
     title = '↩️ REEMBOLSO PROCESSADO - KryptaPay';
     subtitle = 'Estorno Concluído';
     statusLabel = 'Reembolso';

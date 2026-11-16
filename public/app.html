@@ -53,7 +53,7 @@
   <!-- Auto-Update Seguro: Atualiza sem loop de tela branca -->
   <script>
     (function() {
-      const CLIENT_VERSION = '2026.30';
+      const CLIENT_VERSION = '2026.31';
       let isUpdating = false;
 
       function checkAppUpdate() {
@@ -119,10 +119,74 @@
       document.body.style.overflow = '';
     }
     window.closeMobileSidebar = closeMobileSidebar;
+
+    // Navegacao Instantanea de Abas (Garante funcionamento imediato de todos os botoes)
+    function switchTab(tabId) {
+      if (!tabId) return;
+      var panes = document.querySelectorAll('.view-pane');
+      for (var i = 0; i < panes.length; i++) {
+        panes[i].style.display = 'none';
+      }
+      var targetPane = document.getElementById('pane-' + tabId);
+      if (targetPane) {
+        targetPane.style.display = 'block';
+      }
+
+      var navItems = document.querySelectorAll('.nav-item');
+      for (var j = 0; j < navItems.length; j++) {
+        navItems[j].classList.remove('active');
+        var oc = navItems[j].getAttribute('onclick') || '';
+        if (oc.indexOf("'" + tabId + "'") !== -1 || oc.indexOf('"' + tabId + '"') !== -1) {
+          navItems[j].classList.add('active');
+        }
+      }
+
+      var mobileBtns = document.querySelectorAll('.mobile-nav-btn');
+      for (var k = 0; k < mobileBtns.length; k++) {
+        mobileBtns[k].classList.remove('active');
+        var moc = mobileBtns[k].getAttribute('onclick') || '';
+        if (moc.indexOf("'" + tabId + "'") !== -1 || moc.indexOf('"' + tabId + '"') !== -1) {
+          mobileBtns[k].classList.add('active');
+        }
+      }
+
+      var pageTitleMap = {
+        'dashboard': 'Dashboard Principal (Produção)',
+        'test-dashboard': 'Dashboard 2 — Simulação & Testes',
+        'sales': 'Transações & Vendas',
+        'financial': 'Financeiro & Saques',
+        'notifications': 'Central de Notificações de Vendas',
+        'notifications-live': 'Disparador de Notificações de Venda',
+        'notifications-setup': 'Disparador de Notificações de Venda',
+        'acquirers': 'Adquirentes & Gateways Homologados',
+        'api-keys': 'Chaves de API & Integrações',
+        'webhooks': 'Webhooks & Notificações Externas',
+        'rewards': 'Galeria de Premiações Oficiais 3D',
+        'goals': 'Metas & Aceleração de Faturamento',
+        'notices': 'Mural de Avisos & Novidades',
+        'support': 'Suporte & Atendimento Oficial',
+        'settings': 'Configurações da Conta & Pix',
+        'products': 'Meus Produtos & Checkout'
+      };
+      var headerTitle = document.getElementById('headerPageTitle');
+      if (headerTitle && pageTitleMap[tabId]) {
+        headerTitle.textContent = pageTitleMap[tabId];
+      }
+
+      if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
+
+      if (typeof window.onSwitchTabHook === 'function') {
+        try { window.onSwitchTabHook(tabId); } catch (_) {}
+      }
+      if (typeof window.initDashboardGlobe === 'function' && (tabId === 'dashboard' || tabId === 'test-dashboard')) {
+        setTimeout(window.initDashboardGlobe, 60);
+      }
+    }
+    window.switchTab = switchTab;
   </script>
 
-  <link rel="stylesheet" href="/css/theme.css?v=2026.30">
-  <link rel="stylesheet" href="/css/components.css?v=2026.30">
+  <link rel="stylesheet" href="/css/theme.css?v=2026.31">
+  <link rel="stylesheet" href="/css/components.css?v=2026.31">
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -1220,6 +1284,86 @@
               </table>
             </div>
           </div>
+        </div>
+
+        
+            <!-- ========================================================= -->
+            <!-- MAPA GLOBAL 3D OFICIAL (DASHBOARD 2 - SIMULAÇÃO & TESTES) -->
+            <!-- ========================================================= -->
+            <div class="glass-card live-map-card" style="margin-top: 2rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="width:10px; height:10px; border-radius:50%; background:#10b981; box-shadow:0 0 10px #10b981;"></span>
+                    <h4 style="font-size:1.25rem; font-weight:800; color:#fff;">Mapa Operacional de Vendas & Tráfego em Tempo Real</h4>
+                  </div>
+                  <p style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                    Simulação tridimensional em tempo real das vendas pingando pelo Brasil e exterior. Arraste com o dedo ou mouse para girar o globo.
+                  </p>
+                </div>
+                <div style="display:flex; gap:1.5rem; align-items:center;">
+                  <div>
+                    <div style="font-size:0.75rem; color:var(--text-dim);">Conexões Ativas:</div>
+                    <div id="testMapVisitors" style="font-size:1.2rem; font-weight:800; color:var(--purple-400);">2.840 online</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.75rem; color:var(--text-dim);">Vendas Simuladas:</div>
+                    <div id="testMapRecentSales" style="font-size:1.2rem; font-weight:800; color:var(--status-success);">124 pedidos</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Wrapper do Globo e Cards Flutuantes Orbitando -->
+              <div class="live-map-wrapper">
+                <div class="orbit-card orbit-pos-top-left">
+                  <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                  <div>
+                    <div style="font-weight:700; color:#fff;">Guilherme M. (São Paulo)</div>
+                    <div style="color:var(--status-success); font-weight:800;">R$ 197,00 • Pix Aprovado</div>
+                  </div>
+                </div>
+
+                <div class="orbit-card orbit-pos-top-right">
+                  <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                  <div>
+                    <div style="font-weight:700; color:#fff;">Amanda S. (Florianópolis)</div>
+                    <div style="color:var(--status-success); font-weight:800;">R$ 497,00 • Pix Aprovado</div>
+                  </div>
+                </div>
+
+                <div class="orbit-card orbit-pos-bottom-left">
+                  <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                  <div>
+                    <div style="font-weight:700; color:#fff;">Rodrigo F. (Goiânia)</div>
+                    <div style="color:var(--status-success); font-weight:800;">R$ 97,00 • Pix Aprovado</div>
+                  </div>
+                </div>
+
+                <div class="orbit-card orbit-pos-bottom-right">
+                  <img src="/icons/logo.png" style="width:28px; height:28px; border-radius:6px;" alt="Logo">
+                  <div>
+                    <div style="font-weight:700; color:#fff;">Beatriz L. (Recife)</div>
+                    <div style="color:var(--status-success); font-weight:800;">R$ 297,00 • Pix Aprovado</div>
+                  </div>
+                </div>
+
+                <!-- Canvas do Globo 3D -->
+                <div class="globe-canvas-box">
+                  <canvas id="testDashboardGlobeCanvas" style="width:100%; height:100%; cursor:grab;"></canvas>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:center; gap:2rem; margin-top:1rem; font-size:0.8rem; color:var(--text-dim);">
+                <span style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:8px; height:8px; border-radius:50%; background:#c084fc; box-shadow:0 0 8px #c084fc;"></span>
+                  Pontos Roxos: Compradores com checkout aberto
+                </span>
+                <span style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:8px; height:8px; border-radius:50%; background:#ffffff; box-shadow:0 0 8px #ffffff;"></span>
+                  Anel Orbital: Roteamento inteligente KryptaPay
+                </span>
+              </div>
+            </div>
         </div>
 
         <!-- ========================================================= -->
@@ -2522,19 +2666,19 @@ curl -X POST https://api.kryptapay.com/api/v1/charges \
         <!-- Frase Oficial KryptaPay -->
         <div style="text-align:center; padding: 2.5rem 1rem 3.5rem; color:var(--text-dim); font-size:0.85rem; border-top:1px solid rgba(255,255,255,0.05); margin-top:2.5rem;">
           <p style="font-style:italic; margin-bottom:0.4rem; color:#a1a1aa;">"2027 é nosso. Vamos para cima. Quem não roda black não vive white."</p>
-          <span style="font-weight:700; color:#c084fc;">KryptaPay &copy; 2026-2027 &bull; Plataforma Oficial de Pagamentos</span>
+          <span style="font-weight:800; font-size:0.92rem;"><span style="color:#ffffff;">Krypta</span><span style="color:#a855f7;">Pay</span> &copy; 2026-2027 &bull; Plataforma Oficial de Pagamentos</span>
         </div>
 
       </div>
     </main>
   </div>
 
-  <script src="/js/api.js?v=2026.30"></script>
-  <script src="/js/i18n.js?v=2026.30"></script>
-  <script src="/js/globe3d.js?v=2026.30"></script>
-  <script src="/js/particles.js?v=2026.30"></script>
-  <script src="/js/card3d.js?v=2026.30"></script>
-  <script src="/js/pwa.js?v=2026.30"></script>
-  <script src="/js/app.js?v=2026.30"></script>
+  <script src="/js/api.js?v=2026.31"></script>
+  <script src="/js/i18n.js?v=2026.31"></script>
+  <script src="/js/globe3d.js?v=2026.31"></script>
+  <script src="/js/particles.js?v=2026.31"></script>
+  <script src="/js/card3d.js?v=2026.31"></script>
+  <script src="/js/pwa.js?v=2026.31"></script>
+  <script src="/js/app.js?v=2026.31"></script>
 </body>
 </html>
