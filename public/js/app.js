@@ -538,7 +538,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.31');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.32');
       }
       await navigator.serviceWorker.ready;
 
@@ -1458,8 +1458,8 @@ function testGatewayWebhookPing() {
 }
 
 // 4. Carregamento dos Dados da Dashboard Real (10 Indicadores)
-async function loadDashboardData() {
-  const res = await API.get('/api/dashboard/metrics');
+async function loadDashboardData(period = currentDashboardRealPeriod) {
+  const res = await API.get('/api/dashboard/metrics?period=' + encodeURIComponent(period));
   if (!res || !res.indicators) return;
 
   const ind = res.indicators;
@@ -3162,33 +3162,50 @@ window.loadScenarioPreset = function(preset) {
   showToastAlert(`Cenário ${preset} carregado! Taxa de aprovação: ${TestDashboardState.taxaAprovacao}`);
 };
 
-// Gráfico Vetorial SVG de Volume e Receita em Tempo Real
+// Gráfico Vetorial SVG de Volume e Receita em Tempo Real (Curva Bézier Neon Fluida)
 function renderRevenueChartSVG() {
   const container = document.getElementById('dashboard2RevenueChartContainer');
   if (!container) return;
 
-  const sales = (TestDashboardState.recentSales || []).filter(s => s.statusKey === 'approved' || s.isApproved).slice(0, 15).reverse();
+  const currentPeriod = TestDashboardState.currentPeriodFilter || 'today';
+  let sales = (TestDashboardState.recentSales || []).filter(s => s.statusKey === 'approved' || s.isApproved);
 
-  if (sales.length < 2) {
+  const width = container.clientWidth || 600;
+  const height = 180;
+  const padX = 40;
+  const padY = 28;
+
+  if (sales.length === 0) {
     container.innerHTML = `
-      <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); font-size:0.85rem; padding:1.5rem; text-align:center;">
-        <span style="font-size:1.5rem; margin-bottom:0.5rem; opacity:0.6;">📈</span>
-        <span>A curva de receita será traçada automaticamente conforme as notificações forem pingadas.</span>
-      </div>
+      <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible;">
+        <defs>
+          <linearGradient id="emptyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a855f7" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#a855f7" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="rgba(255,255,255,0.08)" />
+        <path d="M ${padX} ${height - padY} Q ${width / 2} ${height - padY - 12} ${width - padX} ${height - padY}" fill="none" stroke="rgba(168,85,247,0.3)" stroke-width="2" stroke-dasharray="4,4" />
+        <text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#71717a" font-size="12" font-weight="600">
+          Aguardando notificações de vendas para traçar curva em tempo real
+        </text>
+      </svg>
     `;
+    const badge = document.getElementById('chartRevenueTotalBadge');
+    if (badge) badge.textContent = 'R$ 0,00';
     return;
   }
 
+  const sortedSales = sales.slice(0, 20).reverse();
   let cum = 0;
-  const points = sales.map((s, idx) => {
+  const points = sortedSales.map((s, idx) => {
     cum += s.amount;
-    return { x: idx, y: cum, label: s.time, amt: s.amount };
+    return { x: idx, y: cum, label: s.time || `#${idx + 1}`, amt: s.amount };
   });
 
-  const width = container.clientWidth || 500;
-  const height = 180;
-  const padX = 40;
-  const padY = 25;
+  if (points.length === 1) {
+    points.unshift({ x: -1, y: 0, label: 'Início', amt: 0 });
+  }
 
   const maxVal = Math.max(...points.map(p => p.y), 100);
   const minVal = 0;
@@ -3196,33 +3213,67 @@ function renderRevenueChartSVG() {
   const getSvgX = (idx) => padX + (idx / (points.length - 1)) * (width - padX * 2);
   const getSvgY = (val) => height - padY - ((val - minVal) / (maxVal - minVal)) * (height - padY * 2);
 
-  const pathD = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${getSvgX(idx)} ${getSvgY(p.y)}`).join(' ');
-  const areaD = `${pathD} L ${getSvgX(points.length - 1)} ${height - padY} L ${getSvgX(0)} ${height - padY} Z`;
+  // Geração de Curva Spline Cúbica Bézier Ultra-Suave
+  let pathD = `M ${getSvgX(0)} ${getSvgY(points[0].y)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const x0 = getSvgX(i);
+    const y0 = getSvgY(points[i].y);
+    const x1 = getSvgX(i + 1);
+    const y1 = getSvgY(points[i + 1].y);
+    const cp1x = x0 + (x1 - x0) / 2;
+    const cp1y = y0;
+    const cp2x = x0 + (x1 - x0) / 2;
+    const cp2y = y1;
+    pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x1} ${y1}`;
+  }
+
+  const lastX = getSvgX(points.length - 1);
+  const areaD = `${pathD} L ${lastX} ${height - padY} L ${getSvgX(0)} ${height - padY} Z`;
+  const peakPoint = points[points.length - 1];
 
   container.innerHTML = `
     <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible;">
       <defs>
         <linearGradient id="chartNeonGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#a855f7" stop-opacity="0.45"/>
+          <stop offset="60%" stop-color="#9333ea" stop-opacity="0.12"/>
           <stop offset="100%" stop-color="#a855f7" stop-opacity="0.0"/>
         </linearGradient>
+        <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <line x1="${padX}" y1="${getSvgY(maxVal * 0.75)}" x2="${width - padX}" y2="${getSvgY(maxVal * 0.75)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
-      <line x1="${padX}" y1="${getSvgY(maxVal * 0.25)}" x2="${width - padX}" y2="${getSvgY(maxVal * 0.25)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
-      <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="rgba(255,255,255,0.15)" />
-      
+
+      <line x1="${padX}" y1="${getSvgY(maxVal * 0.66)}" x2="${width - padX}" y2="${getSvgY(maxVal * 0.66)}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3,3" />
+      <line x1="${padX}" y1="${getSvgY(maxVal * 0.33)}" x2="${width - padX}" y2="${getSvgY(maxVal * 0.33)}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3,3" />
+      <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="rgba(255,255,255,0.08)" />
+
       <path d="${areaD}" fill="url(#chartNeonGrad)" />
-      <path d="${pathD}" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-      
+      <path d="${pathD}" fill="none" stroke="#a855f7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#neonGlow)" />
+
       ${points.map((p, idx) => `
-        <circle cx="${getSvgX(idx)}" cy="${getSvgY(p.y)}" r="4" fill="#a855f7" stroke="#0f0c20" stroke-width="2" />
+        <circle cx="${getSvgX(idx)}" cy="${getSvgY(p.y)}" r="4.5" fill="#a855f7" stroke="#ffffff" stroke-width="2" />
       `).join('')}
 
-      <text x="${getSvgX(0)}" y="${height - 8}" fill="#94a3b8" font-size="10" font-family="monospace">${points[0].label}</text>
-      <text x="${getSvgX(points.length - 1)}" y="${height - 8}" text-anchor="end" fill="#c084fc" font-size="10" font-family="monospace">${points[points.length - 1].label}</text>
-      <text x="${width - padX}" y="${getSvgY(points[points.length - 1].y) - 8}" text-anchor="end" fill="#4ade80" font-size="11" font-weight="bold">R$ ${points[points.length - 1].y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</text>
+      <circle cx="${lastX}" cy="${getSvgY(peakPoint.y)}" r="8" fill="rgba(168,85,247,0.3)" />
+      <circle cx="${lastX}" cy="${getSvgY(peakPoint.y)}" r="5" fill="#4ade80" stroke="#ffffff" stroke-width="2" />
+
+      <text x="${getSvgX(0)}" y="${height - 8}" fill="#71717a" font-size="11" font-weight="600">${points[0].label}</text>
+      <text x="${lastX}" y="${height - 8}" text-anchor="end" fill="#c084fc" font-size="11" font-weight="600">${peakPoint.label}</text>
+      <text x="${lastX}" y="${Math.max(16, getSvgY(peakPoint.y) - 10)}" text-anchor="end" fill="#4ade80" font-size="12" font-weight="800">
+        R$ ${peakPoint.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+      </text>
     </svg>
   `;
+
+  const badge = document.getElementById('chartRevenueTotalBadge');
+  if (badge) {
+    badge.textContent = `R$ ${cum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  }
 }
 
 // Barra de Conversão Multissegmentada
@@ -3462,3 +3513,72 @@ if (document.readyState === 'loading') {
 } else {
   startApp();
 }
+
+
+// ========================================================
+// CONTROLE DE PERÍODOS DE FATURAMENTO (DASHBOARD 1 E 2)
+// ========================================================
+let currentDashboardRealPeriod = 'today';
+let currentDashboardTestPeriod = 'today';
+
+async function setDashboardPeriod(period, btnElement, mode) {
+  if (mode === 'real') {
+    currentDashboardRealPeriod = period;
+    const pills = document.querySelectorAll('#realDashboardPeriodPills .pill-btn');
+    pills.forEach(p => {
+      const oc = p.getAttribute('onclick') || '';
+      p.classList.toggle('active', oc.includes(`'${period}'`));
+    });
+    const select = document.querySelector('#pane-dashboard .period-dropdown');
+    if (select) select.value = period;
+
+    await loadDashboardData(period);
+  } else {
+    currentDashboardTestPeriod = period;
+    TestDashboardState.currentPeriodFilter = period;
+    const pills = document.querySelectorAll('#testDashboardPeriodPills .pill-btn');
+    pills.forEach(p => {
+      const oc = p.getAttribute('onclick') || '';
+      p.classList.toggle('active', oc.includes(`'${period}'`));
+    });
+    const select = document.querySelector('#pane-test-dashboard .period-dropdown');
+    if (select) select.value = period;
+
+    updateTestDashboardUI();
+  }
+}
+window.setDashboardPeriod = setDashboardPeriod;
+
+let customDateModalMode = 'real';
+function openCustomDateModal(mode) {
+  customDateModalMode = mode;
+  const modal = document.getElementById('customDateModal');
+  if (modal) modal.style.display = 'flex';
+}
+window.openCustomDateModal = openCustomDateModal;
+
+function closeCustomDateModal() {
+  const modal = document.getElementById('customDateModal');
+  if (modal) modal.style.display = 'none';
+}
+window.closeCustomDateModal = closeCustomDateModal;
+
+async function applyCustomDateFilter() {
+  const start = document.getElementById('customDateStart').value;
+  const end = document.getElementById('customDateEnd').value;
+  if (!start || !end) {
+    alert('Por favor, selecione a data inicial e a data final.');
+    return;
+  }
+  closeCustomDateModal();
+
+  if (customDateModalMode === 'real') {
+    await loadDashboardData(`custom&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  } else {
+    TestDashboardState.currentPeriodFilter = 'custom';
+    TestDashboardState.customStartDate = start;
+    TestDashboardState.customEndDate = end;
+    updateTestDashboardUI();
+  }
+}
+window.applyCustomDateFilter = applyCustomDateFilter;

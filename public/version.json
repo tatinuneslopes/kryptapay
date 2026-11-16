@@ -1,6 +1,6 @@
 {
-  "version": "2026.31",
-  "build": 1794787473093,
-  "release": "fix: restaurar navegacao instantanea de todos os botoes, 3D globe na Dashboard 2 e correcao 404 Vercel",
+  "version": "2026.32",
+  "build": 1794788274444,
+  "release": "feat: filtros de data funcionais em Dashboard 1 e 2, remocao de banners de simulacao e grafico ultra-top",
   "environment": "production"
 }

@@ -215,8 +215,29 @@ const server = http.createServer(async (req, res) => {
   // -------------------------------------------------------------
   if (pathname === '/api/dashboard/metrics' && method === 'GET') {
     const userId = currentUser ? currentUser.user_id : 'usr_merchant_demo';
+    const period = (parsedUrl.query && parsedUrl.query.period) || 'today';
+    const startDate = parsedUrl.query && parsedUrl.query.start;
+    const endDate = parsedUrl.query && parsedUrl.query.end;
 
-    // Os indicadores obrigatoriamente filtram is_simulation = 0
+    let dateCondition = "";
+    const queryParams = [userId];
+
+    if (period === 'today') {
+      dateCondition = " AND date(created_at) = date('now') ";
+    } else if (period === 'yesterday') {
+      dateCondition = " AND date(created_at) = date('now', '-1 day') ";
+    } else if (period === '7d') {
+      dateCondition = " AND created_at >= datetime('now', '-7 days') ";
+    } else if (period === '30d') {
+      dateCondition = " AND created_at >= datetime('now', '-30 days') ";
+    } else if (period === 'month') {
+      dateCondition = " AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') ";
+    } else if (period.startsWith('custom') && startDate && endDate) {
+      dateCondition = " AND date(created_at) >= date(?) AND date(created_at) <= date(?) ";
+      queryParams.push(startDate, endDate);
+    }
+
+    // Os indicadores obrigatoriamente filtram is_simulation = 0 com filtro de data
     const stats = db.prepare(`
       SELECT 
         COALESCE(SUM(amount), 0) as total_volume,
@@ -231,8 +252,8 @@ const server = http.createServer(async (req, res) => {
         COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded_count,
         COUNT(*) as total_sales
       FROM transactions
-      WHERE user_id = ? AND is_simulation = 0
-    `).get(userId);
+      WHERE user_id = ? AND is_simulation = 0 ${dateCondition}
+    `).get(...queryParams);
 
     const userWallet = db.prepare(`SELECT balance_available, balance_pending, balance_retained FROM users WHERE id = ?`).get(userId) || {
       balance_available: 0.00, balance_pending: 0.00, balance_retained: 0.00

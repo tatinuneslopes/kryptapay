@@ -1358,3 +1358,104 @@
   display: block;
   border-radius: 12px;
 }
+
+
+/* ============================================================ */
+/* FILTROS DE PERÍODO EM PÍLULA ESCURA GLASSMORPHISM (OFICIAL) */
+/* ============================================================ */
+.dashboard-period-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.filter-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px;
+  padding: 0.28rem 0.4rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  flex-wrap: wrap;
+}
+
+/* Botões Pílula Escuros (Zero fundo branco, zero borda padrão de browser) */
+.pill-btn {
+  background: transparent !important;
+  color: #a1a1aa !important;
+  border: 1px solid transparent !important;
+  padding: 0.42rem 0.85rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  font-family: inherit !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.pill-btn:hover {
+  color: #ffffff !important;
+  background: rgba(168, 85, 247, 0.12) !important;
+  border-color: rgba(168, 85, 247, 0.25) !important;
+}
+
+.pill-btn.active {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(139, 92, 246, 0.5)) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(192, 132, 252, 0.6) !important;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+/* Seletor dropdown escuro com seta personalizada */
+.period-select-mobile-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.period-dropdown {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #e4e4e7 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  padding: 0.45rem 2.1rem 0.45rem 0.9rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  outline: none !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+}
+
+.period-dropdown:hover, .period-dropdown:focus {
+  border-color: rgba(168, 85, 247, 0.5) !important;
+  background: rgba(168, 85, 247, 0.1) !important;
+}
+
+.period-dropdown option {
+  background: #12101e !important;
+  color: #ffffff !important;
+}
+
+.dropdown-chevron {
+  position: absolute;
+  right: 0.75rem;
+  pointer-events: none;
+  font-size: 0.65rem;
+  color: #a1a1aa;
+}
