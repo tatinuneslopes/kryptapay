@@ -989,10 +989,18 @@ function stopServerRunner() {
     curDashState.updatedAt = Date.now();
     saveTestDashboardState(curDashState);
 
-    // Broadcast para todos os clientes conectados via SSE
+    // Broadcast para todos os clientes conectados via SSE (computador e celular simultaneamente)
+    const ssePayload1 = `data: ${JSON.stringify({ type: 'notification', notification: notif, testDashboardState: curDashState })}\n\n`;
+    const ssePayload2 = `data: ${JSON.stringify({ type: 'sync_notification', notification: notif, testDashboardState: curDashState })}\n\n`;
     const ssePayloadDash = `data: ${JSON.stringify({ type: 'test_dashboard_sync', state: curDashState })}\n\n`;
     for (const client of sseClients) {
-      try { client.write(ssePayloadDash); } catch (_) { sseClients.delete(client); }
+      try {
+        client.write(ssePayload1);
+        client.write(ssePayload2);
+        client.write(ssePayloadDash);
+      } catch (_) {
+        sseClients.delete(client);
+      }
     }
 
     try {

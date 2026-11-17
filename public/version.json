@@ -1,6 +1,6 @@
 {
-  "version": "2026.35",
-  "build": 1794881928153,
-  "release": "fix: botao zerar saldo posicionado acima dos periodos na Dashboard 2 e correcao definitiva do botao de menu nos 3 pontinhos no notebook",
+  "version": "2026.36",
+  "build": 1794883928153,
+  "release": "fix: sincronizacao bilateral completa celular e notebook sem auto-desligamento de notificacoes e broadcast nativo de pings",
   "environment": "production"
 }

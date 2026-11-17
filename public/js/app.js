@@ -338,6 +338,7 @@ function setupSSE() {
 // SINCRONIZAÇÃO MULTI-DISPOSITIVOS (COMPUTADOR <-> CELULAR)
 // ========================================================
 let isSyncInProgress = false;
+let lastUserToggleTime = 0;
 
 function setNotifSequenceUIState(isActive, stateInfo = {}) {
   const toggle = document.getElementById('toggleNotifSequence');
@@ -380,6 +381,9 @@ function setNotifSequenceUIState(isActive, stateInfo = {}) {
 
 function handleServerSimulationState(state) {
   if (!state) return;
+  const isRunningLocal = (typeof notifSeqTimer !== 'undefined' && notifSeqTimer !== null);
+  const timeSinceUserToggle = Date.now() - lastUserToggleTime;
+
   if (state.active) {
     setNotifSequenceUIState(true, state);
     notifSeqIntervalSec = state.intervalSeconds || notifSeqIntervalSec || 5;
@@ -399,6 +403,10 @@ function handleServerSimulationState(state) {
       }, () => Math.round(notifSeqIntervalSec * 1000));
     }
   } else {
+    // Se o usuário clicou para LIGAR nos últimos 8 segundos, ignora evento de desligamento desatualizado
+    if (timeSinceUserToggle < 8000 && isRunningLocal) {
+      return;
+    }
     setNotifSequenceUIState(false);
     BackgroundNotificationEngine.stop();
     if (simTimerWorker) {
@@ -449,6 +457,9 @@ async function fetchCrossDeviceSync() {
         // Se veio de OUTRO dispositivo (ex: disparado no Notebook e recebido no Celular):
         if (n.deviceId !== myDeviceId) {
           if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+          if (typeof NotificationAudio !== 'undefined' && NotificationAudio.playCashSound) {
+            NotificationAudio.playCashSound();
+          }
           await sendNativePhoneNotification(n);
           addTestSale(n);
           if (!AppState.notificationsHistory) AppState.notificationsHistory = [];
@@ -493,6 +504,9 @@ function handleIncomingNotification(data) {
   // Se veio de outro dispositivo (ex: notebook) ou do servidor:
   if (notif.deviceId !== myDeviceId) {
     if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+    if (typeof NotificationAudio !== 'undefined' && NotificationAudio.playCashSound) {
+      NotificationAudio.playCashSound();
+    }
     sendNativePhoneNotification(notif);
     addTestSale(notif);
   }
@@ -551,7 +565,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.35');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.36');
       }
       await navigator.serviceWorker.ready;
 
@@ -975,6 +989,7 @@ let lastSeqTickTime = 0;
 
 // Função acionada pelo controle deslizante de notificações (Arraste para Direita LIGA / Esquerda DESLIGA)
 function handleNotifSequenceToggle(isOn) {
+  lastUserToggleTime = Date.now();
   if (isOn) {
     startNotificationSequence();
   } else {
@@ -984,6 +999,7 @@ function handleNotifSequenceToggle(isOn) {
 
 // Iniciar sequência de notificações contínua
 async function startNotificationSequence() {
+  lastUserToggleTime = Date.now();
   // Solicita permissão de push se ainda não concedida (sem travar a execução)
   if ('Notification' in window && Notification.permission !== 'granted') {
     try {
@@ -1131,6 +1147,7 @@ function updateNotifSeqProgressUI(customStatus) {
 
 // Parar disparos
 function stopNotificationSequence(completed = false) {
+  lastUserToggleTime = Date.now();
   API.post('/api/notifications/sequence/stop', {}).catch(() => {});
   BackgroundNotificationEngine.stop();
   if (simTimerWorker) {
@@ -2667,10 +2684,7 @@ function saveUserSettings() {
 // ------------------------------------------------------------------
 // ESTADO E FUNÇÕES DA DASHBOARD 2 (SINCRONIZAÇÃO CELULAR <-> COMPUTADOR)
 // ------------------------------------------------------------------
-const GLOBAL_CLOUD_RELAY_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a1e09f1bc933d7';
-
 const GlobalSyncBridge = {
-  cloudUrl: GLOBAL_CLOUD_RELAY_URL,
   lastPushTime: 0,
   isPushing: false,
   isPolling: false,
@@ -2679,11 +2693,26 @@ const GlobalSyncBridge = {
     if (this.isPolling) return;
     this.isPolling = true;
     try {
-      const res = await fetch(this.cloudUrl + '?t=' + Date.now(), { cache: 'no-store' });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.data) {
-          this.applyCloudState(json.data);
+      // 1. Sincronizar dados financeiros e métricas da Dashboard 2 diretamente com o servidor
+      const dashRes = await API.get('/api/test-dashboard/state');
+      if (dashRes && dashRes.state) {
+        this.applyCloudState(dashRes.state);
+      }
+
+      // 2. Sincronizar estado do botão deslizante de notificações
+      const runnerRes = await API.get('/api/notifications/sequence/status');
+      if (runnerRes && runnerRes.state) {
+        const cloudActive = !!runnerRes.state.active;
+        const isRunningLocal = (typeof notifSeqTimer !== 'undefined' && notifSeqTimer !== null);
+        const timeSinceUserToggle = Date.now() - lastUserToggleTime;
+
+        // Se o operador clicou no botão recentemente (últimos 8 segundos), preserva a ação local
+        if (timeSinceUserToggle > 8000) {
+          if (cloudActive && !isRunningLocal) {
+            handleServerSimulationState(runnerRes.state);
+          } else if (!cloudActive && isRunningLocal) {
+            handleServerSimulationState(runnerRes.state);
+          }
         }
       }
     } catch (_) {
@@ -2694,31 +2723,21 @@ const GlobalSyncBridge = {
 
   async pushToCloud(state) {
     if (this.isPushing) return;
-    const now = Date.now();
     this.isPushing = true;
-    this.lastPushTime = now;
+    this.lastPushTime = Date.now();
     try {
-      const payload = {
-        name: 'kryptapay_test_dashboard',
-        data: {
-          faturamentoTotal: state.faturamentoTotal || 0,
-          saldoDisponivel: state.saldoDisponivel || 0,
-          saldoPendente: 0,
-          saldoRetencao: state.saldoRetencao || 0,
-          vendasAprovadas: state.vendasAprovadas || 0,
-          vendasPendentes: 0,
-          recentSales: Array.isArray(state.recentSales) ? state.recentSales.slice(0, 50) : [],
-          sequenceActive: (typeof notifSeqTimer !== 'undefined' && notifSeqTimer !== null),
-          durationLabel: (typeof notifSeqDurationLabel !== 'undefined' ? notifSeqDurationLabel : '2 Dias (48h)'),
-          intervalSeconds: (typeof notifSeqIntervalSec !== 'undefined' ? notifSeqIntervalSec : 5),
-          updatedAt: now,
-          resetAt: state.resetAt || 0
-        }
-      };
-      await fetch(this.cloudUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      await API.post('/api/test-dashboard/sync', {
+        faturamentoTotal: state.faturamentoTotal || 0,
+        saldoDisponivel: state.saldoDisponivel || 0,
+        saldoPendente: state.saldoPendente || 0,
+        saldoRetencao: state.saldoRetencao || 0,
+        vendasAprovadas: state.vendasAprovadas || 0,
+        vendasRecusadas: state.vendasRecusadas || 0,
+        vendasPendentes: state.vendasPendentes || 0,
+        totalReembolsos: state.totalReembolsos || 0,
+        totalChargebacks: state.totalChargebacks || 0,
+        recentSales: Array.isArray(state.recentSales) ? state.recentSales.slice(0, 50) : [],
+        force: false
       });
     } catch (_) {
     } finally {
@@ -2728,60 +2747,7 @@ const GlobalSyncBridge = {
 
   applyCloudState(cloudData) {
     if (!cloudData) return;
-    const cloudFaturamento = parseFloat(cloudData.faturamentoTotal) || 0;
-    const cloudAprovadas = parseInt(cloudData.vendasAprovadas, 10) || 0;
-    const cloudResetAt = parseInt(cloudData.resetAt, 10) || 0;
-
-    // Reset global se o botão "Zerar" foi clicado
-    if (cloudResetAt > 0 && cloudFaturamento === 0 && cloudAprovadas === 0) {
-      const localLastSale = parseInt(localStorage.getItem('krypta_last_sale_time') || '0', 10);
-      if (cloudResetAt > localLastSale) {
-        TestDashboardState.faturamentoTotal = 0;
-        TestDashboardState.saldoDisponivel = 0;
-        TestDashboardState.saldoPendente = 0;
-        TestDashboardState.saldoRetencao = 0;
-        TestDashboardState.vendasAprovadas = 0;
-        TestDashboardState.vendasPendentes = 0;
-        TestDashboardState.recentSales = [];
-        saveTestDashboardStateLocally();
-        updateTestDashboardUI();
-        return;
-      }
-    }
-
-    // Se a nuvem tem dados maiores ou mais recentes (ex: notebook recebendo os R$ 641.506+ do celular):
-    if (cloudFaturamento >= TestDashboardState.faturamentoTotal || cloudAprovadas > TestDashboardState.vendasAprovadas) {
-      const changed = (TestDashboardState.faturamentoTotal !== cloudFaturamento || TestDashboardState.vendasAprovadas !== cloudAprovadas);
-      TestDashboardState.faturamentoTotal = cloudFaturamento;
-      TestDashboardState.saldoDisponivel = parseFloat(cloudData.saldoDisponivel) || (cloudFaturamento * 0.95);
-      TestDashboardState.saldoPendente = 0;
-      TestDashboardState.saldoRetencao = parseFloat(cloudData.saldoRetencao) || (cloudFaturamento * 0.05);
-      TestDashboardState.vendasAprovadas = cloudAprovadas;
-      TestDashboardState.vendasPendentes = 0;
-      if (Array.isArray(cloudData.recentSales) && cloudData.recentSales.length > 0) {
-        TestDashboardState.recentSales = cloudData.recentSales;
-      }
-      saveTestDashboardStateLocally();
-      if (changed) {
-        updateTestDashboardUI();
-      }
-    } else if (TestDashboardState.faturamentoTotal > cloudFaturamento) {
-      // Se o celular local acumulou novas vendas, envia para a nuvem
-      this.pushToCloud(TestDashboardState);
-    }
-
-    // Sincronizar o botãozinho deslizante de disparo entre celular e notebook
-    if (typeof cloudData.sequenceActive === 'boolean') {
-      const isRunningLocal = (typeof notifSeqTimer !== 'undefined' && notifSeqTimer !== null);
-      if (cloudData.sequenceActive && !isRunningLocal) {
-        setNotifSequenceUIState(true, {
-          durationLabel: cloudData.durationLabel || '2 Dias (48h)',
-          intervalSeconds: cloudData.intervalSeconds || 5
-        });
-      } else if (!cloudData.sequenceActive && isRunningLocal) {
-        stopNotificationSequence(false);
-      }
-    }
+    applyServerTestDashboardState(cloudData);
   }
 };
 
