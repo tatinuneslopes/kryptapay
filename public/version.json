@@ -1,6 +1,6 @@
 {
-  "version": "2026.34",
-  "build": 1794881545238,
-  "release": "feat: ativacao dos 3 pontinhos no notebook e computador com menu dropdown completo de navegacao",
+  "version": "2026.35",
+  "build": 1794881928153,
+  "release": "fix: botao zerar saldo posicionado acima dos periodos na Dashboard 2 e correcao definitiva do botao de menu nos 3 pontinhos no notebook",
   "environment": "production"
 }

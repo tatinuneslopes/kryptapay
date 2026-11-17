@@ -11,29 +11,23 @@ function toggleSidebarMenu(e) {
   const sidebar = document.querySelector('.sidebar');
   const backdrop = document.getElementById('sidebarBackdrop');
 
-  const isDropdownOpen = dropdown && dropdown.style.display === 'block';
+  const isDropdownOpen = dropdown && (dropdown.style.display === 'block');
+  const isSidebarOpen = sidebar && (sidebar.classList.contains('mobile-open') || sidebar.classList.contains('sidebar-drawer-open'));
 
-  if (dropdown) {
-    if (isDropdownOpen) {
-      dropdown.style.display = 'none';
-    } else {
-      dropdown.style.display = 'block';
+  if (isDropdownOpen || isSidebarOpen) {
+    if (dropdown) dropdown.style.display = 'none';
+    if (sidebar) {
+      sidebar.classList.remove('mobile-open', 'sidebar-drawer-open');
     }
-  }
-
-  if (sidebar) {
-    const isSidebarOpen = sidebar.classList.contains('mobile-open') || sidebar.classList.contains('sidebar-drawer-open');
-    if (isSidebarOpen || isDropdownOpen) {
-      sidebar.classList.remove('mobile-open');
-      sidebar.classList.remove('sidebar-drawer-open');
-      if (backdrop) backdrop.style.display = 'none';
-      document.body.style.overflow = '';
-    } else {
+    if (backdrop) backdrop.style.display = 'none';
+    document.body.style.overflow = '';
+  } else {
+    if (dropdown) dropdown.style.display = 'block';
+    if (sidebar) {
       sidebar.classList.remove('collapsed');
-      sidebar.classList.add('mobile-open');
-      sidebar.classList.add('sidebar-drawer-open');
-      if (backdrop) backdrop.style.display = 'block';
+      sidebar.classList.add('mobile-open', 'sidebar-drawer-open');
     }
+    if (backdrop) backdrop.style.display = 'block';
   }
 }
 window.toggleSidebarMenu = toggleSidebarMenu;
@@ -197,11 +191,11 @@ function setupNavigation() {
   }
 
   const menuBtn = document.getElementById('mobileMenuBtn');
-  if (menuBtn && !menuBtn.dataset.bound) {
-    menuBtn.dataset.bound = 'true';
-    menuBtn.addEventListener('click', (e) => {
+  if (menuBtn) {
+    // Garantir que toggleSidebarMenu esteja conectado sem disparar em dobro
+    menuBtn.onclick = function(e) {
       toggleSidebarMenu(e);
-    });
+    };
   }
 }
 
@@ -557,7 +551,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.34');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.35');
       }
       await navigator.serviceWorker.ready;
 
@@ -1343,29 +1337,23 @@ function toggleSidebarMenu(e) {
   const sidebar = document.querySelector('.sidebar');
   const backdrop = document.getElementById('sidebarBackdrop');
 
-  const isDropdownOpen = dropdown && dropdown.style.display === 'block';
+  const isDropdownOpen = dropdown && (dropdown.style.display === 'block');
+  const isSidebarOpen = sidebar && (sidebar.classList.contains('mobile-open') || sidebar.classList.contains('sidebar-drawer-open'));
 
-  if (dropdown) {
-    if (isDropdownOpen) {
-      dropdown.style.display = 'none';
-    } else {
-      dropdown.style.display = 'block';
+  if (isDropdownOpen || isSidebarOpen) {
+    if (dropdown) dropdown.style.display = 'none';
+    if (sidebar) {
+      sidebar.classList.remove('mobile-open', 'sidebar-drawer-open');
     }
-  }
-
-  if (sidebar) {
-    const isSidebarOpen = sidebar.classList.contains('mobile-open') || sidebar.classList.contains('sidebar-drawer-open');
-    if (isSidebarOpen || isDropdownOpen) {
-      sidebar.classList.remove('mobile-open');
-      sidebar.classList.remove('sidebar-drawer-open');
-      if (backdrop) backdrop.style.display = 'none';
-      document.body.style.overflow = '';
-    } else {
+    if (backdrop) backdrop.style.display = 'none';
+    document.body.style.overflow = '';
+  } else {
+    if (dropdown) dropdown.style.display = 'block';
+    if (sidebar) {
       sidebar.classList.remove('collapsed');
-      sidebar.classList.add('mobile-open');
-      sidebar.classList.add('sidebar-drawer-open');
-      if (backdrop) backdrop.style.display = 'block';
+      sidebar.classList.add('mobile-open', 'sidebar-drawer-open');
     }
+    if (backdrop) backdrop.style.display = 'block';
   }
 }
 window.toggleSidebarMenu = toggleSidebarMenu;
