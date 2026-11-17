@@ -1,6 +1,6 @@
 {
-  "version": "2026.32",
-  "build": 1794788274444,
-  "release": "feat: filtros de data funcionais em Dashboard 1 e 2, remocao de banners de simulacao e grafico ultra-top",
+  "version": "2026.33",
+  "build": 1794881122453,
+  "release": "feat: botaozinho pequenininho para zerar faturamento da Dashboard 2 e reiniciar contagem de vendas",
   "environment": "production"
 }

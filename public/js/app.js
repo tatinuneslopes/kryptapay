@@ -538,7 +538,7 @@ async function sendNativePhoneNotification(notifObj) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw.js?v=2026.32');
+        reg = await navigator.serviceWorker.register('/sw.js?v=2026.33');
       }
       await navigator.serviceWorker.ready;
 
@@ -2970,7 +2970,11 @@ async function resetTestDashboard() {
   try {
     await API.post('/api/test-dashboard/reset', {});
   } catch (_) {}
+  if (typeof showToastAlert === 'function') {
+    showToastAlert('🔄 Dashboard 2 zerada! Faturamento reiniciado para R$ 0,00.');
+  }
 }
+window.resetTestDashboard = resetTestDashboard;
 
 function addTestSale(notif) {
   const rawAmt = typeof notif.rawAmount === 'number' ? notif.rawAmount : (parseFloat(String(notif.amount || '').replace(/[^0-9,.-]/g, '').replace(',', '.')) || 97.00);

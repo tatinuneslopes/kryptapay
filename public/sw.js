@@ -1,5 +1,5 @@
 // KryptaPay Service Worker - PWA & Push Notifications com Logomarca Oficial
-const CACHE_NAME = 'kryptapay-v2026.32';
+const CACHE_NAME = 'kryptapay-v2026.33';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
