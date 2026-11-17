@@ -1,6 +1,6 @@
 {
-  "version": "2026.33",
-  "build": 1794881122453,
-  "release": "feat: botaozinho pequenininho para zerar faturamento da Dashboard 2 e reiniciar contagem de vendas",
+  "version": "2026.34",
+  "build": 1794881545238,
+  "release": "feat: ativacao dos 3 pontinhos no notebook e computador com menu dropdown completo de navegacao",
   "environment": "production"
 }
